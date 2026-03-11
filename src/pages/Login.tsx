@@ -70,7 +70,7 @@ export default function Login() {
                   <h1 className="text-slate-900 dark:text-slate-50 text-3xl font-bold tracking-tight mb-2">Home Sales Ready</h1>
                   <p className="text-primary font-medium text-base leading-relaxed mb-3">Prepare your property before it goes on the market.</p>
                   <p className="text-slate-600 dark:text-slate-400 text-base font-normal leading-normal">
-                    Our AI-driven platform helps you identify and fix property issues to maximize your sale price before listing.
+                    Our AI-driven platform helps you identify and clarify property issues to ensure you are sales ready before listing.
                   </p>
                 </div>
               </div>
@@ -167,7 +167,7 @@ export default function Login() {
               </div>
               <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-6 text-center">
                 <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed italic">
-                  By continuing, you agree to our Terms of Service and Privacy Policy. Our AI recommendations are based on market data analysis and should be verified by a local real estate professional.
+                  By continuing, you agree to our Terms of Service and Privacy Policy. Our AI recommendations are based on market data analysis and should be verified by a property professional.
                 </p>
                 <div className="flex items-center justify-center gap-4">
                   <div className="flex items-center gap-1.5">
