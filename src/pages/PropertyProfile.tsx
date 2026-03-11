@@ -11,13 +11,13 @@ export default function PropertyProfile() {
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   
   const [formData, setFormData] = useState({
-    street_address: '',
+    address: '',
     postcode: '',
     property_type: 'Detached House',
     bedrooms: 3,
     bathrooms: 2,
     tenure: 'Freehold',
-    heating_system: 'Gas Central Heating',
+    heating: 'Gas Central Heating',
     drainage: 'Mains Sewerage',
     recent_works: '',
   });
@@ -39,13 +39,13 @@ export default function PropertyProfile() {
 
         if (data) {
           setFormData({
-            street_address: data.street_address || '',
+            address: data.address || '',
             postcode: data.postcode || '',
             property_type: data.property_type || 'Detached House',
             bedrooms: data.bedrooms || 3,
             bathrooms: data.bathrooms || 2,
             tenure: data.tenure || 'Freehold',
-            heating_system: data.heating_system || 'Gas Central Heating',
+            heating: data.heating || 'Gas Central Heating',
             drainage: data.drainage || 'Mains Sewerage',
             recent_works: data.recent_works || '',
           });
@@ -154,8 +154,8 @@ export default function PropertyProfile() {
             <div className="md:col-span-2">
               <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Street Address</label>
               <input 
-                name="street_address"
-                value={formData.street_address}
+                name="address"
+                value={formData.address}
                 onChange={handleChange}
                 className="w-full px-3 py-2 text-sm rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all" 
                 placeholder="e.g. 42 Willow Lane" 
@@ -251,8 +251,8 @@ export default function PropertyProfile() {
             <div>
               <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Heating System</label>
               <select 
-                name="heating_system"
-                value={formData.heating_system}
+                name="heating"
+                value={formData.heating}
                 onChange={handleChange}
                 className="w-full px-3 py-2 text-sm rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all"
               >

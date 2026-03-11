@@ -13,6 +13,8 @@ export default function Login() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  const isSupabaseConfigured = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY;
+
   // Redirect if already logged in
   if (user) {
     navigate('/seller/dashboard');
@@ -73,6 +75,12 @@ export default function Login() {
                 </div>
               </div>
               
+              {!isSupabaseConfigured && (
+                <div className="p-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-sm">
+                  <strong>Supabase is not configured.</strong> Please add <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> to your environment variables to enable authentication and database features.
+                </div>
+              )}
+
               <div className="flex flex-col gap-3 w-full">
                 {showEmailForm ? (
                   <form onSubmit={handleEmailAuth} className="flex flex-col gap-4">

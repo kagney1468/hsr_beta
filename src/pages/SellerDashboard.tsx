@@ -60,10 +60,10 @@ export default function SellerDashboard() {
         let score = 0;
         let completedCount = 0;
         
-        const profileComplete = !!(profile?.full_name && profile?.phone_number);
+        const profileComplete = !!(profile?.full_name && profile?.phone);
         if (profileComplete) { score += 25; completedCount++; }
 
-        const propertyComplete = !!(propData?.street_address && propData?.property_type);
+        const propertyComplete = !!(propData?.address && propData?.property_type);
         if (propertyComplete) { score += 25; completedCount++; }
 
         const hasID = docs?.some(d => d.category === 'ID');
@@ -71,7 +71,7 @@ export default function SellerDashboard() {
         const documentsComplete = !!(hasID && hasOwnership);
         if (documentsComplete) { score += 25; completedCount++; }
 
-        const declarationComplete = !!(declaration?.agreed_to_accuracy && declaration?.agreed_to_ai_suggestions);
+        const declarationComplete = !!(declaration?.confirms_accuracy && declaration?.confirms_ai_review);
         if (declarationComplete) { score += 25; completedCount++; }
 
         setReadiness({
@@ -280,7 +280,7 @@ export default function SellerDashboard() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h3 className="text-xl font-black text-slate-900 tracking-tight">
-                    {property?.street_address || 'Add your property details'}
+                    {property?.address || 'Add your property details'}
                   </h3>
                   <p className="text-slate-400 text-sm font-medium flex items-center gap-1.5 mt-1.5">
                     <span className="material-symbols-outlined text-slate-300">location_on</span>

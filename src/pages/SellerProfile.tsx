@@ -14,7 +14,7 @@ export default function SellerProfile() {
   const [formData, setFormData] = useState({
     full_name: '',
     phone: '',
-    address: '',
+    contact_preference: 'email',
   });
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export default function SellerProfile() {
           setFormData({
             full_name: data.full_name || '',
             phone: data.phone || '',
-            address: data.address || '',
+            contact_preference: data.contact_preference || 'email',
           });
         }
       } catch (error) {
@@ -49,7 +49,7 @@ export default function SellerProfile() {
     loadProfile();
   }, [user]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
@@ -66,6 +66,7 @@ export default function SellerProfile() {
         .upsert({
           id: user.id,
           email: user.email,
+          role: 'seller',
           ...formData,
           updated_at: new Date().toISOString(),
         });
@@ -140,15 +141,17 @@ export default function SellerProfile() {
             </div>
             
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Primary Address</label>
-              <textarea 
-                name="address"
-                value={formData.address}
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Contact Preference</label>
+              <select 
+                name="contact_preference"
+                value={formData.contact_preference}
                 onChange={handleChange}
-                rows={3}
-                className="p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-zinc-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
-                placeholder="123 Main St, City, State, ZIP"
-              />
+                className="h-11 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-zinc-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/50"
+              >
+                <option value="email">Email</option>
+                <option value="phone">Phone</option>
+                <option value="sms">SMS</option>
+              </select>
             </div>
           </div>
         </SectionContainer>

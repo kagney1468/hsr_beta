@@ -80,7 +80,7 @@ export default function Certificate() {
           <div className="w-full max-w-md p-6 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm my-8">
             <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Property Address</p>
             <p className="text-xl font-bold text-slate-900 dark:text-white">
-              {property?.street_address || 'Address Not Provided'}
+              {property?.address || 'Address Not Provided'}
             </p>
             <p className="text-slate-500">
               {property?.city ? `${property.city}, ` : ''}

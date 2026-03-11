@@ -10,8 +10,8 @@ export default function FinalDeclaration() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   
-  const [agreedToAccuracy, setAgreedToAccuracy] = useState(false);
-  const [agreedToAiSuggestions, setAgreedToAiSuggestions] = useState(false);
+  const [confirmsAccuracy, setConfirmsAccuracy] = useState(false);
+  const [confirmsAiReview, setConfirmsAiReview] = useState(false);
 
   useEffect(() => {
     async function loadDeclaration() {
@@ -29,8 +29,8 @@ export default function FinalDeclaration() {
         }
 
         if (data) {
-          setAgreedToAccuracy(data.agreed_to_accuracy || false);
-          setAgreedToAiSuggestions(data.agreed_to_ai_suggestions || false);
+          setConfirmsAccuracy(data.confirms_accuracy || false);
+          setConfirmsAiReview(data.confirms_ai_review || false);
         }
       } catch (error) {
         console.error('Error loading declaration:', error);
@@ -45,7 +45,7 @@ export default function FinalDeclaration() {
   const handleSign = async () => {
     if (!user) return;
     
-    if (!agreedToAccuracy || !agreedToAiSuggestions) {
+    if (!confirmsAccuracy || !confirmsAiReview) {
       setMessage({ type: 'error', text: 'Please agree to all statements to proceed.' });
       return;
     }
@@ -67,8 +67,8 @@ export default function FinalDeclaration() {
         const { error: updateError } = await supabase
           .from('seller_declarations')
           .update({
-            agreed_to_accuracy: agreedToAccuracy,
-            agreed_to_ai_suggestions: agreedToAiSuggestions,
+            confirms_accuracy: confirmsAccuracy,
+            confirms_ai_review: confirmsAiReview,
             signed_at: new Date().toISOString(),
           })
           .eq('id', existingDecl.id);
@@ -78,8 +78,8 @@ export default function FinalDeclaration() {
           .from('seller_declarations')
           .insert({
             user_id: user.id,
-            agreed_to_accuracy: agreedToAccuracy,
-            agreed_to_ai_suggestions: agreedToAiSuggestions,
+            confirms_accuracy: confirmsAccuracy,
+            confirms_ai_review: confirmsAiReview,
             signed_at: new Date().toISOString(),
           });
         error = insertError;
@@ -127,9 +127,9 @@ export default function FinalDeclaration() {
               <div className="pt-0.5">
                 <input 
                   className="h-6 w-6 rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-primary checked:bg-primary checked:border-primary focus:ring-0 focus:ring-offset-0 focus:outline-none transition-all cursor-pointer" 
-                  checked={agreedToAccuracy}
-                  onChange={(e) => setAgreedToAccuracy(e.target.checked)}
-                  style={{ appearance: 'none', WebkitAppearance: 'none', backgroundSize: '100% 100%', backgroundImage: agreedToAccuracy ? 'var(--checkbox-tick-svg)' : 'none' }} 
+                  checked={confirmsAccuracy}
+                  onChange={(e) => setConfirmsAccuracy(e.target.checked)}
+                  style={{ appearance: 'none', WebkitAppearance: 'none', backgroundSize: '100% 100%', backgroundImage: confirmsAccuracy ? 'var(--checkbox-tick-svg)' : 'none' }} 
                   type="checkbox"
                 />
               </div>
@@ -141,9 +141,9 @@ export default function FinalDeclaration() {
               <div className="pt-0.5">
                 <input 
                   className="h-6 w-6 rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-primary checked:bg-primary checked:border-primary focus:ring-0 focus:ring-offset-0 focus:outline-none transition-all cursor-pointer" 
-                  checked={agreedToAiSuggestions}
-                  onChange={(e) => setAgreedToAiSuggestions(e.target.checked)}
-                  style={{ appearance: 'none', WebkitAppearance: 'none', backgroundSize: '100% 100%', backgroundImage: agreedToAiSuggestions ? 'var(--checkbox-tick-svg)' : 'none' }} 
+                  checked={confirmsAiReview}
+                  onChange={(e) => setConfirmsAiReview(e.target.checked)}
+                  style={{ appearance: 'none', WebkitAppearance: 'none', backgroundSize: '100% 100%', backgroundImage: confirmsAiReview ? 'var(--checkbox-tick-svg)' : 'none' }} 
                   type="checkbox"
                 />
               </div>
@@ -157,7 +157,7 @@ export default function FinalDeclaration() {
       <div className="flex flex-col gap-4">
         <button 
           onClick={handleSign}
-          disabled={saving || !agreedToAccuracy || !agreedToAiSuggestions}
+          disabled={saving || !confirmsAccuracy || !confirmsAiReview}
           className="w-full flex items-center justify-center rounded-xl h-14 bg-primary text-white text-base font-bold leading-normal tracking-wide shadow-lg shadow-primary/20 hover:brightness-110 active:scale-[0.98] transition-all uppercase text-sm disabled:opacity-50 disabled:cursor-not-allowed" 
           style={{ backgroundColor: '#1E6F5C' }}
         >

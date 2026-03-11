@@ -54,11 +54,11 @@ export default function ReadinessDashboard() {
         let score = 0;
         let missing = [];
         
-        const profileComplete = !!(profile?.full_name && profile?.phone_number);
+        const profileComplete = !!(profile?.full_name && profile?.phone);
         if (profileComplete) score += 25;
         else missing.push('Complete Seller Profile');
 
-        const propertyComplete = !!(propData?.street_address && propData?.property_type);
+        const propertyComplete = !!(propData?.address && propData?.property_type);
         if (propertyComplete) score += 25;
         else missing.push('Complete Property Details');
 
@@ -71,7 +71,7 @@ export default function ReadinessDashboard() {
           if (!hasOwnership) missing.push('Upload Proof of Ownership');
         }
 
-        const declarationComplete = !!(declaration?.agreed_to_accuracy && declaration?.agreed_to_ai_suggestions);
+        const declarationComplete = !!(declaration?.confirms_accuracy && declaration?.confirms_ai_review);
         if (declarationComplete) score += 25;
         else missing.push('Sign Seller Declaration');
 
@@ -118,7 +118,7 @@ export default function ReadinessDashboard() {
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold">Overall Preparation Status</h2>
-            <p className="text-sm text-slate-500">Property: {property?.street_address || 'Not specified'}</p>
+            <p className="text-sm text-slate-500">Property: {property?.address || 'Not specified'}</p>
           </div>
           <div className="text-right">
             <span className="text-3xl font-black text-primary">{readiness.score}%</span>
