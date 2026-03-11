@@ -1,7 +1,59 @@
+import { useState, useEffect } from 'react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Certificate() {
+  const { user } = useAuth();
+  const [property, setProperty] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('properties')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          throw error;
+        }
+
+        if (data) {
+          setProperty(data);
+        }
+      } catch (error) {
+        console.error('Error loading property:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadData();
+  }, [user]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  const today = new Date().toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric'
+  });
+
+  // Generate a mock certificate ID based on user ID
+  const certId = user ? `HSR-${user.id.substring(0, 4).toUpperCase()}-${user.id.substring(4, 6).toUpperCase()}` : 'HSR-PENDING';
+
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
       <div className="text-center">
@@ -27,29 +79,34 @@ export default function Certificate() {
 
           <div className="w-full max-w-md p-6 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm my-8">
             <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Property Address</p>
-            <p className="text-xl font-bold text-slate-900 dark:text-white">742 Evergreen Terrace</p>
-            <p className="text-slate-500">Springfield, SP 12345</p>
+            <p className="text-xl font-bold text-slate-900 dark:text-white">
+              {property?.street_address || 'Address Not Provided'}
+            </p>
+            <p className="text-slate-500">
+              {property?.city ? `${property.city}, ` : ''}
+              {property?.postcode || ''}
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-8 w-full max-w-md text-left border-t border-slate-200 dark:border-slate-700 pt-8">
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Issued Date</p>
-              <p className="font-bold text-slate-900 dark:text-white">October 24, 2024</p>
+              <p className="font-bold text-slate-900 dark:text-white">{today}</p>
             </div>
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Certificate ID</p>
-              <p className="font-mono font-bold text-slate-900 dark:text-white">HSR-9942-AB</p>
+              <p className="font-mono font-bold text-slate-900 dark:text-white">{certId}</p>
             </div>
           </div>
         </div>
       </Card>
 
       <div className="flex justify-center gap-4 mt-8">
-        <Button variant="outline" className="gap-2">
+        <Button variant="outline" className="gap-2" onClick={() => window.print()}>
           <span className="material-symbols-outlined">download</span>
           Download PDF
         </Button>
-        <Button variant="primary" className="gap-2">
+        <Button variant="primary" className="gap-2" onClick={() => alert('Sharing functionality would go here.')}>
           <span className="material-symbols-outlined">share</span>
           Share Certificate
         </Button>

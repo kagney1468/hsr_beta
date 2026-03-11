@@ -1,12 +1,118 @@
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function FinalDeclaration() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  
+  const [agreedToAccuracy, setAgreedToAccuracy] = useState(false);
+  const [agreedToAiSuggestions, setAgreedToAiSuggestions] = useState(false);
+
+  useEffect(() => {
+    async function loadDeclaration() {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('seller_declarations')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          throw error;
+        }
+
+        if (data) {
+          setAgreedToAccuracy(data.agreed_to_accuracy || false);
+          setAgreedToAiSuggestions(data.agreed_to_ai_suggestions || false);
+        }
+      } catch (error) {
+        console.error('Error loading declaration:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadDeclaration();
+  }, [user]);
+
+  const handleSign = async () => {
+    if (!user) return;
+    
+    if (!agreedToAccuracy || !agreedToAiSuggestions) {
+      setMessage({ type: 'error', text: 'Please agree to all statements to proceed.' });
+      return;
+    }
+    
+    setSaving(true);
+    setMessage(null);
+    
+    try {
+      // Check if declaration exists
+      const { data: existingDecl } = await supabase
+        .from('seller_declarations')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      let error;
+      
+      if (existingDecl) {
+        const { error: updateError } = await supabase
+          .from('seller_declarations')
+          .update({
+            agreed_to_accuracy: agreedToAccuracy,
+            agreed_to_ai_suggestions: agreedToAiSuggestions,
+            signed_at: new Date().toISOString(),
+          })
+          .eq('id', existingDecl.id);
+        error = updateError;
+      } else {
+        const { error: insertError } = await supabase
+          .from('seller_declarations')
+          .insert({
+            user_id: user.id,
+            agreed_to_accuracy: agreedToAccuracy,
+            agreed_to_ai_suggestions: agreedToAiSuggestions,
+            signed_at: new Date().toISOString(),
+          });
+        error = insertError;
+      }
+
+      if (error) throw error;
+      
+      navigate('/seller/dashboard');
+    } catch (error: any) {
+      console.error('Error saving declaration:', error);
+      setMessage({ type: 'error', text: error.message || 'Failed to save declaration.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="flex flex-col max-w-[640px] w-full mx-auto animate-pulse">Loading declaration...</div>;
+  }
+
   return (
     <div className="flex flex-col max-w-[640px] w-full mx-auto">
       <div className="mb-8">
         <h1 className="text-slate-900 dark:text-slate-100 text-3xl font-bold leading-tight mb-2 text-center">Final Declaration</h1>
         <p className="text-slate-500 dark:text-slate-400 text-base text-center">Please review and electronically sign the following statements to finalize your property listing.</p>
       </div>
+      
+      {message && (
+        <div className={`p-4 mb-6 rounded-lg border ${message.type === 'success' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
+          {message.text}
+        </div>
+      )}
+
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-2xl mb-12">
         <div className="p-6 md:p-8">
           <div className="mb-8 text-center">
@@ -19,7 +125,13 @@ export default function FinalDeclaration() {
           <div className="space-y-4">
             <label className="flex items-start gap-4 p-5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 cursor-pointer hover:border-primary/30 hover:bg-white dark:hover:bg-slate-800 transition-all group">
               <div className="pt-0.5">
-                <input className="h-6 w-6 rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-primary checked:bg-primary checked:border-primary focus:ring-0 focus:ring-offset-0 focus:outline-none transition-all cursor-pointer" onChange={(e) => e.target.style.backgroundImage = e.target.checked ? 'var(--checkbox-tick-svg)' : 'none'} style={{ appearance: 'none', WebkitAppearance: 'none', backgroundSize: '100% 100%' }} type="checkbox"/>
+                <input 
+                  className="h-6 w-6 rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-primary checked:bg-primary checked:border-primary focus:ring-0 focus:ring-offset-0 focus:outline-none transition-all cursor-pointer" 
+                  checked={agreedToAccuracy}
+                  onChange={(e) => setAgreedToAccuracy(e.target.checked)}
+                  style={{ appearance: 'none', WebkitAppearance: 'none', backgroundSize: '100% 100%', backgroundImage: agreedToAccuracy ? 'var(--checkbox-tick-svg)' : 'none' }} 
+                  type="checkbox"
+                />
               </div>
               <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-base font-medium">
                 I confirm that all information provided regarding the property is accurate and complete to the best of my knowledge.
@@ -27,7 +139,13 @@ export default function FinalDeclaration() {
             </label>
             <label className="flex items-start gap-4 p-5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 cursor-pointer hover:border-primary/30 hover:bg-white dark:hover:bg-slate-800 transition-all group">
               <div className="pt-0.5">
-                <input className="h-6 w-6 rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-primary checked:bg-primary checked:border-primary focus:ring-0 focus:ring-offset-0 focus:outline-none transition-all cursor-pointer" onChange={(e) => e.target.style.backgroundImage = e.target.checked ? 'var(--checkbox-tick-svg)' : 'none'} style={{ appearance: 'none', WebkitAppearance: 'none', backgroundSize: '100% 100%' }} type="checkbox"/>
+                <input 
+                  className="h-6 w-6 rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-primary checked:bg-primary checked:border-primary focus:ring-0 focus:ring-offset-0 focus:outline-none transition-all cursor-pointer" 
+                  checked={agreedToAiSuggestions}
+                  onChange={(e) => setAgreedToAiSuggestions(e.target.checked)}
+                  style={{ appearance: 'none', WebkitAppearance: 'none', backgroundSize: '100% 100%', backgroundImage: agreedToAiSuggestions ? 'var(--checkbox-tick-svg)' : 'none' }} 
+                  type="checkbox"
+                />
               </div>
               <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-base font-medium">
                 I acknowledge and accept the AI-generated suggestions for my property listing and have reviewed them for correctness and quality.
@@ -37,7 +155,14 @@ export default function FinalDeclaration() {
         </div>
       </div>
       <div className="flex flex-col gap-4">
-        <Link to="/seller/dashboard" className="w-full flex items-center justify-center rounded-xl h-14 bg-primary text-white text-base font-bold leading-normal tracking-wide shadow-lg shadow-primary/20 hover:brightness-110 active:scale-[0.98] transition-all uppercase text-sm" style={{ backgroundColor: '#1E6F5C' }}>Confirm &amp; Sign Listing</Link>
+        <button 
+          onClick={handleSign}
+          disabled={saving || !agreedToAccuracy || !agreedToAiSuggestions}
+          className="w-full flex items-center justify-center rounded-xl h-14 bg-primary text-white text-base font-bold leading-normal tracking-wide shadow-lg shadow-primary/20 hover:brightness-110 active:scale-[0.98] transition-all uppercase text-sm disabled:opacity-50 disabled:cursor-not-allowed" 
+          style={{ backgroundColor: '#1E6F5C' }}
+        >
+          {saving ? 'Signing...' : 'Confirm & Sign Listing'}
+        </button>
         <Link to="/seller/documents" className="w-full flex items-center justify-center rounded-xl h-12 bg-transparent text-slate-500 dark:text-slate-400 text-sm font-semibold hover:text-primary transition-colors">
           Go back and edit details
         </Link>
