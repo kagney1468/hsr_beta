@@ -70,7 +70,7 @@ export default function Login() {
                   <h1 className="text-slate-900 dark:text-slate-50 text-3xl font-bold tracking-tight mb-2">Home Sales Ready</h1>
                   <p className="text-primary font-medium text-base leading-relaxed mb-3">Prepare your property before it goes on the market.</p>
                   <p className="text-slate-600 dark:text-slate-400 text-base font-normal leading-normal">
-                    Our AI-driven platform helps you identify and clarify property issues to ensure you are sales ready before listing.
+                    Our AI-driven platform helps you collate all the necessary paperwork and documentation to ensure that you are sales ready before listing. Be ahead of the market.
                   </p>
                 </div>
               </div>
