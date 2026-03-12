@@ -187,6 +187,26 @@ export default function DocumentUpload() {
     }
   };
 
+  const handleView = async (doc: Document) => {
+    try {
+      setError(null);
+      const { data, error } = await supabase.storage
+        .from('property-documents')
+        .createSignedUrl(doc.storage_path, 60); // 60 seconds expiry
+
+      if (error) throw error;
+      
+      if (data?.signedUrl) {
+        window.open(data.signedUrl, '_blank');
+      } else {
+        throw new Error('Could not generate secure link');
+      }
+    } catch (err: any) {
+      console.error('Error viewing document:', err);
+      setError(err.message || 'Failed to open document');
+    }
+  };
+
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -338,7 +358,11 @@ export default function DocumentUpload() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button className="p-1.5 text-slate-400 hover:text-primary transition-colors" title="View">
+                  <button 
+                    onClick={() => handleView(doc)}
+                    className="p-1.5 text-slate-400 hover:text-primary transition-colors" 
+                    title="View"
+                  >
                     <span className="material-symbols-outlined text-lg">visibility</span>
                   </button>
                   <button 
