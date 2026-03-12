@@ -25,7 +25,7 @@ export default function SellerDashboard() {
         const { data: profile } = await supabase
           .from('users')
           .select('*')
-          .eq('id', user.id)
+          .eq('auth_user_id', user.id)
           .single();
 
         // Fetch Property

@@ -25,7 +25,7 @@ export default function SellerProfile() {
         const { data, error } = await supabase
           .from('users')
           .select('*')
-          .eq('id', user.id)
+          .eq('auth_user_id', user.id)
           .single();
 
         if (error && error.code !== 'PGRST116') {
@@ -38,6 +38,19 @@ export default function SellerProfile() {
             phone: data.phone || '',
             contact_preference: data.contact_preference || 'email',
           });
+        } else {
+          // Create a new row if it doesn't exist yet
+          const { error: insertError } = await supabase
+            .from('users')
+            .insert({
+              auth_user_id: user.id,
+              email: user.email,
+              role: 'seller'
+            });
+            
+          if (insertError) {
+            console.error('Error creating initial profile:', insertError);
+          }
         }
       } catch (error) {
         console.error('Error loading profile:', error);
@@ -61,15 +74,38 @@ export default function SellerProfile() {
     setMessage(null);
     
     try {
-      const { error } = await supabase
+      // Check if user exists to get the primary key if needed, or just update by auth_user_id
+      const { data: existingUser } = await supabase
         .from('users')
-        .upsert({
-          id: user.id,
-          email: user.email,
-          role: 'seller',
-          ...formData,
-          updated_at: new Date().toISOString(),
-        });
+        .select('id')
+        .eq('auth_user_id', user.id)
+        .single();
+
+      let error;
+
+      if (existingUser) {
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({
+            email: user.email,
+            role: 'seller',
+            ...formData,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existingUser.id);
+        error = updateError;
+      } else {
+        const { error: insertError } = await supabase
+          .from('users')
+          .insert({
+            auth_user_id: user.id,
+            email: user.email,
+            role: 'seller',
+            ...formData,
+            updated_at: new Date().toISOString(),
+          });
+        error = insertError;
+      }
 
       if (error) throw error;
       
