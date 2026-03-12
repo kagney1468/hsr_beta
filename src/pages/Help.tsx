@@ -89,9 +89,12 @@ export default function Help() {
       <div className="mt-12 p-6 bg-primary/5 border border-primary/10 rounded-xl text-center">
         <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">Still need help?</h3>
         <p className="text-slate-500 dark:text-slate-400 mb-4 text-sm">If you couldn't find the answer you were looking for, our support team is here to help.</p>
-        <button className="px-6 py-2 bg-primary text-white text-sm font-bold rounded-lg shadow-md hover:bg-primary/90 transition-all">
+        <a 
+          href="mailto:hello@homesalesready.co.uk?subject=Home%20Sales%20Ready%20Support"
+          className="inline-block px-6 py-2 bg-primary text-white text-sm font-bold rounded-lg shadow-md hover:bg-primary/90 transition-all"
+        >
           Contact Support
-        </button>
+        </a>
       </div>
     </div>
   );

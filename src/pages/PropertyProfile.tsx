@@ -476,7 +476,7 @@ export default function PropertyProfile() {
       </form>
       {/* Footer/Support */}
       <div className="mt-12 text-center pb-12">
-        <p className="text-slate-400 text-sm">Need help with these details? <a className="text-primary font-bold underline" href="#">Contact our support team</a></p>
+        <p className="text-slate-400 text-sm">Need help with these details? <a className="text-primary font-bold underline" href="mailto:hello@homesalesready.co.uk?subject=Home%20Sales%20Ready%20Support">Contact our support team</a></p>
       </div>
     </div>
   );
