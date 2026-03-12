@@ -12,16 +12,44 @@ export default function FinalDeclaration() {
   
   const [confirmsAccuracy, setConfirmsAccuracy] = useState(false);
   const [confirmsAiReview, setConfirmsAiReview] = useState(false);
+  const [propertyId, setPropertyId] = useState<string | null>(null);
+  const [noProperty, setNoProperty] = useState(false);
 
   useEffect(() => {
     async function loadDeclaration() {
       if (!user) return;
       
       try {
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('id')
+          .eq('auth_user_id', user.id)
+          .single();
+          
+        if (userError || !userData) {
+          setNoProperty(true);
+          setLoading(false);
+          return;
+        }
+
+        const { data: propData, error: propError } = await supabase
+          .from('properties')
+          .select('id')
+          .eq('user_id', userData.id)
+          .single();
+
+        if (propError || !propData) {
+          setNoProperty(true);
+          setLoading(false);
+          return;
+        }
+
+        setPropertyId(propData.id);
+
         const { data, error } = await supabase
           .from('seller_declarations')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('property_id', propData.id)
           .single();
 
         if (error && error.code !== 'PGRST116') {
@@ -43,7 +71,7 @@ export default function FinalDeclaration() {
   }, [user]);
 
   const handleSign = async () => {
-    if (!user) return;
+    if (!user || !propertyId) return;
     
     if (!confirmsAccuracy || !confirmsAiReview) {
       setMessage({ type: 'error', text: 'Please agree to all statements to proceed.' });
@@ -58,7 +86,7 @@ export default function FinalDeclaration() {
       const { data: existingDecl } = await supabase
         .from('seller_declarations')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('property_id', propertyId)
         .single();
 
       let error;
@@ -77,7 +105,7 @@ export default function FinalDeclaration() {
         const { error: insertError } = await supabase
           .from('seller_declarations')
           .insert({
-            user_id: user.id,
+            property_id: propertyId,
             confirms_accuracy: confirmsAccuracy,
             confirms_ai_review: confirmsAiReview,
             signed_at: new Date().toISOString(),
@@ -87,7 +115,10 @@ export default function FinalDeclaration() {
 
       if (error) throw error;
       
-      navigate('/seller/dashboard');
+      setMessage({ type: 'success', text: 'Declaration saved successfully!' });
+      setTimeout(() => {
+        navigate('/seller/dashboard');
+      }, 1500);
     } catch (error: any) {
       console.error('Error saving declaration:', error);
       setMessage({ type: 'error', text: error.message || 'Failed to save declaration.' });
@@ -95,6 +126,23 @@ export default function FinalDeclaration() {
       setSaving(false);
     }
   };
+
+  if (noProperty) {
+    return (
+      <div className="flex flex-col max-w-[640px] w-full mx-auto p-10">
+        <div className="p-6 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg shadow-sm">
+          <h2 className="text-lg font-bold mb-2 flex items-center gap-2">
+            <span className="material-symbols-outlined">warning</span>
+            Property Profile Required
+          </h2>
+          <p className="mb-4">Please complete the property details before submitting the declaration.</p>
+          <Link to="/seller/property" className="inline-block px-4 py-2 bg-primary text-white rounded font-bold text-sm hover:bg-primary/90 transition-colors">
+            Go to Property Details
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return <div className="flex flex-col max-w-[640px] w-full mx-auto animate-pulse">Loading declaration...</div>;
