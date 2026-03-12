@@ -189,7 +189,7 @@ export default function SellerDashboard() {
               </div>
               <div>
                 <h4 className="font-bold text-slate-900">Property Details</h4>
-                <p className="text-xs text-slate-400">Room specs, dimensions, and features</p>
+                <p className="text-xs text-slate-400">Room details, work carried out, general info</p>
               </div>
             </div>
             {readiness.propertyComplete ? (
@@ -212,7 +212,7 @@ export default function SellerDashboard() {
               </div>
               <div>
                 <h4 className="font-bold text-slate-900">Documents</h4>
-                <p className="text-xs text-slate-400">Title deeds, tax records, and certificates</p>
+                <p className="text-xs text-slate-400">Title plans, building control certificates etc.</p>
               </div>
             </div>
             {readiness.documentsComplete ? (
