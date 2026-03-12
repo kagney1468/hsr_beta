@@ -14,6 +14,9 @@ import SellerProfile from './pages/SellerProfile';
 import Certificate from './pages/Certificate';
 import Help from './pages/Help';
 import SellerLayout from './layouts/SellerLayout';
+import AgentLayout from './layouts/AgentLayout';
+import AgentDashboard from './pages/AgentDashboard';
+import AgentPropertyDetail from './pages/AgentPropertyDetail';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -36,6 +39,13 @@ export default function App() {
               <Route path="readiness" element={<ReadinessDashboard />} />
               <Route path="certificate" element={<Certificate />} />
               <Route path="help" element={<Help />} />
+            </Route>
+
+            {/* Agent Routes */}
+            <Route path="/agent" element={<AgentLayout />}>
+              <Route index element={<Navigate to="/agent/dashboard" replace />} />
+              <Route path="dashboard" element={<AgentDashboard />} />
+              <Route path="property/:id" element={<AgentPropertyDetail />} />
             </Route>
           </Route>
 
