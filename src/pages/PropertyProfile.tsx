@@ -40,8 +40,11 @@ export default function PropertyProfile() {
           .eq('auth_user_id', user.id)
           .single();
           
-        if (userError) throw userError;
-        if (!userData) return;
+        if (userError || !userData) {
+          setMessage({ type: 'error', text: 'Seller profile must exist before saving property details.' });
+          setLoading(false);
+          return;
+        }
 
         const { data, error } = await supabase
           .from('properties')
@@ -112,7 +115,9 @@ export default function PropertyProfile() {
         .eq('auth_user_id', user.id)
         .single();
         
-      if (userError || !userData) throw new Error('User profile not found. Please complete your profile first.');
+      if (userError || !userData) {
+        throw new Error('Seller profile must exist before saving property details.');
+      }
 
       // Check if property exists
       const { data: existingProp } = await supabase
