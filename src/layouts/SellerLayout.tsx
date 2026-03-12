@@ -11,6 +11,7 @@ export default function SellerLayout() {
     { path: '/seller/declaration', label: 'Declaration', icon: 'draw' },
     { path: '/seller/readiness', label: 'Readiness', icon: 'fact_check' },
     { path: '/seller/certificate', label: 'Certificate', icon: 'verified' },
+    { path: '/seller/help', label: 'Help', icon: 'help' },
   ];
 
   return (

@@ -12,6 +12,7 @@ import FinalDeclaration from './pages/FinalDeclaration';
 import ReadinessDashboard from './pages/ReadinessDashboard';
 import SellerProfile from './pages/SellerProfile';
 import Certificate from './pages/Certificate';
+import Help from './pages/Help';
 import SellerLayout from './layouts/SellerLayout';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -34,6 +35,7 @@ export default function App() {
               <Route path="declaration" element={<FinalDeclaration />} />
               <Route path="readiness" element={<ReadinessDashboard />} />
               <Route path="certificate" element={<Certificate />} />
+              <Route path="help" element={<Help />} />
             </Route>
           </Route>
 
