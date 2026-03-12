@@ -27,6 +27,7 @@ export default function PropertyProfile() {
     council_tax_band: 'A',
     solar_pv: 'No',
     ev_charging: 'No',
+    lease_length_remaining: '',
   });
 
   useEffect(() => {
@@ -74,6 +75,7 @@ export default function PropertyProfile() {
             council_tax_band: data.council_tax_band || 'A',
             solar_pv: data.solar_pv || 'No',
             ev_charging: data.ev_charging || 'No',
+            lease_length_remaining: data.lease_length_remaining || '',
           });
         }
       } catch (error) {
@@ -107,6 +109,12 @@ export default function PropertyProfile() {
     
     setSaving(true);
     setMessage(null);
+    
+    if (redirect && formData.tenure === 'Leasehold' && !formData.lease_length_remaining) {
+      setMessage({ type: 'error', text: 'Please provide the remaining lease length to continue.' });
+      setSaving(false);
+      return;
+    }
     
     try {
       const { data: userData, error: userError } = await supabase
@@ -298,6 +306,19 @@ export default function PropertyProfile() {
                 <option value="Share of Freehold">Share of Freehold</option>
               </select>
             </div>
+            {formData.tenure === 'Leasehold' && (
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Lease Length Remaining (Years)</label>
+                <input 
+                  name="lease_length_remaining"
+                  value={formData.lease_length_remaining}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 text-sm rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all" 
+                  placeholder="e.g. 99" 
+                  type="number"
+                />
+              </div>
+            )}
           </div>
         </div>
         {/* Section 3: Infrastructure */}
@@ -342,7 +363,7 @@ export default function PropertyProfile() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 py-8 border-b border-slate-200 dark:border-slate-800">
           <div className="space-y-1">
             <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider">Recent Works</h3>
-            <p className="text-xs text-slate-500">Renovations and certificates from the last 5 years.</p>
+            <p className="text-xs text-slate-500">Renovations and works from the last 5 years.</p>
           </div>
           <div className="lg:col-span-2 space-y-4">
             <textarea 
@@ -353,11 +374,6 @@ export default function PropertyProfile() {
               placeholder="e.g. New boiler installed 2022, Kitchen renovation 2021..." 
               rows={4}
             ></textarea>
-            <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-lg p-6 text-center group hover:border-primary/50 transition-colors cursor-pointer">
-              <span className="material-symbols-outlined text-slate-300 group-hover:text-primary transition-colors mb-2">cloud_upload</span>
-              <p className="text-xs font-bold text-slate-600 dark:text-slate-400">Click to upload or drag and drop certificates</p>
-              <p className="text-[10px] text-slate-400 mt-1">PDF, JPG or PNG. Max 10MB per file.</p>
-            </div>
           </div>
         </div>
         {/* Section 5: Additional Details */}
