@@ -15,6 +15,10 @@ export default function SellerProfile() {
     full_name: '',
     phone: '',
     contact_preference: 'email',
+    home_address_line1: '',
+    home_address_line2: '',
+    home_city: '',
+    home_postcode: '',
   });
 
   useEffect(() => {
@@ -37,6 +41,10 @@ export default function SellerProfile() {
             full_name: data.full_name || '',
             phone: data.phone || '',
             contact_preference: data.contact_preference || 'email',
+            home_address_line1: data.home_address_line1 || '',
+            home_address_line2: data.home_address_line2 || '',
+            home_city: data.home_city || '',
+            home_postcode: data.home_postcode || '',
           });
         } else {
           // Create a new row if it doesn't exist yet
@@ -83,15 +91,17 @@ export default function SellerProfile() {
 
       let error;
 
+      const payload = {
+        email: user.email,
+        role: 'seller',
+        ...formData,
+        updated_at: new Date().toISOString(),
+      };
+
       if (existingUser) {
         const { error: updateError } = await supabase
           .from('users')
-          .update({
-            email: user.email,
-            role: 'seller',
-            ...formData,
-            updated_at: new Date().toISOString(),
-          })
+          .update(payload)
           .eq('id', existingUser.id);
         error = updateError;
       } else {
@@ -99,10 +109,7 @@ export default function SellerProfile() {
           .from('users')
           .insert({
             auth_user_id: user.id,
-            email: user.email,
-            role: 'seller',
-            ...formData,
-            updated_at: new Date().toISOString(),
+            ...payload
           });
         error = insertError;
       }
@@ -188,6 +195,63 @@ export default function SellerProfile() {
                 <option value="phone">Phone</option>
                 <option value="sms">SMS</option>
               </select>
+            </div>
+          </div>
+        </SectionContainer>
+
+        <SectionContainer 
+          title="Home Address" 
+          description="Your primary residential address."
+          className="border-t border-slate-100 dark:border-slate-800 mt-8 pt-8"
+        >
+          <div className="space-y-4 max-w-xl">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Address Line 1</label>
+              <input 
+                type="text" 
+                name="home_address_line1"
+                value={formData.home_address_line1}
+                onChange={handleChange}
+                className="h-11 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-zinc-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                placeholder="123 Main St"
+              />
+            </div>
+            
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Address Line 2 (Optional)</label>
+              <input 
+                type="text" 
+                name="home_address_line2"
+                value={formData.home_address_line2}
+                onChange={handleChange}
+                className="h-11 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-zinc-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                placeholder="Apt 4B"
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">City</label>
+                <input 
+                  type="text" 
+                  name="home_city"
+                  value={formData.home_city}
+                  onChange={handleChange}
+                  className="h-11 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-zinc-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="London"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Postcode</label>
+                <input 
+                  type="text" 
+                  name="home_postcode"
+                  value={formData.home_postcode}
+                  onChange={handleChange}
+                  className="h-11 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-zinc-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="SW1A 1AA"
+                />
+              </div>
             </div>
           </div>
         </SectionContainer>
