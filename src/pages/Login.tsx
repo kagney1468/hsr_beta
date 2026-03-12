@@ -5,10 +5,9 @@ import { useAuth } from '../contexts/AuthContext';
 
 export default function Login() {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showEmailForm, setShowEmailForm] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -25,27 +24,18 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setSuccessMessage(null);
 
     try {
-      if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: 'https://mvp2-delta.vercel.app/seller/dashboard'
-          }
-        });
-        if (error) throw error;
-        // If email confirmation is required, you might want to show a message here
-        navigate('/seller/dashboard');
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (error) throw error;
-        navigate('/seller/dashboard');
-      }
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: 'https://mvp2-delta.vercel.app/seller/dashboard'
+        }
+      });
+      if (error) throw error;
+      
+      setSuccessMessage('Check your email for your secure sign-in link.');
     } catch (err: any) {
       setError(err.message || 'An error occurred during authentication.');
     } finally {
@@ -86,60 +76,54 @@ export default function Login() {
 
               <div className="flex flex-col gap-3 w-full">
                 {showEmailForm ? (
-                  <form onSubmit={handleEmailAuth} className="flex flex-col gap-4">
-                    {error && (
-                      <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">
-                        {error}
+                  successMessage ? (
+                    <div className="flex flex-col items-center justify-center p-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl text-center gap-3">
+                      <span className="material-symbols-outlined text-4xl text-green-500">mark_email_read</span>
+                      <p className="text-green-800 dark:text-green-200 font-medium">{successMessage}</p>
+                      <button 
+                        type="button" 
+                        onClick={() => setSuccessMessage(null)}
+                        className="mt-2 text-sm text-green-700 dark:text-green-400 hover:underline font-semibold"
+                      >
+                        Try another email
+                      </button>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleEmailAuth} className="flex flex-col gap-4">
+                      {error && (
+                        <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">
+                          {error}
+                        </div>
+                      )}
+                      <div className="flex flex-col gap-1">
+                        <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Email</label>
+                        <input 
+                          type="email" 
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          required
+                          className="h-11 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-zinc-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                          placeholder="you@example.com"
+                        />
                       </div>
-                    )}
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Email</label>
-                      <input 
-                        type="email" 
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        className="h-11 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-zinc-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/50"
-                        placeholder="you@example.com"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Password</label>
-                      <input 
-                        type="password" 
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        className="h-11 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-zinc-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/50"
-                        placeholder="••••••••"
-                      />
-                    </div>
-                    <button 
-                      type="submit" 
-                      disabled={loading}
-                      className="h-11 mt-2 rounded-lg bg-primary text-white font-bold hover:bg-primary/90 transition-colors disabled:opacity-70"
-                    >
-                      {loading ? 'Please wait...' : (isSignUp ? 'Create Account' : 'Sign In')}
-                    </button>
-                    <div className="text-center mt-2">
                       <button 
-                        type="button" 
-                        onClick={() => setIsSignUp(!isSignUp)}
-                        className="text-sm text-primary hover:underline"
+                        type="submit" 
+                        disabled={loading}
+                        className="h-11 mt-2 rounded-lg bg-primary text-white font-bold hover:bg-primary/90 transition-colors disabled:opacity-70"
                       >
-                        {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+                        {loading ? 'Sending link...' : 'Send Magic Link'}
                       </button>
-                    </div>
-                    <div className="text-center mt-2">
-                      <button 
-                        type="button" 
-                        onClick={() => setShowEmailForm(false)}
-                        className="text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-                      >
-                        Back to all login options
-                      </button>
-                    </div>
-                  </form>
+                      <div className="text-center mt-2">
+                        <button 
+                          type="button" 
+                          onClick={() => setShowEmailForm(false)}
+                          className="text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                        >
+                          Back to all login options
+                        </button>
+                      </div>
+                    </form>
+                  )
                 ) : (
                   <>
                     <button type="button" className="flex items-center justify-center gap-3 w-full h-11 rounded-lg bg-white dark:bg-zinc-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 text-sm font-medium hover:bg-slate-50 dark:hover:bg-zinc-800 transition-all shadow-sm opacity-50 cursor-not-allowed" title="Coming soon">
