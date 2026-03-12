@@ -31,6 +31,9 @@ export default function Login() {
         const { error } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/seller/dashboard`
+          }
         });
         if (error) throw error;
         // If email confirmation is required, you might want to show a message here
