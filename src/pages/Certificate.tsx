@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import QRCode from 'react-qr-code';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { supabase } from '../lib/supabase';
@@ -7,6 +8,8 @@ import { useAuth } from '../contexts/AuthContext';
 export default function Certificate() {
   const { user } = useAuth();
   const [property, setProperty] = useState<any>(null);
+  const [sellerName, setSellerName] = useState<string>('');
+  const [shareToken, setShareToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -14,21 +17,60 @@ export default function Certificate() {
       if (!user) return;
       
       try {
-        const { data, error } = await supabase
-          .from('properties')
-          .select('*')
-          .eq('user_id', user.id)
+        // 1. Get user data
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('id, first_name, last_name')
+          .eq('auth_user_id', user.id)
           .single();
 
-        if (error && error.code !== 'PGRST116') {
-          throw error;
-        }
+        if (userError && userError.code !== 'PGRST116') throw userError;
+        
+        if (userData) {
+          setSellerName(`${userData.first_name || ''} ${userData.last_name || ''}`.trim() || 'Unknown Seller');
+          
+          // 2. Get property data
+          const { data: propData, error: propError } = await supabase
+            .from('properties')
+            .select('*')
+            .eq('user_id', userData.id)
+            .single();
 
-        if (data) {
-          setProperty(data);
+          if (propError && propError.code !== 'PGRST116') throw propError;
+
+          if (propData) {
+            setProperty(propData);
+            
+            // 3. Get or create share token
+            const { data: shareData, error: shareError } = await supabase
+              .from('shares')
+              .select('token')
+              .eq('property_id', propData.id)
+              .single();
+              
+            if (shareData) {
+              setShareToken(shareData.token);
+            } else if (shareError && shareError.code === 'PGRST116') {
+              // Create a new share token
+              const newToken = crypto.randomUUID();
+              const { data: newShare, error: insertError } = await supabase
+                .from('shares')
+                .insert({ property_id: propData.id, token: newToken })
+                .select('token')
+                .single();
+                
+              if (insertError) {
+                console.error('Error creating share token:', insertError);
+              } else if (newShare) {
+                setShareToken(newShare.token);
+              }
+            } else if (shareError) {
+              console.error('Error fetching share token:', shareError);
+            }
+          }
         }
       } catch (error) {
-        console.error('Error loading property:', error);
+        console.error('Error loading certificate data:', error);
       } finally {
         setLoading(false);
       }
@@ -97,7 +139,30 @@ export default function Certificate() {
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Certificate ID</p>
               <p className="font-mono font-bold text-slate-900 dark:text-white">{certId}</p>
             </div>
+            <div>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Seller Name</p>
+              <p className="font-bold text-slate-900 dark:text-white">{sellerName || 'Pending'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Status</p>
+              <p className="font-bold text-green-600 dark:text-green-400 flex items-center gap-1">
+                <span className="material-symbols-outlined text-sm">check_circle</span>
+                Home Sales Ready
+              </p>
+            </div>
           </div>
+
+          {shareToken && (
+            <div className="mt-8 pt-8 border-t border-slate-200 dark:border-slate-700 w-full max-w-md flex flex-col items-center">
+              <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Scan for Property File</p>
+              <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                <QRCode value={`${window.location.origin}/share/${shareToken}`} size={120} />
+              </div>
+              <p className="text-xs text-slate-500 mt-4 text-center">
+                Scan this QR code to view the complete Home Sales Ready property file.
+              </p>
+            </div>
+          )}
         </div>
       </Card>
 
@@ -106,7 +171,17 @@ export default function Certificate() {
           <span className="material-symbols-outlined">download</span>
           Download PDF
         </Button>
-        <Button variant="primary" className="gap-2" onClick={() => alert('Sharing functionality would go here.')}>
+        <Button 
+          variant="primary" 
+          className="gap-2" 
+          onClick={() => {
+            if (shareToken) {
+              window.open(`/share/${shareToken}`, '_blank');
+            } else {
+              alert('Share link is not ready yet.');
+            }
+          }}
+        >
           <span className="material-symbols-outlined">share</span>
           Share Certificate
         </Button>
