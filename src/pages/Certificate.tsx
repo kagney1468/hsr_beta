@@ -11,12 +11,14 @@ export default function Certificate() {
   const [sellerName, setSellerName] = useState<string>('');
   const [shareToken, setShareToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadData() {
       if (!user) return;
       
       try {
+        setErrorMsg(null);
         // 1. Get user data
         const { data: userData, error: userError } = await supabase
           .from('users')
@@ -26,48 +28,61 @@ export default function Certificate() {
 
         if (userError && userError.code !== 'PGRST116') throw userError;
         
-        if (userData) {
-          setSellerName(`${userData.first_name || ''} ${userData.last_name || ''}`.trim() || 'Unknown Seller');
+        if (!userData) {
+          setErrorMsg("Unable to generate share link because the seller or property record could not be found.");
+          return;
+        }
+
+        console.log('seller found', userData);
+        setSellerName(`${userData.first_name || ''} ${userData.last_name || ''}`.trim() || 'Unknown Seller');
+        
+        // 2. Get property data
+        const { data: propData, error: propError } = await supabase
+          .from('properties')
+          .select('*')
+          .eq('user_id', userData.id)
+          .single();
+
+        if (propError && propError.code !== 'PGRST116') throw propError;
+
+        if (!propData) {
+          setErrorMsg("Unable to generate share link because the seller or property record could not be found.");
+          return;
+        }
+
+        console.log('property found', propData);
+        setProperty(propData);
+        
+        // 3. Get or create share token
+        const { data: shareData, error: shareError } = await supabase
+          .from('shares')
+          .select('token')
+          .eq('property_id', propData.id)
+          .eq('active', true)
+          .single();
           
-          // 2. Get property data
-          const { data: propData, error: propError } = await supabase
-            .from('properties')
-            .select('*')
-            .eq('user_id', userData.id)
+        if (shareData) {
+          console.log('share found', shareData);
+          console.log('token value', shareData.token);
+          setShareToken(shareData.token);
+        } else if (shareError && shareError.code === 'PGRST116') {
+          // Create a new share token
+          const newToken = crypto.randomUUID();
+          const { data: newShare, error: insertError } = await supabase
+            .from('shares')
+            .insert({ property_id: propData.id, token: newToken, active: true })
+            .select('token')
             .single();
-
-          if (propError && propError.code !== 'PGRST116') throw propError;
-
-          if (propData) {
-            setProperty(propData);
             
-            // 3. Get or create share token
-            const { data: shareData, error: shareError } = await supabase
-              .from('shares')
-              .select('token')
-              .eq('property_id', propData.id)
-              .single();
-              
-            if (shareData) {
-              setShareToken(shareData.token);
-            } else if (shareError && shareError.code === 'PGRST116') {
-              // Create a new share token
-              const newToken = crypto.randomUUID();
-              const { data: newShare, error: insertError } = await supabase
-                .from('shares')
-                .insert({ property_id: propData.id, token: newToken })
-                .select('token')
-                .single();
-                
-              if (insertError) {
-                console.error('Error creating share token:', insertError);
-              } else if (newShare) {
-                setShareToken(newShare.token);
-              }
-            } else if (shareError) {
-              console.error('Error fetching share token:', shareError);
-            }
+          if (insertError) {
+            console.error('Error creating share token:', insertError);
+          } else if (newShare) {
+            console.log('share created', newShare);
+            console.log('token value', newShare.token);
+            setShareToken(newShare.token);
           }
+        } else if (shareError) {
+          console.error('Error fetching share token:', shareError);
         }
       } catch (error) {
         console.error('Error loading certificate data:', error);
@@ -98,6 +113,11 @@ export default function Certificate() {
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
+      {errorMsg && (
+        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-center font-medium">
+          {errorMsg}
+        </div>
+      )}
       <div className="text-center">
         <h1 className="text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Home Sales Ready Certificate</h1>
         <p className="text-slate-500 mt-1">Your official certificate proving your property is market-ready.</p>
@@ -160,6 +180,9 @@ export default function Certificate() {
               </div>
               <p className="text-xs text-slate-500 mt-4 text-center">
                 Scan this QR code to view the complete Home Sales Ready property file.
+              </p>
+              <p className="text-xs font-mono text-slate-500 mt-2 text-center break-all">
+                {`${window.location.origin}/share/${shareToken}`}
               </p>
             </div>
           )}
