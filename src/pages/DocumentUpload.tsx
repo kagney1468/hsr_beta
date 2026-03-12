@@ -5,13 +5,11 @@ import { useAuth } from '../contexts/AuthContext';
 
 interface Document {
   id: string;
+  property_id: string;
+  document_type: string;
   file_name: string;
-  file_path: string;
-  file_size: number;
-  content_type: string;
-  category: string;
-  status: string;
-  created_at: string;
+  storage_path: string;
+  uploaded_at: string;
 }
 
 export default function DocumentUpload() {
@@ -20,28 +18,81 @@ export default function DocumentUpload() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('ID');
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('EPC certificate');
+  const [propertyId, setPropertyId] = useState<string | null>(null);
+  const [noProperty, setNoProperty] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const tabs = ['ID', 'Proof of Ownership', 'Compliance', 'Planning', 'Guarantees', 'Condition Report', 'Optional'];
+  const tabs = [
+    'EPC certificate',
+    'Gas safety certificate',
+    'Electrical certificate / EICR',
+    'Planning / building regulation documents',
+    'Guarantees and warranties',
+    'FENSA / glazing certificates',
+    'Seller property notes',
+    'Other'
+  ];
 
   useEffect(() => {
-    if (user) {
+    async function init() {
+      if (!user) return;
+      setLoading(true);
+      try {
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('id')
+          .eq('auth_user_id', user.id)
+          .single();
+          
+        if (userError || !userData) {
+          setNoProperty(true);
+          setLoading(false);
+          return;
+        }
+
+        const { data: propData, error: propError } = await supabase
+          .from('properties')
+          .select('id')
+          .eq('user_id', userData.id)
+          .single();
+
+        if (propError || !propData) {
+          setNoProperty(true);
+          setLoading(false);
+          return;
+        }
+
+        setPropertyId(propData.id);
+      } catch (err) {
+        console.error('Error initializing:', err);
+        setError('Failed to load property details.');
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    init();
+  }, [user]);
+
+  useEffect(() => {
+    if (propertyId) {
       loadDocuments();
     }
-  }, [user, activeTab]);
+  }, [propertyId, activeTab]);
 
   const loadDocuments = async () => {
-    if (!user) return;
+    if (!propertyId) return;
     
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('documents')
         .select('*')
-        .eq('user_id', user.id)
-        .eq('category', activeTab)
-        .order('created_at', { ascending: false });
+        .eq('property_id', propertyId)
+        .eq('document_type', activeTab)
+        .order('uploaded_at', { ascending: false });
 
       if (error) throw error;
       setDocuments(data || []);
@@ -55,10 +106,11 @@ export default function DocumentUpload() {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files || files.length === 0 || !user) return;
+    if (!files || files.length === 0 || !user || !propertyId) return;
 
     setUploading(true);
     setError(null);
+    setSuccessMessage(null);
 
     try {
       for (let i = 0; i < files.length; i++) {
@@ -71,7 +123,7 @@ export default function DocumentUpload() {
 
         const fileExt = file.name.split('.').pop();
         const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-        const filePath = `${user.id}/${fileName}`;
+        const filePath = `${propertyId}/${fileName}`;
 
         // Upload to storage
         const { error: uploadError } = await supabase.storage
@@ -84,18 +136,17 @@ export default function DocumentUpload() {
         const { error: dbError } = await supabase
           .from('documents')
           .insert({
-            user_id: user.id,
+            property_id: propertyId,
+            document_type: activeTab,
             file_name: file.name,
-            file_path: filePath,
-            file_size: file.size,
-            content_type: file.type,
-            category: activeTab,
-            status: 'Pending Validation'
+            storage_path: filePath,
+            uploaded_at: new Date().toISOString()
           });
 
         if (dbError) throw dbError;
       }
       
+      setSuccessMessage('Documents uploaded successfully!');
       // Reload documents
       loadDocuments();
     } catch (err: any) {
@@ -116,7 +167,7 @@ export default function DocumentUpload() {
       // Delete from storage
       const { error: storageError } = await supabase.storage
         .from('property-documents')
-        .remove([doc.file_path]);
+        .remove([doc.storage_path]);
 
       if (storageError) throw storageError;
 
@@ -145,12 +196,30 @@ export default function DocumentUpload() {
   };
 
   const formatDate = (dateString: string) => {
+    if (!dateString) return '';
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
     });
   };
+
+  if (noProperty) {
+    return (
+      <div className="flex flex-col max-w-[960px] flex-1 gap-6 p-10">
+        <div className="p-6 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg shadow-sm">
+          <h2 className="text-lg font-bold mb-2 flex items-center gap-2">
+            <span className="material-symbols-outlined">warning</span>
+            Property Profile Required
+          </h2>
+          <p className="mb-4">Please complete the property details before uploading documents.</p>
+          <Link to="/seller/property" className="inline-block px-4 py-2 bg-primary text-white rounded font-bold text-sm hover:bg-primary/90 transition-colors">
+            Go to Property Details
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col max-w-[960px] flex-1 gap-6">
@@ -165,6 +234,12 @@ export default function DocumentUpload() {
         </div>
         <p className="text-slate-500 dark:text-slate-400 text-sm font-normal leading-normal">Only a few documents left to be market-ready.</p>
       </div>
+
+      {successMessage && (
+        <div className="p-4 bg-green-50 border border-green-200 text-green-800 rounded-lg">
+          {successMessage}
+        </div>
+      )}
 
       {error && (
         <div className="p-4 bg-red-50 border border-red-200 text-red-800 rounded-lg">
@@ -248,28 +323,17 @@ export default function DocumentUpload() {
             {documents.map(doc => (
               <div key={doc.id} className="flex items-center justify-between p-3 bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800 hover:border-primary/30 transition-colors">
                 <div className="flex items-center gap-3">
-                  <div className={`size-9 flex items-center justify-center rounded ${
-                    doc.status === 'Verified' 
-                      ? 'bg-slate-100 dark:bg-slate-800 text-slate-500' 
-                      : 'bg-amber-50 dark:bg-amber-900/20 text-amber-600'
-                  }`}>
+                  <div className="size-9 flex items-center justify-center rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
                     <span className="material-symbols-outlined text-xl">
-                      {doc.content_type.includes('image') ? 'image' : 'description'}
+                      description
                     </span>
                   </div>
                   <div className="flex flex-col">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate max-w-[200px] sm:max-w-xs">{doc.file_name}</p>
-                      <span className={`px-1.5 py-0.5 text-[10px] font-bold uppercase rounded ${
-                        doc.status === 'Verified'
-                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                          : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 animate-pulse'
-                      }`}>
-                        {doc.status}
-                      </span>
                     </div>
                     <p className="text-[11px] text-slate-400 font-mono">
-                      {formatFileSize(doc.file_size)} • UID: {doc.id.substring(0, 8).toUpperCase()} • {formatDate(doc.created_at)}
+                      UID: {doc.id.substring(0, 8).toUpperCase()} • {formatDate(doc.uploaded_at)}
                     </p>
                   </div>
                 </div>
