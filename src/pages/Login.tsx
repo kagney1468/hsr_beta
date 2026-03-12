@@ -32,7 +32,7 @@ export default function Login() {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/seller/dashboard`
+            emailRedirectTo: 'https://mvp2-delta.vercel.app/seller/dashboard'
           }
         });
         if (error) throw error;
