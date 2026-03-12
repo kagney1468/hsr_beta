@@ -11,7 +11,9 @@ export default function PropertyProfile() {
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   
   const [formData, setFormData] = useState({
-    address: '',
+    address_line1: '',
+    address_line2: '',
+    city: '',
     postcode: '',
     property_type: 'Detached House',
     bedrooms: 3,
@@ -20,6 +22,11 @@ export default function PropertyProfile() {
     heating: 'Gas Central Heating',
     drainage: 'Mains Sewerage',
     recent_works: '',
+    parking: '',
+    building_changes: '',
+    council_tax_band: 'A',
+    solar_pv: 'No',
+    ev_charging: 'No',
   });
 
   useEffect(() => {
@@ -27,10 +34,19 @@ export default function PropertyProfile() {
       if (!user) return;
       
       try {
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('id')
+          .eq('auth_user_id', user.id)
+          .single();
+          
+        if (userError) throw userError;
+        if (!userData) return;
+
         const { data, error } = await supabase
           .from('properties')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('user_id', userData.id)
           .single();
 
         if (error && error.code !== 'PGRST116') {
@@ -39,7 +55,9 @@ export default function PropertyProfile() {
 
         if (data) {
           setFormData({
-            address: data.address || '',
+            address_line1: data.address_line1 || '',
+            address_line2: data.address_line2 || '',
+            city: data.city || '',
             postcode: data.postcode || '',
             property_type: data.property_type || 'Detached House',
             bedrooms: data.bedrooms || 3,
@@ -48,6 +66,11 @@ export default function PropertyProfile() {
             heating: data.heating || 'Gas Central Heating',
             drainage: data.drainage || 'Mains Sewerage',
             recent_works: data.recent_works || '',
+            parking: data.parking || '',
+            building_changes: data.building_changes || '',
+            council_tax_band: data.council_tax_band || 'A',
+            solar_pv: data.solar_pv || 'No',
+            ev_charging: data.ev_charging || 'No',
           });
         }
       } catch (error) {
@@ -83,11 +106,19 @@ export default function PropertyProfile() {
     setMessage(null);
     
     try {
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('auth_user_id', user.id)
+        .single();
+        
+      if (userError || !userData) throw new Error('User profile not found. Please complete your profile first.');
+
       // Check if property exists
       const { data: existingProp } = await supabase
         .from('properties')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('user_id', userData.id)
         .single();
 
       let error;
@@ -105,8 +136,9 @@ export default function PropertyProfile() {
         const { error: insertError } = await supabase
           .from('properties')
           .insert({
-            user_id: user.id,
+            user_id: userData.id,
             ...formData,
+            updated_at: new Date().toISOString(),
           });
         error = insertError;
       }
@@ -152,13 +184,35 @@ export default function PropertyProfile() {
           </div>
           <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
-              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Street Address</label>
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Address Line 1</label>
               <input 
-                name="address"
-                value={formData.address}
+                name="address_line1"
+                value={formData.address_line1}
                 onChange={handleChange}
                 className="w-full px-3 py-2 text-sm rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all" 
                 placeholder="e.g. 42 Willow Lane" 
+                type="text"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Address Line 2</label>
+              <input 
+                name="address_line2"
+                value={formData.address_line2}
+                onChange={handleChange}
+                className="w-full px-3 py-2 text-sm rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all" 
+                placeholder="e.g. Apt 4B" 
+                type="text"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">City</label>
+              <input 
+                name="city"
+                value={formData.city}
+                onChange={handleChange}
+                className="w-full px-3 py-2 text-sm rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all" 
+                placeholder="e.g. London" 
                 type="text"
               />
             </div>
@@ -280,7 +334,7 @@ export default function PropertyProfile() {
           </div>
         </div>
         {/* Section 4: Maintenance */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 py-8 border-b border-slate-200 dark:border-slate-800">
           <div className="space-y-1">
             <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider">Recent Works</h3>
             <p className="text-xs text-slate-500">Renovations and certificates from the last 5 years.</p>
@@ -298,6 +352,79 @@ export default function PropertyProfile() {
               <span className="material-symbols-outlined text-slate-300 group-hover:text-primary transition-colors mb-2">cloud_upload</span>
               <p className="text-xs font-bold text-slate-600 dark:text-slate-400">Click to upload or drag and drop certificates</p>
               <p className="text-[10px] text-slate-400 mt-1">PDF, JPG or PNG. Max 10MB per file.</p>
+            </div>
+          </div>
+        </div>
+        {/* Section 5: Additional Details */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 py-8">
+          <div className="space-y-1">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider">Additional Details</h3>
+            <p className="text-xs text-slate-500">Other important property information.</p>
+          </div>
+          <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2">
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Building Changes / Extensions</label>
+              <textarea 
+                name="building_changes"
+                value={formData.building_changes}
+                onChange={handleChange}
+                className="w-full px-3 py-2 text-sm rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all resize-none" 
+                placeholder="e.g. Rear extension added in 2018..." 
+                rows={3}
+              ></textarea>
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Parking</label>
+              <input 
+                name="parking"
+                value={formData.parking}
+                onChange={handleChange}
+                className="w-full px-3 py-2 text-sm rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all" 
+                placeholder="e.g. Driveway for 2 cars" 
+                type="text"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Council Tax Band</label>
+              <select 
+                name="council_tax_band"
+                value={formData.council_tax_band}
+                onChange={handleChange}
+                className="w-full px-3 py-2 text-sm rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all"
+              >
+                <option value="A">Band A</option>
+                <option value="B">Band B</option>
+                <option value="C">Band C</option>
+                <option value="D">Band D</option>
+                <option value="E">Band E</option>
+                <option value="F">Band F</option>
+                <option value="G">Band G</option>
+                <option value="H">Band H</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Solar PV</label>
+              <select 
+                name="solar_pv"
+                value={formData.solar_pv}
+                onChange={handleChange}
+                className="w-full px-3 py-2 text-sm rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all"
+              >
+                <option value="No">No</option>
+                <option value="Yes">Yes</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">EV Charging</label>
+              <select 
+                name="ev_charging"
+                value={formData.ev_charging}
+                onChange={handleChange}
+                className="w-full px-3 py-2 text-sm rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all"
+              >
+                <option value="No">No</option>
+                <option value="Yes">Yes</option>
+              </select>
             </div>
           </div>
         </div>
