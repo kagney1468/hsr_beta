@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { Tooltip } from '../components/ui/Tooltip';
+import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
 
 export default function PropertyProfile() {
   const { user } = useAuth();
@@ -11,6 +14,7 @@ export default function PropertyProfile() {
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   
   const [formData, setFormData] = useState({
+    // Basic Details
     address_line1: '',
     address_line2: '',
     city: '',
@@ -18,16 +22,31 @@ export default function PropertyProfile() {
     property_type: 'Detached House',
     bedrooms: 3,
     bathrooms: 2,
+    
+    // Part A
+    asking_price: '',
     tenure: 'Freehold',
+    council_tax_band: 'A',
+    
+    // Part B
     heating: 'Gas Central Heating',
     drainage: 'Mains Sewerage',
-    recent_works: '',
-    parking: '',
+    water_supply: 'Mains',
+    electricity_supply: 'Mains',
+    broadband_speed: 'Superfast',
+    mobile_signal: 'Good',
+    parking: 'Driveway',
+    
+    // Part C
     building_changes: '',
-    council_tax_band: 'A',
-    solar_pv: 'No',
-    ev_charging: 'No',
-    lease_length_remaining: '',
+    restrictions: '',
+    rights_easements: '',
+    flood_risk: 'Low',
+    coastal_erosion: 'No',
+    planning_permissions: '',
+    coalfield_area: 'No',
+    disputes: 'None',
+    building_regs_required: false,
   });
 
   useEffect(() => {
@@ -49,7 +68,7 @@ export default function PropertyProfile() {
 
         const { data, error } = await supabase
           .from('properties')
-          .select('*')
+          .select('*, material_information(*)')
           .eq('user_id', userData.id)
           .single();
 
@@ -58,6 +77,7 @@ export default function PropertyProfile() {
         }
 
         if (data) {
+          const mi = data.material_information?.[0] || {};
           setFormData({
             address_line1: data.address_line1 || '',
             address_line2: data.address_line2 || '',
@@ -66,16 +86,28 @@ export default function PropertyProfile() {
             property_type: data.property_type || 'Detached House',
             bedrooms: data.bedrooms || 3,
             bathrooms: data.bathrooms || 2,
+            
+            asking_price: data.asking_price || '',
             tenure: data.tenure || 'Freehold',
+            council_tax_band: data.council_tax_band || 'A',
+            
             heating: data.heating || 'Gas Central Heating',
             drainage: data.drainage || 'Mains Sewerage',
-            recent_works: data.recent_works || '',
-            parking: data.parking || '',
+            water_supply: mi.water_supply || 'Mains',
+            electricity_supply: mi.electricity_supply || 'Mains',
+            broadband_speed: mi.broadband_speed || 'Superfast',
+            mobile_signal: mi.mobile_signal || 'Good',
+            parking: data.parking || 'Driveway',
+            
             building_changes: data.building_changes || '',
-            council_tax_band: data.council_tax_band || 'A',
-            solar_pv: data.solar_pv || 'No',
-            ev_charging: data.ev_charging || 'No',
-            lease_length_remaining: data.lease_length_remaining || '',
+            restrictions: mi.restrictions || '',
+            rights_easements: mi.rights_easements || '',
+            flood_risk: mi.flood_risk || 'Low',
+            coastal_erosion: mi.coastal_erosion || 'No',
+            planning_permissions: mi.planning_permissions || '',
+            coalfield_area: mi.coalfield_area || 'No',
+            disputes: mi.disputes || 'None',
+            building_regs_required: mi.building_regs_required || false,
           });
         }
       } catch (error) {
@@ -96,25 +128,11 @@ export default function PropertyProfile() {
     }));
   };
 
-  const handleNumberChange = (name: string, increment: number) => {
-    setFormData(prev => {
-      const currentValue = prev[name as keyof typeof prev] as number;
-      const newValue = Math.max(0, currentValue + increment);
-      return { ...prev, [name]: newValue };
-    });
-  };
-
   const handleSave = async (redirect: boolean = false) => {
     if (!user) return;
     
     setSaving(true);
     setMessage(null);
-    
-    if (redirect && formData.tenure === 'Leasehold' && !formData.lease_length_remaining) {
-      setMessage({ type: 'error', text: 'Please provide the remaining lease length to continue.' });
-      setSaving(false);
-      return;
-    }
     
     try {
       const { data: userData, error: userError } = await supabase
@@ -123,360 +141,216 @@ export default function PropertyProfile() {
         .eq('auth_user_id', user.id)
         .single();
         
-      if (userError || !userData) {
-        throw new Error('Seller profile must exist before saving property details.');
-      }
+      if (userError || !userData) throw new Error('User profile not found.');
 
-      // Check if property exists
-      const { data: existingProp } = await supabase
+      // 1. Update/Insert Property
+      const { data: property, error: propError } = await supabase
         .from('properties')
-        .select('id')
-        .eq('user_id', userData.id)
+        .upsert({
+          user_id: userData.id,
+          address_line1: formData.address_line1,
+          address_line2: formData.address_line2,
+          city: formData.city,
+          postcode: formData.postcode,
+          property_type: formData.property_type,
+          bedrooms: formData.bedrooms,
+          bathrooms: formData.bathrooms,
+          asking_price: formData.asking_price,
+          tenure: formData.tenure,
+          council_tax_band: formData.council_tax_band,
+          heating: formData.heating,
+          drainage: formData.drainage,
+          parking: formData.parking,
+          building_changes: formData.building_changes,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id' })
+        .select()
         .single();
 
-      let error;
-      
-      if (existingProp) {
-        const { error: updateError } = await supabase
-          .from('properties')
-          .update({
-            ...formData,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', existingProp.id);
-        error = updateError;
-      } else {
-        const { error: insertError } = await supabase
-          .from('properties')
-          .insert({
-            user_id: userData.id,
-            ...formData,
-            updated_at: new Date().toISOString(),
-          });
-        error = insertError;
-      }
+      if (propError) throw propError;
 
-      if (error) throw error;
+      // 2. Update/Insert Material Information
+      const { error: miError } = await supabase
+        .from('material_information')
+        .upsert({
+          property_id: property.id,
+          water_supply: formData.water_supply,
+          electricity_supply: formData.electricity_supply,
+          broadband_speed: formData.broadband_speed,
+          mobile_signal: formData.mobile_signal,
+          restrictions: formData.restrictions,
+          rights_easements: formData.rights_easements,
+          flood_risk: formData.flood_risk,
+          coastal_erosion: formData.coastal_erosion,
+          planning_permissions: formData.planning_permissions,
+          coalfield_area: formData.coalfield_area,
+          disputes: formData.disputes,
+          building_regs_required: formData.building_regs_required,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'property_id' });
+
+      if (miError) throw miError;
       
-      setMessage({ type: 'success', text: 'Property details saved successfully!' });
-      
-      if (redirect) {
-        navigate('/seller/documents');
-      }
+      setMessage({ type: 'success', text: 'Property and Material Information saved!' });
+      if (redirect) navigate('/seller/documents');
     } catch (error: any) {
-      console.error('Error saving property:', error);
-      setMessage({ type: 'error', text: error.message || 'Failed to save property details.' });
+      console.error('Error saving:', error);
+      setMessage({ type: 'error', text: error.message });
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) {
-    return <div className="max-w-5xl w-full mx-auto p-10 pt-6 animate-pulse">Loading property details...</div>;
-  }
+  if (loading) return <div className="p-10 text-center animate-pulse">Loading property details...</div>;
 
   return (
-    <div className="max-w-5xl w-full mx-auto p-10 pt-6">
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Property Details</h2>
-        <p className="text-slate-500 dark:text-slate-400 mt-2">Update your property information to reach "Home Sales Ready" status.</p>
+    <div className="max-w-4xl mx-auto p-6 md:p-10">
+      <div className="mb-10">
+        <h1 className="text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Material Information</h1>
+        <p className="text-slate-500 mt-2">Required by National Trading Standards to ensure your listing is compliant.</p>
       </div>
       
       {message && (
-        <div className={`p-4 mb-6 rounded-lg border ${message.type === 'success' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
+        <div className={`p-4 mb-8 rounded-xl border ${message.type === 'success' ? 'bg-green-50/50 border-green-200 text-green-800' : 'bg-red-50/50 border-red-200 text-red-800'}`}>
           {message.text}
         </div>
       )}
 
-      <form className="space-y-8" onSubmit={(e) => { e.preventDefault(); handleSave(true); }}>
-        {/* Section 1: Location */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 py-8 border-b border-slate-200 dark:border-slate-800">
-          <div className="space-y-1">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider">Location &amp; Identification</h3>
-            <p className="text-xs text-slate-500">The exact physical location details of the property.</p>
+      <div className="space-y-12">
+        {/* PART A */}
+        <Card className="p-8 border-l-4 border-l-primary/50">
+          <div className="flex items-center gap-2 mb-6">
+            <span className="bg-primary/10 text-primary text-xs font-bold px-2 py-1 rounded">PART A</span>
+            <h2 className="text-xl font-bold">Essential Information</h2>
+            <Tooltip content="Part A is mandatory information that must be disclosed at the start of marketing.">
+              <span className="material-symbols-outlined text-slate-400 text-sm">info</span>
+            </Tooltip>
           </div>
-          <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2">
-              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Address Line 1</label>
-              <input 
-                name="address_line1"
-                value={formData.address_line1}
-                onChange={handleChange}
-                className="w-full px-3 py-2 text-sm rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all" 
-                placeholder="e.g. 42 Willow Lane" 
-                type="text"
-              />
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-semibold flex items-center gap-2">
+                Asking Price
+                <Tooltip content="The price at which the property is being marketed.">
+                  <span className="material-symbols-outlined text-slate-400 text-xs">help</span>
+                </Tooltip>
+              </label>
+              <input name="asking_price" value={formData.asking_price} onChange={handleChange} className="w-full h-11 px-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-zinc-950 focus:ring-2 focus:ring-primary/20 outline-none transition-all" placeholder="£" />
             </div>
-            <div className="md:col-span-2">
-              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Address Line 2</label>
-              <input 
-                name="address_line2"
-                value={formData.address_line2}
-                onChange={handleChange}
-                className="w-full px-3 py-2 text-sm rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all" 
-                placeholder="e.g. Apt 4B" 
-                type="text"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">City</label>
-              <input 
-                name="city"
-                value={formData.city}
-                onChange={handleChange}
-                className="w-full px-3 py-2 text-sm rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all" 
-                placeholder="e.g. London" 
-                type="text"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Postcode</label>
-              <input 
-                name="postcode"
-                value={formData.postcode}
-                onChange={handleChange}
-                className="w-full px-3 py-2 text-sm rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all" 
-                placeholder="e.g. SW1A 1AA" 
-                type="text"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Property Type</label>
-              <select 
-                name="property_type"
-                value={formData.property_type}
-                onChange={handleChange}
-                className="w-full px-3 py-2 text-sm rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all"
-              >
-                <option value="Detached House">Detached House</option>
-                <option value="Semi-Detached House">Semi-Detached House</option>
-                <option value="Terraced House">Terraced House</option>
-                <option value="Flat / Apartment">Flat / Apartment</option>
-                <option value="Bungalow">Bungalow</option>
-              </select>
-            </div>
-          </div>
-        </div>
-        {/* Section 2: Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 py-8 border-b border-slate-200 dark:border-slate-800">
-          <div className="space-y-1">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider">Layout &amp; Features</h3>
-            <p className="text-xs text-slate-500">Internal configuration and ownership status.</p>
-          </div>
-          <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Bedrooms</label>
-              <div className="flex items-center border border-slate-200 dark:border-slate-700 rounded overflow-hidden">
-                <button onClick={() => handleNumberChange('bedrooms', -1)} className="flex-1 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400" type="button"><span className="material-symbols-outlined text-sm">remove</span></button>
-                <input 
-                  name="bedrooms"
-                  value={formData.bedrooms}
-                  onChange={handleChange}
-                  className="w-12 text-center border-x border-slate-200 dark:border-slate-700 py-2 text-sm bg-transparent outline-none font-medium" 
-                  type="number" 
-                />
-                <button onClick={() => handleNumberChange('bedrooms', 1)} className="flex-1 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400" type="button"><span className="material-symbols-outlined text-sm">add</span></button>
-              </div>
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Bathrooms</label>
-              <div className="flex items-center border border-slate-200 dark:border-slate-700 rounded overflow-hidden">
-                <button onClick={() => handleNumberChange('bathrooms', -1)} className="flex-1 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400" type="button"><span className="material-symbols-outlined text-sm">remove</span></button>
-                <input 
-                  name="bathrooms"
-                  value={formData.bathrooms}
-                  onChange={handleChange}
-                  className="w-12 text-center border-x border-slate-200 dark:border-slate-700 py-2 text-sm bg-transparent outline-none font-medium" 
-                  type="number" 
-                />
-                <button onClick={() => handleNumberChange('bathrooms', 1)} className="flex-1 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400" type="button"><span className="material-symbols-outlined text-sm">add</span></button>
-              </div>
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Tenure</label>
-              <select 
-                name="tenure"
-                value={formData.tenure}
-                onChange={handleChange}
-                className="w-full px-3 py-2 text-sm rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all"
-              >
+            
+            <div className="space-y-2">
+              <label className="text-sm font-semibold flex items-center gap-2">
+                Tenure
+                <Tooltip content="Freehold means you own the land. Leasehold means you own the building for a set period but not the land.">
+                  <span className="material-symbols-outlined text-slate-400 text-xs">help</span>
+                </Tooltip>
+              </label>
+              <select name="tenure" value={formData.tenure} onChange={handleChange} className="w-full h-11 px-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-zinc-950 outline-none">
                 <option value="Freehold">Freehold</option>
                 <option value="Leasehold">Leasehold</option>
                 <option value="Commonhold">Commonhold</option>
                 <option value="Share of Freehold">Share of Freehold</option>
               </select>
             </div>
-            {formData.tenure === 'Leasehold' && (
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Lease Length Remaining (Years)</label>
-                <input 
-                  name="lease_length_remaining"
-                  value={formData.lease_length_remaining}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 text-sm rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all" 
-                  placeholder="e.g. 99" 
-                  type="number"
-                />
-              </div>
-            )}
           </div>
-        </div>
-        {/* Section 3: Infrastructure */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 py-8 border-b border-slate-200 dark:border-slate-800">
-          <div className="space-y-1">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider">Utilities &amp; Infrastructure</h3>
-            <p className="text-xs text-slate-500">Essential services and systems connectivity.</p>
+        </Card>
+
+        {/* PART B */}
+        <Card className="p-8 border-l-4 border-l-primary/30">
+          <div className="flex items-center gap-2 mb-6">
+            <span className="bg-primary/10 text-primary text-xs font-bold px-2 py-1 rounded">PART B</span>
+            <h2 className="text-xl font-bold">Physical Characteristics</h2>
+            <Tooltip content="Part B describes the physical makeup of the property and its utilities.">
+              <span className="material-symbols-outlined text-slate-400 text-sm">info</span>
+            </Tooltip>
           </div>
-          <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Heating System</label>
-              <select 
-                name="heating"
-                value={formData.heating}
-                onChange={handleChange}
-                className="w-full px-3 py-2 text-sm rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all"
-              >
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-semibold">Heating System</label>
+              <select name="heating" value={formData.heating} onChange={handleChange} className="w-full h-11 px-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-zinc-950 outline-none">
                 <option value="Gas Central Heating">Gas Central Heating</option>
                 <option value="Electric Heating">Electric Heating</option>
                 <option value="Oil Heating">Oil Heating</option>
-                <option value="Heat Pump (Air/Ground)">Heat Pump (Air/Ground)</option>
-                <option value="Biomass">Biomass</option>
+                <option value="Heat Pump">Heat Pump</option>
               </select>
             </div>
-            <div>
-              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Drainage</label>
-              <select 
-                name="drainage"
-                value={formData.drainage}
-                onChange={handleChange}
-                className="w-full px-3 py-2 text-sm rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all"
-              >
+            
+            <div className="space-y-2">
+              <label className="text-sm font-semibold">Drainage</label>
+              <select name="drainage" value={formData.drainage} onChange={handleChange} className="w-full h-11 px-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-zinc-950 outline-none">
                 <option value="Mains Sewerage">Mains Sewerage</option>
                 <option value="Septic Tank">Septic Tank</option>
                 <option value="Cesspit">Cesspit</option>
-                <option value="Private Treatment Plant">Private Treatment Plant</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-semibold">Electricity Supply</label>
+              <select name="electricity_supply" value={formData.electricity_supply} onChange={handleChange} className="w-full h-11 px-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-zinc-950 outline-none">
+                <option value="Mains">Mains</option>
+                <option value="Off-grid / Generator">Off-grid / Generator</option>
+                <option value="Solar with Battery">Solar with Battery</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-semibold">Broadband</label>
+              <select name="broadband_speed" value={formData.broadband_speed} onChange={handleChange} className="w-full h-11 px-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-zinc-950 outline-none">
+                <option value="Standard">Standard (Up to 24Mbps)</option>
+                <option value="Superfast">Superfast (Up to 80Mbps)</option>
+                <option value="Ultrafast">Ultrafast (100Mbps+)</option>
               </select>
             </div>
           </div>
-        </div>
-        {/* Section 4: Maintenance */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 py-8 border-b border-slate-200 dark:border-slate-800">
-          <div className="space-y-1">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider">Recent Works</h3>
-            <p className="text-xs text-slate-500">Renovations and works from the last 5 years.</p>
+        </Card>
+
+        {/* PART C */}
+        <Card className="p-8 border-l-4 border-l-primary/10">
+          <div className="flex items-center gap-2 mb-6">
+            <span className="bg-primary/10 text-primary text-xs font-bold px-2 py-1 rounded">PART C</span>
+            <h2 className="text-xl font-bold">Additional Specific Information</h2>
+            <Tooltip content="Part C covers information that might affect certain properties, such as flood risk or restrictions.">
+              <span className="material-symbols-outlined text-slate-400 text-sm">info</span>
+            </Tooltip>
           </div>
-          <div className="lg:col-span-2 space-y-4">
-            <textarea 
-              name="recent_works"
-              value={formData.recent_works}
-              onChange={handleChange}
-              className="w-full px-3 py-2 text-sm rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all resize-none" 
-              placeholder="e.g. New boiler installed 2022, Kitchen renovation 2021..." 
-              rows={4}
-            ></textarea>
-          </div>
-        </div>
-        {/* Section 5: Additional Details */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 py-8">
-          <div className="space-y-1">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider">Additional Details</h3>
-            <p className="text-xs text-slate-500">Other important property information.</p>
-          </div>
-          <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2">
-              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Building Changes / Extensions</label>
-              <textarea 
-                name="building_changes"
-                value={formData.building_changes}
-                onChange={handleChange}
-                className="w-full px-3 py-2 text-sm rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all resize-none" 
-                placeholder="e.g. Rear extension added in 2018..." 
-                rows={3}
-              ></textarea>
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Parking</label>
-              <input 
-                name="parking"
-                value={formData.parking}
-                onChange={handleChange}
-                className="w-full px-3 py-2 text-sm rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all" 
-                placeholder="e.g. Driveway for 2 cars" 
-                type="text"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Council Tax Band</label>
-              <select 
-                name="council_tax_band"
-                value={formData.council_tax_band}
-                onChange={handleChange}
-                className="w-full px-3 py-2 text-sm rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all"
-              >
-                <option value="A">Band A</option>
-                <option value="B">Band B</option>
-                <option value="C">Band C</option>
-                <option value="D">Band D</option>
-                <option value="E">Band E</option>
-                <option value="F">Band F</option>
-                <option value="G">Band G</option>
-                <option value="H">Band H</option>
+          
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-sm font-semibold flex items-center gap-2">
+                Flood Risk
+                <Tooltip content="Does the property have a history of flooding or is it in a high-risk zone?">
+                  <span className="material-symbols-outlined text-slate-400 text-xs">help</span>
+                </Tooltip>
+              </label>
+              <select name="flood_risk" value={formData.flood_risk} onChange={handleChange} className="w-full h-11 px-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-zinc-950 outline-none">
+                <option value="Very Low">Very Low</option>
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
               </select>
             </div>
-            <div>
-              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Solar PV</label>
-              <select 
-                name="solar_pv"
-                value={formData.solar_pv}
-                onChange={handleChange}
-                className="w-full px-3 py-2 text-sm rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all"
-              >
-                <option value="No">No</option>
-                <option value="Yes">Yes</option>
-              </select>
+
+            <div className="space-y-2">
+              <label className="text-sm font-semibold">Rights and Easements</label>
+              <textarea name="rights_easements" value={formData.rights_easements} onChange={handleChange} className="w-full p-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-zinc-950 min-h-[100px] outline-none" placeholder="Are there any public rights of way across the land?" />
             </div>
-            <div>
-              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">EV Charging</label>
-              <select 
-                name="ev_charging"
-                value={formData.ev_charging}
-                onChange={handleChange}
-                className="w-full px-3 py-2 text-sm rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all"
-              >
-                <option value="No">No</option>
-                <option value="Yes">Yes</option>
-              </select>
+
+            <div className="space-y-2">
+              <label className="text-sm font-semibold">Planning Permissions</label>
+              <textarea name="planning_permissions" value={formData.planning_permissions} onChange={handleChange} className="w-full p-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-zinc-950 min-h-[100px] outline-none" placeholder="Detail any relevant planning permissions or restrictions..." />
             </div>
           </div>
+        </Card>
+
+        <div className="flex flex-col md:flex-row gap-4 pt-6">
+          <Button variant="outline" className="flex-1" onClick={() => handleSave(false)} disabled={saving}>
+            {saving ? 'Saving...' : 'Save Draft'}
+          </Button>
+          <Button variant="primary" className="flex-1" onClick={() => handleSave(true)} disabled={saving}>
+            {saving ? 'Saving...' : 'Save and Continue to Documents'}
+          </Button>
         </div>
-        {/* Action Bar */}
-        <div className="flex items-center justify-between pt-8 border-t border-slate-200 dark:border-slate-800 mt-4">
-          <button className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 flex items-center gap-1 transition-colors uppercase" type="button" onClick={() => window.location.reload()}>
-            <span className="material-symbols-outlined text-sm">delete</span>
-            Discard Changes
-          </button>
-          <div className="flex items-center gap-4">
-            <button 
-              className="px-5 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors uppercase disabled:opacity-50" 
-              type="button"
-              onClick={() => handleSave(false)}
-              disabled={saving}
-            >
-              {saving ? 'Saving...' : 'Save as Draft'}
-            </button>
-            <button 
-              type="submit"
-              disabled={saving}
-              className="px-6 py-2 bg-primary text-white text-xs font-bold rounded shadow-md shadow-primary/10 hover:bg-primary/90 transition-all transform active:scale-95 uppercase tracking-wide inline-block text-center disabled:opacity-50"
-            >
-              Complete Property Profile
-            </button>
-          </div>
-        </div>
-      </form>
-      {/* Footer/Support */}
-      <div className="mt-12 text-center pb-12">
-        <p className="text-slate-400 text-sm">Need help with these details? <a className="text-primary font-bold underline" href="mailto:hello@homesalesready.co.uk?subject=Home%20Sales%20Ready%20Support">Contact our support team</a></p>
       </div>
     </div>
   );

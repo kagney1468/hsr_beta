@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '../components/ui/Card';
-import { SectionContainer } from '../components/ui/SectionContainer';
 import { Button } from '../components/ui/Button';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 export default function SellerProfile() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -32,9 +33,7 @@ export default function SellerProfile() {
           .eq('auth_user_id', user.id)
           .single();
 
-        if (error && error.code !== 'PGRST116') {
-          throw error;
-        }
+        if (error && error.code !== 'PGRST116') throw error;
 
         if (data) {
           setFormData({
@@ -46,19 +45,6 @@ export default function SellerProfile() {
             home_city: data.home_city || '',
             home_postcode: data.home_postcode || '',
           });
-        } else {
-          // Create a new row if it doesn't exist yet
-          const { error: insertError } = await supabase
-            .from('users')
-            .insert({
-              auth_user_id: user.id,
-              email: user.email,
-              role: 'seller'
-            });
-            
-          if (insertError) {
-            console.error('Error creating initial profile:', insertError);
-          }
         }
       } catch (error) {
         console.error('Error loading profile:', error);
@@ -70,26 +56,22 @@ export default function SellerProfile() {
     loadProfile();
   }, [user]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSave = async () => {
     if (!user) return;
-    
     setSaving(true);
     setMessage(null);
     
     try {
-      // Check if user exists to get the primary key if needed, or just update by auth_user_id
       const { data: existingUser } = await supabase
         .from('users')
         .select('id')
         .eq('auth_user_id', user.id)
         .single();
-
-      let error;
 
       const payload = {
         email: user.email,
@@ -99,24 +81,23 @@ export default function SellerProfile() {
       };
 
       if (existingUser) {
-        const { error: updateError } = await supabase
-          .from('users')
-          .update(payload)
-          .eq('id', existingUser.id);
-        error = updateError;
+          const { error } = await supabase
+            .from('users')
+            .update(payload)
+            .eq('id', existingUser.id);
+          if (error) throw error;
       } else {
-        const { error: insertError } = await supabase
-          .from('users')
-          .insert({
-            auth_user_id: user.id,
-            ...payload
-          });
-        error = insertError;
+          const { error } = await supabase
+            .from('users')
+            .insert({ auth_user_id: user.id, ...payload });
+          if (error) throw error;
       }
 
-      if (error) throw error;
-      
       setMessage({ type: 'success', text: 'Profile saved successfully!' });
+      setTimeout(() => {
+          setMessage(null);
+          navigate('/seller/property');
+      }, 1500);
     } catch (error: any) {
       console.error('Error saving profile:', error);
       setMessage({ type: 'error', text: error.message || 'Failed to save profile.' });
@@ -125,156 +106,154 @@ export default function SellerProfile() {
     }
   };
 
-  if (loading) {
-    return <div className="animate-pulse flex space-x-4">Loading...</div>;
-  }
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin size-8 border-2 border-[#00e5a0] border-t-transparent rounded-full" /></div>;
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Seller Profile</h1>
-        <p className="text-slate-500 mt-1">Manage your personal information and identity verification.</p>
+    <div className="max-w-4xl mx-auto space-y-10 py-6 md:py-10">
+      <div className="flex flex-col gap-2 px-4 md:px-0">
+        <h1 className="text-4xl font-black font-heading text-white tracking-tight">Seller Profile</h1>
+        <p className="text-zinc-400">Complete your personal details to begin your property sale.</p>
       </div>
 
       {message && (
-        <div className={`p-4 rounded-lg border ${message.type === 'success' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
+        <div className={`mx-4 md:mx-0 p-4 rounded-2xl border font-bold animate-in fade-in slide-in-from-top-2 duration-300 ${
+          message.type === 'success' 
+            ? 'bg-green-900/20 border-green-800 text-green-400' 
+            : 'bg-red-900/20 border-red-800 text-red-400'
+        }`}>
           {message.text}
         </div>
       )}
 
-      <Card className="p-8">
-        <SectionContainer 
-          title="Personal Information" 
-          description="Your contact details and primary address."
-        >
-          <div className="space-y-4 max-w-xl">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Full Name</label>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-4 md:px-0">
+        <Card className="p-8 border-white/5 bg-zinc-900 space-y-8 shadow-2xl">
+          <div className="space-y-1">
+            <h3 className="text-xl font-bold font-heading text-white">Personal Information</h3>
+            <p className="text-xs text-zinc-500">Your core contact details.</p>
+          </div>
+
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Full Name</label>
               <input 
                 type="text" 
                 name="full_name"
                 value={formData.full_name}
                 onChange={handleChange}
-                className="h-11 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-zinc-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
                 placeholder="John Doe"
               />
             </div>
             
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Email Address</label>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Email Address (Read-only)</label>
               <input 
                 type="email" 
                 value={user?.email || ''}
-                disabled
-                className="h-11 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-zinc-800 text-slate-500 dark:text-slate-400 cursor-not-allowed"
+                readOnly
+                className="w-full h-12 px-4 rounded-xl border border-white/5 bg-white/5 text-zinc-500 cursor-not-allowed"
               />
-              <p className="text-xs text-slate-400">Email is managed through your account settings.</p>
             </div>
             
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Phone Number</label>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Phone Number</label>
               <input 
                 type="tel" 
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                className="h-11 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-zinc-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="+1 (555) 000-0000"
+                className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
+                placeholder="07123 456789"
               />
             </div>
             
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Contact Preference</label>
-              <select 
-                name="contact_preference"
-                value={formData.contact_preference}
-                onChange={handleChange}
-                className="h-11 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-zinc-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/50"
-              >
-                <option value="email">Email</option>
-                <option value="phone">Phone</option>
-                <option value="sms">SMS</option>
-              </select>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">How should we contact you?</label>
+              <div className="relative">
+                <select 
+                    name="contact_preference"
+                    value={formData.contact_preference}
+                    onChange={handleChange}
+                    className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all appearance-none"
+                >
+                    <option value="email">Email</option>
+                    <option value="phone">Phone Call</option>
+                    <option value="sms">SMS Text</option>
+                </select>
+                <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none">unfold_more</span>
+              </div>
             </div>
           </div>
-        </SectionContainer>
+        </Card>
 
-        <SectionContainer 
-          title="Home Address" 
-          description="Your primary residential address."
-          className="border-t border-slate-100 dark:border-slate-800 mt-8 pt-8"
-        >
-          <div className="space-y-4 max-w-xl">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Address Line 1</label>
+        <Card className="p-8 border-white/5 bg-zinc-900 space-y-8 shadow-2xl">
+          <div className="space-y-1">
+            <h3 className="text-xl font-bold font-heading text-white">Home Address</h3>
+            <p className="text-xs text-zinc-500">Where you currently reside.</p>
+          </div>
+
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Address Line 1</label>
               <input 
                 type="text" 
                 name="home_address_line1"
                 value={formData.home_address_line1}
                 onChange={handleChange}
-                className="h-11 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-zinc-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="123 Main St"
+                className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
+                placeholder="123 Example Street"
               />
             </div>
             
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Address Line 2 (Optional)</label>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Town / City</label>
               <input 
                 type="text" 
-                name="home_address_line2"
-                value={formData.home_address_line2}
+                name="home_city"
+                value={formData.home_city}
                 onChange={handleChange}
-                className="h-11 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-zinc-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="Apt 4B"
+                className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
+                placeholder="London"
               />
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">City</label>
-                <input 
-                  type="text" 
-                  name="home_city"
-                  value={formData.home_city}
-                  onChange={handleChange}
-                  className="h-11 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-zinc-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  placeholder="London"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Postcode</label>
-                <input 
-                  type="text" 
-                  name="home_postcode"
-                  value={formData.home_postcode}
-                  onChange={handleChange}
-                  className="h-11 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-zinc-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  placeholder="SW1A 1AA"
-                />
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Postcode</label>
+              <input 
+                type="text" 
+                name="home_postcode"
+                value={formData.home_postcode}
+                onChange={handleChange}
+                className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
+                placeholder="SW1A 1AA"
+              />
+            </div>
+
+            <div className="pt-4">
+              <div className="p-6 bg-white/[0.03] border border-white/5 rounded-2xl flex items-center gap-4">
+                <div className="size-10 bg-white/5 rounded-xl flex items-center justify-center text-zinc-500">
+                  <span className="material-symbols-outlined text-lg">verified_user</span>
+                </div>
+                <div>
+                  <p className="text-xs font-black uppercase tracking-wider text-[#00e5a0]">Security Note</p>
+                  <p className="text-[10px] text-zinc-500 leading-tight">Your data is encrypted and only shared with your appointed estate agent when you choose to go live.</p>
+                </div>
               </div>
             </div>
           </div>
-        </SectionContainer>
+        </Card>
+      </div>
 
-        <SectionContainer 
-          title="Identity Verification" 
-          description="Upload your ID to verify your identity as the property owner."
-          className="border-0 mt-8"
+      <div className="flex justify-end pt-4 px-4 md:px-0 pb-12">
+        <Button 
+          variant="primary" 
+          onClick={handleSave} 
+          disabled={saving}
+          className="w-full md:w-auto px-12 h-14 rounded-2xl text-black font-black font-heading text-lg shadow-xl shadow-[#00e5a0]/20 active:scale-95 transition-all"
         >
-          <div className="p-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl text-center">
-            <span className="material-symbols-outlined text-4xl text-slate-300 mb-2">badge</span>
-            <p className="text-slate-500 font-medium">ID Upload Component Placeholder</p>
-            <p className="text-sm text-slate-400 mt-1">Integration with identity verification service will go here.</p>
-          </div>
-        </SectionContainer>
-
-        <div className="mt-8 flex justify-end gap-4">
-          <Button variant="ghost">Cancel</Button>
-          <Button variant="primary" onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving...' : 'Save Profile'}
-          </Button>
-        </div>
-      </Card>
+          {saving ? 'Saving...' : 'Save & Continue'}
+        </Button>
+      </div>
     </div>
   );
 }

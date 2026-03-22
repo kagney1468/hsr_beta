@@ -46,6 +46,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.auth.signOut();
   };
 
+  console.log("AuthProvider: user =", user?.id, "isLoading =", isLoading);
   return (
     <AuthContext.Provider value={{ user, session, isLoading, signOut }}>
       {children}

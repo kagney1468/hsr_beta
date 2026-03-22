@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { Card } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
 
 interface Document {
   id: string;
@@ -14,24 +16,25 @@ interface Document {
 
 export default function DocumentUpload() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('EPC certificate');
+  const [activeTab, setActiveTab] = useState('Land Registry');
   const [propertyId, setPropertyId] = useState<string | null>(null);
   const [noProperty, setNoProperty] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const tabs = [
+    'Land Registry',
     'EPC certificate',
-    'Gas safety certificate',
-    'Electrical certificate / EICR',
-    'Planning / building regulation documents',
-    'Guarantees and warranties',
-    'FENSA / glazing certificates',
-    'Seller property notes',
+    'Gas safety',
+    'Electrical / EICR',
+    'Planning Docs',
+    'Warranties',
+    'FENSA',
     'Other'
   ];
 
@@ -116,7 +119,6 @@ export default function DocumentUpload() {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         
-        // Validate file size (10MB)
         if (file.size > 10 * 1024 * 1024) {
           throw new Error(`File ${file.name} exceeds 10MB limit`);
         }
@@ -125,14 +127,12 @@ export default function DocumentUpload() {
         const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
         const filePath = `${propertyId}/${fileName}`;
 
-        // Upload to storage
         const { error: uploadError } = await supabase.storage
           .from('property-documents')
           .upload(filePath, file);
 
         if (uploadError) throw uploadError;
 
-        // Save metadata to database
         const { error: dbError } = await supabase
           .from('documents')
           .insert({
@@ -147,7 +147,6 @@ export default function DocumentUpload() {
       }
       
       setSuccessMessage('Documents uploaded successfully!');
-      // Reload documents
       loadDocuments();
     } catch (err: any) {
       console.error('Error uploading document:', err);
@@ -164,14 +163,12 @@ export default function DocumentUpload() {
     if (!user || !window.confirm(`Are you sure you want to delete ${doc.file_name}?`)) return;
 
     try {
-      // Delete from storage
       const { error: storageError } = await supabase.storage
         .from('property-documents')
         .remove([doc.storage_path]);
 
       if (storageError) throw storageError;
 
-      // Delete from database
       const { error: dbError } = await supabase
         .from('documents')
         .delete()
@@ -179,7 +176,6 @@ export default function DocumentUpload() {
 
       if (dbError) throw dbError;
 
-      // Update state
       setDocuments(documents.filter(d => d.id !== doc.id));
     } catch (err: any) {
       console.error('Error deleting document:', err);
@@ -192,7 +188,7 @@ export default function DocumentUpload() {
       setError(null);
       const { data, error } = await supabase.storage
         .from('property-documents')
-        .createSignedUrl(doc.storage_path, 60); // 60 seconds expiry
+        .createSignedUrl(doc.storage_path, 60);
 
       if (error) throw error;
       
@@ -207,95 +203,53 @@ export default function DocumentUpload() {
     }
   };
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-  };
-
   const formatDate = (dateString: string) => {
     if (!dateString) return '';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    return new Date(dateString).toLocaleDateString();
   };
 
   if (noProperty) {
     return (
-      <div className="flex flex-col max-w-[960px] flex-1 gap-6 p-10">
-        <div className="p-6 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg shadow-sm">
-          <h2 className="text-lg font-bold mb-2 flex items-center gap-2">
-            <span className="material-symbols-outlined">warning</span>
-            Property Profile Required
-          </h2>
-          <p className="mb-4">Please complete the property details before uploading documents.</p>
-          <Link to="/seller/property" className="inline-block px-4 py-2 bg-primary text-white rounded font-bold text-sm hover:bg-primary/90 transition-colors">
-            Go to Property Details
-          </Link>
-        </div>
+      <div className="p-10 text-center">
+        <Card className="p-12 border-white/5 bg-zinc-900 shadow-2xl">
+          <span className="material-symbols-outlined text-4xl text-amber-500 mb-4">warning</span>
+          <h2 className="text-2xl font-black font-heading mb-2">Property Profile Required</h2>
+          <p className="text-zinc-400 mb-6">Please complete the property details before uploading documents.</p>
+          <Button variant="primary" onClick={() => navigate('/seller/property')}>Go to Property Details</Button>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col max-w-[960px] flex-1 gap-6">
-      {/* Progress Section */}
-      <div className="flex flex-col gap-3 p-6 bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-primary/10">
-        <div className="flex gap-6 justify-between items-center">
-          <p className="text-slate-900 dark:text-slate-100 text-base font-bold leading-normal">Profile Completion</p>
-          <span className="px-3 py-1 bg-primary/10 text-primary text-xs font-bold rounded-full tracking-wider uppercase">75% Complete</span>
-        </div>
-        <div className="rounded-full bg-primary/10 h-3 w-full overflow-hidden">
-          <div className="h-full rounded-full bg-primary" style={{ width: '75%' }}></div>
-        </div>
-        <p className="text-slate-500 dark:text-slate-400 text-sm font-normal leading-normal">Only a few documents left to be market-ready.</p>
+    <div className="max-w-4xl mx-auto p-6 md:p-10 space-y-10">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-4xl font-black font-heading text-white tracking-tight">Step 2: Property Documents</h1>
+        <p className="text-zinc-400">Upload all required certificates and legal documents for your verified pack.</p>
       </div>
 
-      {successMessage && (
-        <div className="p-4 bg-green-50 border border-green-200 text-green-800 rounded-lg">
-          {successMessage}
-        </div>
-      )}
+      {successMessage && <div className="p-4 bg-green-900/20 border border-green-800 text-green-400 rounded-xl font-bold">{successMessage}</div>}
+      {error && <div className="p-4 bg-red-900/20 border border-red-800 text-red-400 rounded-xl font-bold">{error}</div>}
 
-      {error && (
-        <div className="p-4 bg-red-50 border border-red-200 text-red-800 rounded-lg">
-          {error}
-        </div>
-      )}
-
-      {/* Title & Tabs */}
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-slate-900 dark:text-slate-100 tracking-tight text-3xl font-bold leading-tight">Property Documents</h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm font-normal">Organize and upload legal paperwork required for the sale process.</p>
-        </div>
-        <div className="border-b border-primary/10 overflow-x-auto">
-          <div className="flex px-2 gap-1 min-w-max p-1 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
-            {tabs.map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`flex items-center justify-center px-4 py-2 rounded-md transition-colors ${
-                  activeTab === tab 
-                    ? 'bg-white dark:bg-slate-900 text-primary shadow-sm border border-primary/10' 
-                    : 'text-slate-500 hover:text-primary'
-                }`}
-              >
-                <span className="text-xs font-bold tracking-wide uppercase">{tab}</span>
-              </button>
-            ))}
-          </div>
-        </div>
+      <div className="flex flex-wrap gap-2 p-1 bg-zinc-950 border border-white/5 rounded-2xl">
+        {tabs.map(tab => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+              activeTab === tab 
+                ? 'bg-[#00e5a0] text-black shadow-lg shadow-[#00e5a0]/20' 
+                : 'text-zinc-500 hover:text-white'
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
       </div>
 
-      {/* Upload Area */}
-      <div className="flex flex-col bg-white dark:bg-slate-900 rounded-lg border border-primary/10 shadow-sm">
+      <Card className="p-0 border-white/5 bg-zinc-900 overflow-hidden shadow-2xl">
         <div 
-          className="flex flex-col items-center gap-4 border-2 border-dashed border-primary/20 bg-slate-50/50 dark:bg-slate-800/30 m-3 px-6 py-10 rounded-lg hover:border-primary/40 hover:bg-primary/5 transition-all cursor-pointer"
+          className="p-16 flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-white/[0.02] transition-colors border-b border-white/5"
           onClick={() => fileInputRef.current?.click()}
         >
           <input 
@@ -306,92 +260,57 @@ export default function DocumentUpload() {
             multiple 
             accept=".pdf,.jpg,.jpeg,.png"
           />
-          <div className="size-12 bg-primary/10 text-primary flex items-center justify-center rounded-lg">
-            <span className="material-symbols-outlined text-2xl">
-              {uploading ? 'hourglass_empty' : 'upload_file'}
+          <div className="size-16 bg-[#00e5a0]/10 text-[#00e5a0] flex items-center justify-center rounded-2xl border border-[#00e5a0]/20">
+            <span className="material-symbols-outlined text-3xl">
+              {uploading ? 'cloud_sync' : 'upload_file'}
             </span>
           </div>
-          <div className="flex flex-col items-center gap-1">
-            <p className="text-slate-900 dark:text-slate-100 text-base font-semibold">
-              {uploading ? 'Uploading...' : `Upload ${activeTab} Documents`}
-            </p>
-            <p className="text-slate-500 dark:text-slate-400 text-xs">Select multiple files (PDF, JPG, PNG) • Max 10MB each</p>
+          <div className="text-center">
+            <h3 className="text-xl font-bold text-white mb-1">{uploading ? 'Processing Upload...' : `Upload ${activeTab}`}</h3>
+            <p className="text-zinc-500 text-sm">Drag and drop or click to browse (Max 10MB per file)</p>
           </div>
-          <button 
-            disabled={uploading}
-            className="mt-2 px-6 py-2 bg-primary text-white text-xs font-bold uppercase tracking-wider rounded border border-primary hover:bg-primary/90 transition-colors disabled:opacity-50"
-          >
-            {uploading ? 'Please wait...' : 'Browse Files'}
-          </button>
         </div>
-      </div>
 
-      {/* Uploaded Files List */}
-      <div className="flex flex-col gap-4">
-        <h3 className="text-slate-900 dark:text-slate-100 text-xs font-bold uppercase tracking-widest px-1 text-slate-500">
-          Uploaded {activeTab} Docs
-        </h3>
-        
-        {loading ? (
-          <div className="p-8 text-center text-slate-500 animate-pulse">Loading documents...</div>
-        ) : documents.length === 0 ? (
-          <div className="p-8 text-center text-slate-500 border border-dashed border-slate-200 dark:border-slate-700 rounded-lg">
-            No documents uploaded in this category yet.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-3">
-            {documents.map(doc => (
-              <div key={doc.id} className="flex items-center justify-between p-3 bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800 hover:border-primary/30 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="size-9 flex items-center justify-center rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
-                    <span className="material-symbols-outlined text-xl">
-                      description
-                    </span>
-                  </div>
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate max-w-[200px] sm:max-w-xs">{doc.file_name}</p>
+        <div className="p-6 bg-black/20">
+          <h4 className="text-[10px] uppercase tracking-widest font-black text-zinc-600 mb-4 px-2">Uploaded in this Category</h4>
+          
+          {loading ? (
+            <div className="p-8 text-center animate-pulse text-zinc-500 italic">Syncing with cloud...</div>
+          ) : documents.length === 0 ? (
+            <div className="p-12 text-center text-zinc-600 border border-dashed border-white/5 rounded-2xl italic text-sm">
+              No files uploaded for {activeTab} yet.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {documents.map(doc => (
+                <div key={doc.id} className="group flex items-center justify-between p-4 bg-zinc-900 border border-white/5 rounded-2xl hover:border-[#00e5a0]/30 transition-all">
+                  <div className="flex items-center gap-4">
+                    <div className="size-10 bg-white/5 rounded-xl flex items-center justify-center text-zinc-500 group-hover:bg-[#00e5a0]/10 group-hover:text-[#00e5a0] transition-colors">
+                      <span className="material-symbols-outlined">description</span>
                     </div>
-                    <p className="text-[11px] text-slate-400 font-mono">
-                      UID: {doc.id.substring(0, 8).toUpperCase()} • {formatDate(doc.uploaded_at)}
-                    </p>
+                    <div>
+                      <p className="text-sm font-bold text-white">{doc.file_name}</p>
+                      <p className="text-[10px] text-zinc-500 uppercase tracking-widest">{formatDate(doc.uploaded_at)}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    <button onClick={() => handleView(doc)} className="size-9 flex items-center justify-center rounded-lg text-zinc-500 hover:bg-[#00e5a0]/10 hover:text-[#00e5a0] transition-all">
+                      <span className="material-symbols-outlined text-[18px]">visibility</span>
+                    </button>
+                    <button onClick={() => handleDelete(doc)} className="size-9 flex items-center justify-center rounded-lg text-zinc-500 hover:bg-red-500/10 hover:text-red-500 transition-all">
+                      <span className="material-symbols-outlined text-[18px]">delete</span>
+                    </button>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => handleView(doc)}
-                    className="p-1.5 text-slate-400 hover:text-primary transition-colors" 
-                    title="View"
-                  >
-                    <span className="material-symbols-outlined text-lg">visibility</span>
-                  </button>
-                  <button 
-                    onClick={() => handleDelete(doc)}
-                    className="p-1.5 text-slate-400 hover:text-red-500 transition-colors" 
-                    title="Delete"
-                  >
-                    <span className="material-symbols-outlined text-lg">delete</span>
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Action Footer */}
-      <div className="flex items-center justify-between mt-4 p-4 border-t border-primary/10">
-        <button className="px-6 py-2 text-slate-500 font-bold text-sm hover:text-primary transition-colors">
-          Save as Draft
-        </button>
-        <div className="flex gap-4">
-          <Link to="/seller/property" className="px-6 py-2 bg-primary/10 text-primary rounded-lg font-bold text-sm hover:bg-primary/20 transition-colors inline-block text-center">
-            Back
-          </Link>
-          <Link to="/seller/declaration" className="px-6 py-2 bg-primary text-white rounded-lg font-bold text-sm hover:bg-primary/90 transition-colors inline-block text-center">
-            Continue to Declaration
-          </Link>
+              ))}
+            </div>
+          )}
         </div>
+      </Card>
+
+      <div className="flex justify-between items-center pt-8 border-t border-white/5">
+        <Button variant="ghost" onClick={() => navigate('/seller/property')}>Back to Property</Button>
+        <Button variant="primary" onClick={() => navigate('/seller/declaration')}>Continue to Final Step</Button>
       </div>
     </div>
   );

@@ -1,328 +1,397 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { Card } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
 
 export default function SellerDashboard() {
   const { user } = useAuth();
-  const [property, setProperty] = useState<any>(null);
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [readiness, setReadiness] = useState({
-    score: 0,
-    profileComplete: false,
-    propertyComplete: false,
-    documentsComplete: false,
-    declarationComplete: false,
-    completedCount: 0
+  const [data, setData] = useState<{
+    property: any;
+    materialInfo: any;
+    documents: any[];
+    viewers: any[];
+  }>({
+    property: null,
+    materialInfo: null,
+    documents: [],
+    viewers: []
+  });
+
+  const [stats, setStats] = useState({
+    percentage: 0,
+    sections: {
+      property: { status: 'urgent', label: 'Action Required', desc: 'Address, type, tenure, bedrooms' },
+      material: { status: 'urgent', label: 'Action Required', desc: 'Utilities, parking, flooding risk' },
+      documents: { status: 'urgent', label: 'Action Required', desc: 'Title deeds, EPC certificates' }
+    }
   });
 
   useEffect(() => {
-    async function loadData() {
+    async function fetchDashboardData() {
       if (!user) return;
-      
-      try {
-        // Fetch User Profile
-        const { data: profile } = await supabase
-          .from('users')
-          .select('*')
-          .eq('auth_user_id', user.id)
-          .single();
 
-        // Fetch Property
-        const { data: propData, error: propError } = await supabase
+      try {
+        // 1. Fetch Property
+        const { data: property, error: propError } = await supabase
           .from('properties')
           .select('*')
-          .eq('user_id', user.id)
-          .single();
+          .eq('seller_user_id', user.id)
+          .maybeSingle();
 
-        if (propError && propError.code !== 'PGRST116') {
-          console.error(propError);
+        if (propError) throw propError;
+        if (!property) {
+          setLoading(false);
+          return;
         }
 
-        if (propData) {
-          setProperty(propData);
-        }
+        // 2. Fetch Material Info
+        const { data: materialInfo } = await supabase
+          .from('material_information')
+          .select('*')
+          .eq('property_id', property.id)
+          .maybeSingle();
 
-        // Fetch Documents
-        const { data: docs } = await supabase
+        // 3. Fetch Documents
+        const { data: documents } = await supabase
           .from('documents')
           .select('*')
-          .eq('user_id', user.id);
+          .eq('property_id', property.id);
 
-        // Fetch Declaration
-        const { data: declaration } = await supabase
-          .from('seller_declarations')
+        // 4. Fetch Viewers
+        const { data: viewers } = await supabase
+          .from('pack_viewers')
           .select('*')
-          .eq('user_id', user.id)
-          .single();
+          .eq('property_id', property.id)
+          .order('viewed_at', { ascending: false });
 
-        // Calculate Readiness
-        let score = 0;
-        let completedCount = 0;
-        
-        const profileComplete = !!(profile?.full_name && profile?.phone);
-        if (profileComplete) { score += 25; completedCount++; }
-
-        const propertyComplete = !!(propData?.address && propData?.property_type);
-        if (propertyComplete) { score += 25; completedCount++; }
-
-        const hasID = docs?.some(d => d.category === 'ID');
-        const hasOwnership = docs?.some(d => d.category === 'Proof of Ownership');
-        const documentsComplete = !!(hasID && hasOwnership);
-        if (documentsComplete) { score += 25; completedCount++; }
-
-        const declarationComplete = !!(declaration?.confirms_accuracy && declaration?.confirms_ai_review);
-        if (declarationComplete) { score += 25; completedCount++; }
-
-        setReadiness({
-          score,
-          profileComplete,
-          propertyComplete,
-          documentsComplete,
-          declarationComplete,
-          completedCount
+        setData({
+          property,
+          materialInfo,
+          documents: documents || [],
+          viewers: viewers || []
         });
 
-      } catch (error) {
-        console.error('Error loading dashboard data:', error);
+        // 5. Calculate Progress
+        calculateProgress(property, materialInfo, documents || []);
+
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
       } finally {
         setLoading(false);
       }
     }
 
-    loadData();
+    fetchDashboardData();
   }, [user]);
 
-  if (loading) {
+  const calculateProgress = (prop: any, mat: any, docs: any[]) => {
+    let earnedWeight = 0;
+
+    // Property Details (Weight 30)
+    const propFields = ['address', 'postcode', 'property_type', 'tenure', 'bedrooms', 'council_tax_band', 'epc_rating'];
+    const filledPropFields = propFields.filter(f => !!prop[f]).length;
+    earnedWeight += (filledPropFields / propFields.length) * 30;
+    
+    const propStatus = filledPropFields === propFields.length ? 'complete' : filledPropFields > 0 ? 'in-progress' : 'urgent';
+
+    // Material Info (Weight 40)
+    const matFields = ['utilities', 'parking', 'flooding_risk', 'building_safety', 'planning_history', 'disputes_notices', 'building_reg_works'];
+    let filledMatFields = 0;
+    if (mat) {
+      filledMatFields = matFields.filter(f => !!mat[f]).length;
+    }
+    earnedWeight += (filledMatFields / matFields.length) * 40;
+    
+    const matStatus = filledMatFields === matFields.length ? 'complete' : filledMatFields > 0 ? 'in-progress' : 'urgent';
+
+    // Documents (Weight 30)
+    const docCount = Math.min(docs.length, 5);
+    earnedWeight += (docCount / 5) * 30;
+    
+    const docStatus = docCount >= 3 ? 'complete' : docCount > 0 ? 'in-progress' : 'urgent';
+
+    setStats({
+      percentage: Math.round(earnedWeight),
+      sections: {
+        property: { status: propStatus, label: getStatusLabel(propStatus), desc: 'Address, type, tenure, bedrooms' },
+        material: { status: matStatus, label: getStatusLabel(matStatus), desc: 'Utilities, parking, flooding risk' },
+        documents: { status: docStatus, label: getStatusLabel(docStatus), desc: 'Title deeds, EPC certificates' }
+      }
+    });
+  };
+
+  const getStatusLabel = (status: string) => {
+    if (status === 'complete') return 'Complete';
+    if (status === 'in-progress') return 'In Progress';
+    return 'Action Required';
+  };
+
+  const getContinuePath = () => {
+    if (stats.sections.property.status !== 'complete') return '/seller/onboarding';
+    if (stats.sections.material.status !== 'complete') return '/seller/onboarding';
+    if (stats.sections.documents.status !== 'complete') return '/seller/onboarding';
+    return '/seller/dashboard';
+  };
+
+  const [copying, setCopying] = useState(false);
+
+  const handleCopyLink = () => {
+    const link = `${window.location.origin}/pack/${data.property.shareable_link_token}`;
+    navigator.clipboard.writeText(link);
+    setCopying(true);
+    setTimeout(() => setCopying(false), 2000);
+  };
+
+  const toggleLinkStatus = async () => {
+    const newStatus = !data.property.is_link_active;
+    const { error } = await supabase
+      .from('properties')
+      .update({ is_link_active: newStatus })
+      .eq('id', data.property.id);
+
+    if (!error) {
+      setData(prev => ({
+        ...prev,
+        property: { ...prev.property, is_link_active: newStatus }
+      }));
+    }
+  };
+
+  if (loading) return (
+    <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="animate-spin size-10 border-4 border-[#00e5a0] border-t-transparent rounded-full" />
+    </div>
+  );
+
+  if (!data.property) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-black flex items-center justify-center p-6 text-center">
+        <div className="max-w-md space-y-6">
+          <div className="size-20 bg-[#00e5a0]/10 text-[#00e5a0] flex items-center justify-center rounded-3xl mx-auto">
+            <span className="material-symbols-outlined text-4xl">home_work</span>
+          </div>
+          <h2 className="text-3xl font-black font-heading text-white">Let's Get Started</h2>
+          <p className="text-zinc-400">You haven't added your property details yet. Complete your onboarding to build your property pack.</p>
+          <Button variant="primary" className="shadow-lg shadow-[#00e5a0]/20" onClick={() => navigate('/seller/onboarding')}>Start Onboarding</Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
-      {/* Dashboard Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Property Overview</h1>
-          <p className="text-slate-500 mt-1">Manage your active listing and completion progress.</p>
+    <div className="flex flex-col min-h-screen bg-black text-white selection:bg-[#00e5a0]/30">
+      {/* ── HEADER ── */}
+      <div className="px-6 md:px-10 pt-12 pb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border ${
+              data.property.is_link_active ? 'bg-[#00e5a0]/10 text-[#00e5a0] border-[#00e5a0]/20' : 'bg-red-500/10 text-red-500 border-red-500/20'
+            }`}>
+              {data.property.is_link_active ? 'Link Active' : 'Link Disabled'}
+            </span>
+            <span className="text-zinc-600 text-[10px] font-black uppercase tracking-widest">
+              Unique ID: {data.property.shareable_link_token.slice(0, 8)}...
+            </span>
+          </div>
+          <h1 className="text-4xl md:text-6xl font-black font-heading tracking-tight leading-none">
+            {data.property.address}
+          </h1>
+          <div className="flex items-center gap-4">
+            <p className="text-lg text-zinc-500 font-medium tracking-tight">
+              {data.property.postcode} • Ready for market
+            </p>
+            <button 
+              onClick={toggleLinkStatus}
+              className="text-[10px] font-black uppercase text-zinc-600 hover:text-white transition-colors underline decoration-zinc-800 underline-offset-4"
+            >
+              {data.property.is_link_active ? 'Disable Link' : 'Enable Link'}
+            </button>
+          </div>
         </div>
-        <Link to="/seller/property" className="flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-xl font-bold shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">
-          <span className="material-symbols-outlined text-xl">edit_square</span>
-          Add or edit property details
-        </Link>
+        <div className="flex gap-4">
+          <Button 
+            variant="outline"
+            onClick={handleCopyLink}
+            disabled={!data.property.is_link_active}
+            className="h-16 px-8 rounded-2xl flex items-center gap-3 font-black font-heading text-lg border-white/10 hover:bg-white/5 active:scale-95 disabled:opacity-50"
+          >
+            {copying ? 'Link Copied!' : 'Copy Share Link'}
+            <span className="material-symbols-outlined">{copying ? 'check' : 'content_copy'}</span>
+          </Button>
+          <Button 
+            variant="primary" 
+            disabled={stats.percentage < 70 || !data.property.is_link_active}
+            className={`h-16 px-10 rounded-2xl flex items-center gap-4 font-black font-heading text-lg transition-all shadow-2xl ${stats.percentage < 70 || !data.property.is_link_active ? 'opacity-50 grayscale cursor-not-allowed shadow-none' : 'shadow-[#00e5a0]/30 hover:scale-105 active:scale-95'}`}
+          >
+            Share My Pack
+            <span className="material-symbols-outlined">send</span>
+          </Button>
+        </div>
       </div>
-      {/* Readiness Score Card */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 shadow-soft border border-slate-100">
-        <div className="flex flex-col lg:flex-row gap-10 items-center">
-          <div className="relative flex items-center justify-center size-44">
-            <svg className="size-full -rotate-90 filter drop-shadow-sm" viewBox="0 0 36 36">
-              <circle className="stroke-slate-50" cx="18" cy="18" fill="none" r="16" strokeWidth="2.5"></circle>
-              <circle className="stroke-accent transition-all duration-1000" cx="18" cy="18" fill="none" r="16" strokeDasharray={`${readiness.score}, 100`} strokeLinecap="round" strokeWidth="2.5"></circle>
+
+      <div className="p-6 md:p-10 space-y-16 max-w-7xl mx-auto w-full pb-32">
+        {/* ── PROGRESS CARD ── */}
+        <Card className="p-10 md:p-14 border-white/5 bg-zinc-900/40 backdrop-blur-3xl rounded-[48px] flex flex-col lg:flex-row items-center gap-14 relative overflow-hidden group shadow-2xl">
+          <div className="absolute top-0 right-0 size-[600px] bg-[#00e5a0]/5 blur-[150px] rounded-full pointer-events-none" />
+          
+          <div className="relative size-56 flex-shrink-0">
+            <svg className="size-full -rotate-90 filter drop-shadow-[0_0_20px_rgba(0,229,160,0.3)]" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="10" />
+              <circle
+                cx="50" cy="50" r="44" fill="none" 
+                stroke="#00e5a0" strokeWidth="10"
+                strokeDasharray="276.46"
+                strokeDashoffset={276.46 - (276.46 * stats.percentage) / 100}
+                strokeLinecap="round"
+                className="transition-all duration-1500 ease-out"
+              />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-4xl font-black text-slate-900">{readiness.score}<span className="text-xl font-bold text-slate-400">%</span></span>
-              <span className="text-[10px] uppercase font-black tracking-widest text-slate-400 mt-1">Ready</span>
+              <span className="font-heading font-black text-6xl text-white tracking-tighter">{stats.percentage}%</span>
+              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mt-1">Complete</span>
             </div>
           </div>
-          <div className="flex-1 space-y-4 text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 bg-accent/10 text-accent px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">
-              <span className="material-symbols-outlined text-sm">auto_graph</span>
-              {readiness.score === 100 ? 'Ready to list' : 'Almost there'}
+
+          <div className="flex-1 text-center lg:text-left space-y-8 relative z-10">
+            <div className="space-y-3">
+              <h3 className="text-3xl md:text-5xl font-black text-white font-heading tracking-tight leading-tight">
+                Continue Building Your Pack
+              </h3>
+              <p className="text-zinc-400 text-lg max-w-2xl leading-relaxed">
+                {stats.percentage === 100 
+                  ? "Your pack is elite. Every solicitor inquiry is pre-empted, saving you weeks of deal time."
+                  : "You're nearly there. Completing the remaining details now will shave 3-4 weeks off your legal process later."}
+              </p>
             </div>
-            <h3 className="text-2xl font-black text-slate-900 leading-tight tracking-tight">Your Property Readiness Score</h3>
-            <p className="text-slate-500 text-sm leading-relaxed max-w-xl">Complete the remaining tasks to ensure your property is market-ready. Optimized listings receive significantly more interest from qualified buyers.</p>
-            <div className="flex flex-wrap gap-4 justify-center lg:justify-start pt-2">
-              <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 border border-slate-100 px-3.5 py-2 rounded-xl bg-white shadow-sm">
-                <span className="material-symbols-outlined text-accent text-lg">verified</span>
-                Market Valuation
-              </div>
-              <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 border border-slate-100 px-3.5 py-2 rounded-xl bg-white shadow-sm">
-                <span className="material-symbols-outlined text-accent text-lg">verified</span>
-                HD Photography
-              </div>
-              <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 border border-slate-100 px-3.5 py-2 rounded-xl bg-slate-50/50">
-                <span className="material-symbols-outlined text-lg">hourglass_empty</span>
-                Legal Review
-              </div>
+            <Button 
+              variant="primary" 
+              onClick={() => navigate(getContinuePath())}
+              className="h-16 px-10 rounded-2xl flex items-center gap-4 font-black font-heading text-xl shadow-2xl shadow-[#00e5a0]/20 hover:scale-[1.03] active:scale-95 group"
+            >
+              Continue Where I Left Off
+              <span className="material-symbols-outlined text-2xl group-hover:translate-x-2 transition-transform">arrow_forward</span>
+            </Button>
+          </div>
+        </Card>
+
+        {/* ── SECTION GRID ── */}
+        <div className="space-y-8">
+          <div className="flex items-center justify-between px-2">
+            <h4 className="font-heading font-black text-white text-2xl tracking-tight">Information Sections</h4>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5"><div className="size-2 rounded-full bg-[#00e5a0]" /><span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Complete</span></div>
+              <div className="flex items-center gap-1.5"><div className="size-2 rounded-full bg-amber-500" /><span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">In Progress</span></div>
+              <div className="flex items-center gap-1.5"><div className="size-2 rounded-full bg-red-500" /><span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Action Required</span></div>
             </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              { id: 'property', label: 'Property Details', status: stats.sections.property.status, text: stats.sections.property.label, icon: 'home_work', desc: stats.sections.property.desc },
+              { id: 'material', label: 'Material Information', status: stats.sections.material.status, text: stats.sections.material.label, icon: 'info', desc: stats.sections.material.desc },
+              { id: 'documents', label: 'Documents', status: stats.sections.documents.status, text: stats.sections.documents.label, icon: 'description', desc: stats.sections.documents.desc },
+            ].map((section) => (
+              <Card 
+                key={section.id} 
+                onClick={() => navigate('/seller/onboarding')}
+                className="p-8 border-white/5 bg-zinc-900/40 hover:bg-zinc-900/60 transition-all group flex flex-col justify-between h-[240px] rounded-[32px] cursor-pointer hover:border-[#00e5a0]/20"
+              >
+                <div className="space-y-4">
+                  <div className={`size-14 rounded-2xl flex items-center justify-center ${
+                    section.status === 'complete' ? 'bg-[#00e5a0]/10 text-[#00e5a0]' :
+                    section.status === 'in-progress' ? 'bg-amber-500/10 text-amber-500' : 'bg-red-500/10 text-red-500'
+                  }`}>
+                    <span className="material-symbols-outlined text-3xl">{section.icon}</span>
+                  </div>
+                  <div className="space-y-1">
+                    <h5 className="font-black text-white text-xl font-heading tracking-tight group-hover:text-[#00e5a0] transition-colors">{section.label}</h5>
+                    <p className="text-zinc-500 text-xs font-medium leading-relaxed">{section.desc}</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`size-2 rounded-full ${
+                      section.status === 'complete' ? 'bg-[#00e5a0]' :
+                      section.status === 'in-progress' ? 'bg-amber-500' : 'bg-red-500'
+                    }`} />
+                    <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${
+                      section.status === 'complete' ? 'text-[#00e5a0]' :
+                      section.status === 'in-progress' ? 'text-amber-500' : 'text-red-500'
+                    }`}>
+                      {section.text}
+                    </span>
+                  </div>
+                  <span className="material-symbols-outlined text-zinc-700 group-hover:text-white group-hover:translate-x-1 transition-all">arrow_forward</span>
+                </div>
+              </Card>
+            ))}
           </div>
         </div>
-      </div>
-      {/* Checklist Section */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-slate-900">Readiness Checklist</h2>
-          <span className="text-sm font-medium text-slate-500">{readiness.completedCount} of 4 Tasks Completed</span>
-        </div>
-        <div className="grid gap-3">
-          {/* Task 1 */}
-          <Link to="/seller/profile" className={`flex items-center justify-between p-5 bg-white dark:bg-slate-900 rounded-xl border ${readiness.profileComplete ? 'border-slate-100 shadow-sm hover:border-accent/20' : 'border-2 border-primary/20 shadow-soft ring-1 ring-primary/5'} transition-colors group`}>
-            <div className="flex items-center gap-4">
-              <div className={`size-12 rounded-xl ${readiness.profileComplete ? 'bg-slate-50 text-slate-400 group-hover:bg-accent/10 group-hover:text-accent' : 'bg-primary/5 text-primary'} flex items-center justify-center transition-colors`}>
-                <span className="material-symbols-outlined">account_circle</span>
-              </div>
-              <div>
-                <h4 className="font-bold text-slate-900">Seller Profile</h4>
-                <p className="text-xs text-slate-400">Identity verification and contact info</p>
-              </div>
-            </div>
-            {readiness.profileComplete ? (
-              <div className="flex items-center gap-2 text-accent bg-accent/5 px-4 py-2 rounded-lg">
-                <span className="material-symbols-outlined text-sm">check_circle</span>
-                <span className="text-[10px] font-black uppercase tracking-widest">Complete</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 text-orange-600 bg-orange-50 px-4 py-2 rounded-lg">
-                <span className="material-symbols-outlined text-sm">priority_high</span>
-                <span className="text-[10px] font-black uppercase tracking-widest">Pending</span>
-              </div>
-            )}
-          </Link>
-          {/* Task 2 */}
-          <Link to="/seller/property" className={`flex items-center justify-between p-5 bg-white dark:bg-slate-900 rounded-xl border ${readiness.propertyComplete ? 'border-slate-100 shadow-sm hover:border-accent/20' : 'border-2 border-primary/20 shadow-soft ring-1 ring-primary/5'} transition-colors group`}>
-            <div className="flex items-center gap-4">
-              <div className={`size-12 rounded-xl ${readiness.propertyComplete ? 'bg-slate-50 text-slate-400 group-hover:bg-accent/10 group-hover:text-accent' : 'bg-primary/5 text-primary'} flex items-center justify-center transition-colors`}>
-                <span className="material-symbols-outlined">villa</span>
-              </div>
-              <div>
-                <h4 className="font-bold text-slate-900">Property Details</h4>
-                <p className="text-xs text-slate-400">Room details, work carried out, general info</p>
-              </div>
-            </div>
-            {readiness.propertyComplete ? (
-              <div className="flex items-center gap-2 text-accent bg-accent/5 px-4 py-2 rounded-lg">
-                <span className="material-symbols-outlined text-sm">check_circle</span>
-                <span className="text-[10px] font-black uppercase tracking-widest">Complete</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 text-orange-600 bg-orange-50 px-4 py-2 rounded-lg">
-                <span className="material-symbols-outlined text-sm">priority_high</span>
-                <span className="text-[10px] font-black uppercase tracking-widest">Pending</span>
-              </div>
-            )}
-          </Link>
-          {/* Task 3 */}
-          <Link to="/seller/documents" className={`flex items-center justify-between p-5 bg-white dark:bg-slate-900 rounded-xl border ${readiness.documentsComplete ? 'border-slate-100 shadow-sm hover:border-accent/20' : 'border-2 border-primary/20 shadow-soft ring-1 ring-primary/5'} transition-colors group`}>
-            <div className="flex items-center gap-4">
-              <div className={`size-12 rounded-xl ${readiness.documentsComplete ? 'bg-slate-50 text-slate-400 group-hover:bg-accent/10 group-hover:text-accent' : 'bg-primary/5 text-primary'} flex items-center justify-center transition-colors`}>
-                <span className="material-symbols-outlined">folder_shared</span>
-              </div>
-              <div>
-                <h4 className="font-bold text-slate-900">Documents</h4>
-                <p className="text-xs text-slate-400">Title plans, building control certificates etc.</p>
-              </div>
-            </div>
-            {readiness.documentsComplete ? (
-              <div className="flex items-center gap-2 text-accent bg-accent/5 px-4 py-2 rounded-lg">
-                <span className="material-symbols-outlined text-sm">check_circle</span>
-                <span className="text-[10px] font-black uppercase tracking-widest">Complete</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 text-orange-600 bg-orange-50 px-4 py-2 rounded-lg">
-                <span className="material-symbols-outlined text-sm">priority_high</span>
-                <span className="text-[10px] font-black uppercase tracking-widest">Pending</span>
-              </div>
-            )}
-          </Link>
-          {/* Task 4 */}
-          <Link to="/seller/declaration" className={`flex items-center justify-between p-5 bg-white dark:bg-slate-900 rounded-xl border ${readiness.declarationComplete ? 'border-slate-100 shadow-sm hover:border-accent/20' : 'border-2 border-primary/20 shadow-soft ring-1 ring-primary/5'} transition-colors group`}>
-            <div className="flex items-center gap-4">
-              <div className={`size-12 rounded-xl ${readiness.declarationComplete ? 'bg-slate-50 text-slate-400 group-hover:bg-accent/10 group-hover:text-accent' : 'bg-primary/5 text-primary'} flex items-center justify-center transition-colors`}>
-                <span className="material-symbols-outlined">draw</span>
-              </div>
-              <div>
-                <h4 className="font-bold text-slate-900">Seller Declaration</h4>
-                <p className="text-xs text-slate-400">Legal compliance and owner sign-off</p>
-              </div>
-            </div>
-            {readiness.declarationComplete ? (
-              <div className="flex items-center gap-2 text-accent bg-accent/5 px-4 py-2 rounded-lg">
-                <span className="material-symbols-outlined text-sm">check_circle</span>
-                <span className="text-[10px] font-black uppercase tracking-widest">Complete</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 text-orange-600 bg-orange-50 px-4 py-2 rounded-lg">
-                <span className="material-symbols-outlined text-sm">priority_high</span>
-                <span className="text-[10px] font-black uppercase tracking-widest">Pending</span>
-              </div>
-            )}
-          </Link>
-          {/* Task 5 */}
-          <Link to="/seller/readiness" className="flex items-center justify-between p-5 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 shadow-sm hover:border-accent/20 transition-colors group">
-            <div className="flex items-center gap-4">
-              <div className="size-12 rounded-xl bg-slate-50 text-slate-400 group-hover:bg-accent/10 group-hover:text-accent flex items-center justify-center transition-colors">
-                <span className="material-symbols-outlined">fact_check</span>
-              </div>
-              <div>
-                <h4 className="font-bold text-slate-900">Readiness Dashboard</h4>
-                <p className="text-xs text-slate-400">View your property's readiness score and tasks</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 text-slate-600 bg-slate-50 px-4 py-2 rounded-lg">
-              <span className="material-symbols-outlined text-sm">arrow_forward</span>
-              <span className="text-[10px] font-black uppercase tracking-widest">View</span>
-            </div>
-          </Link>
-        </div>
-      </div>
-      {/* Property Preview Card */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-100 shadow-soft group hover:shadow-xl hover:shadow-slate-200/50 transition-all">
-        <div className="flex flex-col md:flex-row">
-          <div className="w-full md:w-[320px] relative overflow-hidden">
-            <div className="aspect-[4/3] md:h-full bg-cover bg-center transition-transform duration-700 group-hover:scale-110" style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuAl23a4FdE8hR94lgSNQxu5Rd3yvHpgmpEdmXYrGlezWqYPOqc6UORabBHr4xyQkwFZAQpHFCGXZk2aLf9i5Objmf0jLb8HRNLcIMWQzstoVGRmJVEHs6atCJyowP3d5w0d5JkNfAHX-3QOKGxOrjUmI5WUVZa6ByQzDcWtZhTvw-RJtCK-9M4gMoZXy-A5bL04lU7x1D5q5mCtSCnWBjf1Ef3PTAdDPVQ5nQno6xk6ZjmkIVh45OhIZLZdPfWqHKDBXoKnFeFesUQ")' }}></div>
-            <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-md text-primary text-[10px] font-black px-3 py-1.5 rounded-lg uppercase tracking-wider shadow-sm">Primary Residence</div>
+
+        {/* ── VIEWER SECTION ── */}
+        <div className="space-y-8">
+          <div className="flex items-center justify-between px-2">
+            <h4 className="font-heading font-black text-white text-2xl tracking-tight">Who Has Viewed My Pack</h4>
+            <span className="text-[10px] font-black text-zinc-600 uppercase tracking-widest bg-zinc-900/50 px-4 py-2 rounded-full border border-white/5">
+              {data.viewers.length} Activity Logged
+            </span>
           </div>
-          <div className="flex-1 p-8 flex flex-col justify-between">
-            <div className="space-y-6">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h3 className="text-xl font-black text-slate-900 tracking-tight">
-                    {property?.address || 'Add your property details'}
-                  </h3>
-                  <p className="text-slate-400 text-sm font-medium flex items-center gap-1.5 mt-1.5">
-                    <span className="material-symbols-outlined text-slate-300">location_on</span>
-                    {property?.postcode || 'No postcode provided'}
-                  </p>
+          
+          <Card className="border-white/5 bg-zinc-900/40 rounded-[40px] overflow-hidden">
+            {data.viewers.length > 0 ? (
+              <div className="divide-y divide-white/5">
+                {data.viewers.map((viewer, idx) => (
+                  <div key={idx} className="p-10 flex flex-col md:flex-row md:items-center justify-between gap-8 hover:bg-white/[0.02] transition-colors group">
+                    <div className="flex items-center gap-6">
+                      <div className="size-16 rounded-3xl bg-black/40 flex items-center justify-center text-[#00e5a0] border border-white/10 group-hover:scale-105 transition-transform">
+                        <span className="material-symbols-outlined text-4xl">person_pin</span>
+                      </div>
+                      <div className="space-y-1">
+                        <h5 className="font-black text-white text-2xl font-heading tracking-tight">
+                          {viewer.viewer_name}
+                        </h5>
+                        <div className="flex items-center gap-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">
+                          <span className="flex items-center gap-2"><span className="material-symbols-outlined text-sm">calendar_today</span>{new Date(viewer.viewed_at).toLocaleDateString()}</span>
+                          <span className="flex items-center gap-2"><span className="material-symbols-outlined text-sm">schedule</span>{new Date(viewer.viewed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-4">
+                      {viewer.is_selling ? (
+                        <div className="px-5 py-3 rounded-2xl bg-[#00e5a0]/10 border border-[#00e5a0]/20 flex items-center gap-3">
+                          <div className="size-2 rounded-full bg-[#00e5a0] animate-pulse" />
+                          <span className="text-xs font-black text-[#00e5a0] uppercase tracking-widest">
+                            Also Selling: {viewer.selling_location}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="px-5 py-3 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-3">
+                          <span className="material-symbols-outlined text-[#00e5a0] text-sm">bolt</span>
+                          <span className="text-xs font-black text-zinc-400 uppercase tracking-widest">Chain-free Buyer</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-24 text-center space-y-6">
+                <div className="size-24 rounded-[32px] bg-black/40 border border-white/5 flex items-center justify-center mx-auto text-zinc-800">
+                  <span className="material-symbols-outlined text-6xl">visibility_off</span>
                 </div>
-                <div className="text-right">
-                  <p className="text-2xl font-black text-primary">TBD</p>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Est. Market Price</p>
+                <div className="space-y-2">
+                  <p className="text-white font-black font-heading text-2xl tracking-tight">No views logged yet</p>
+                  <p className="text-zinc-500 text-sm max-w-xs mx-auto">Share your property link with your agent or potential buyers to start tracking interest.</p>
                 </div>
               </div>
-              <div className="flex items-center gap-8 border-y border-slate-50 py-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="size-8 rounded-lg bg-slate-50 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-slate-500">king_bed</span>
-                  </div>
-                  <span className="text-sm font-bold text-slate-600">{property?.bedrooms || 0} Beds</span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <div className="size-8 rounded-lg bg-slate-50 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-slate-500">bathtub</span>
-                  </div>
-                  <span className="text-sm font-bold text-slate-600">{property?.bathrooms || 0} Baths</span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <div className="size-8 rounded-lg bg-slate-50 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-slate-500">home</span>
-                  </div>
-                  <span className="text-sm font-bold text-slate-600">{property?.property_type || 'Unknown'}</span>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center justify-between mt-6">
-              <span className="text-xs font-medium text-slate-400 italic">
-                {property?.updated_at ? `Updated ${new Date(property.updated_at).toLocaleDateString()}` : 'Not updated yet'}
-              </span>
-              <Link to="/seller/certificate" className="flex items-center gap-2 text-primary text-sm font-black hover:gap-3 transition-all">
-                View Public Preview
-                <span className="material-symbols-outlined text-base">arrow_forward</span>
-              </Link>
-            </div>
-          </div>
+            )}
+          </Card>
         </div>
       </div>
     </div>

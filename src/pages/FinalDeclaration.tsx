@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { Card } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
 
 export default function FinalDeclaration() {
   const { user } = useAuth();
@@ -11,7 +13,7 @@ export default function FinalDeclaration() {
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   
   const [confirmsAccuracy, setConfirmsAccuracy] = useState(false);
-  const [confirmsAiReview, setConfirmsAiReview] = useState(false);
+  const [confirmsLegalRight, setConfirmsLegalRight] = useState(false);
   const [propertyId, setPropertyId] = useState<string | null>(null);
   const [noProperty, setNoProperty] = useState(false);
 
@@ -24,7 +26,7 @@ export default function FinalDeclaration() {
           .from('users')
           .select('id')
           .eq('auth_user_id', user.id)
-          .single();
+          .maybeSingle();
           
         if (userError || !userData) {
           setNoProperty(true);
@@ -35,8 +37,8 @@ export default function FinalDeclaration() {
         const { data: propData, error: propError } = await supabase
           .from('properties')
           .select('id')
-          .eq('user_id', userData.id)
-          .single();
+          .eq('seller_user_id', user.id)
+          .maybeSingle();
 
         if (propError || !propData) {
           setNoProperty(true);
@@ -50,15 +52,13 @@ export default function FinalDeclaration() {
           .from('seller_declarations')
           .select('*')
           .eq('property_id', propData.id)
-          .single();
+          .maybeSingle();
 
-        if (error && error.code !== 'PGRST116') {
-          throw error;
-        }
+        if (error) throw error;
 
         if (data) {
           setConfirmsAccuracy(data.confirms_accuracy || false);
-          setConfirmsAiReview(data.confirms_ai_review || false);
+          setConfirmsLegalRight(data.confirms_ai_review || false);
         }
       } catch (error) {
         console.error('Error loading declaration:', error);
@@ -73,7 +73,7 @@ export default function FinalDeclaration() {
   const handleSign = async () => {
     if (!user || !propertyId) return;
     
-    if (!confirmsAccuracy || !confirmsAiReview) {
+    if (!confirmsAccuracy || !confirmsLegalRight) {
       setMessage({ type: 'error', text: 'Please agree to all statements to proceed.' });
       return;
     }
@@ -82,40 +82,34 @@ export default function FinalDeclaration() {
     setMessage(null);
     
     try {
-      // Check if declaration exists
       const { data: existingDecl } = await supabase
         .from('seller_declarations')
         .select('id')
         .eq('property_id', propertyId)
         .single();
 
-      let error;
+      const payload = {
+        property_id: propertyId,
+        seller_user_id: user.id,
+        confirms_accuracy: confirmsAccuracy,
+        confirms_ai_review: confirmsLegalRight, // Reusing field for legal right confirm
+        signed_at: new Date().toISOString(),
+      };
       
       if (existingDecl) {
-        const { error: updateError } = await supabase
+        const { error } = await supabase
           .from('seller_declarations')
-          .update({
-            confirms_accuracy: confirmsAccuracy,
-            confirms_ai_review: confirmsAiReview,
-            signed_at: new Date().toISOString(),
-          })
+          .update(payload)
           .eq('id', existingDecl.id);
-        error = updateError;
+        if (error) throw error;
       } else {
-        const { error: insertError } = await supabase
+        const { error } = await supabase
           .from('seller_declarations')
-          .insert({
-            property_id: propertyId,
-            confirms_accuracy: confirmsAccuracy,
-            confirms_ai_review: confirmsAiReview,
-            signed_at: new Date().toISOString(),
-          });
-        error = insertError;
+          .insert(payload);
+        if (error) throw error;
       }
 
-      if (error) throw error;
-      
-      setMessage({ type: 'success', text: 'Declaration saved successfully!' });
+      setMessage({ type: 'success', text: 'Declaration signed successfully!' });
       setTimeout(() => {
         navigate('/seller/dashboard');
       }, 1500);
@@ -129,102 +123,87 @@ export default function FinalDeclaration() {
 
   if (noProperty) {
     return (
-      <div className="flex flex-col max-w-[640px] w-full mx-auto p-10">
-        <div className="p-6 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg shadow-sm">
-          <h2 className="text-lg font-bold mb-2 flex items-center gap-2">
-            <span className="material-symbols-outlined">warning</span>
-            Property Profile Required
-          </h2>
-          <p className="mb-4">Please complete the property details before submitting the declaration.</p>
-          <Link to="/seller/property" className="inline-block px-4 py-2 bg-primary text-white rounded font-bold text-sm hover:bg-primary/90 transition-colors">
-            Go to Property Details
-          </Link>
-        </div>
+      <div className="p-10 text-center">
+        <Card className="p-12 border-white/5 bg-zinc-900 shadow-2xl">
+          <span className="material-symbols-outlined text-4xl text-amber-500 mb-4">warning</span>
+          <h2 className="text-2xl font-black font-heading mb-2">Property Profile Required</h2>
+          <p className="text-zinc-400 mb-6">Please complete your property profile before signing the declaration.</p>
+          <Button variant="primary" onClick={() => navigate('/seller/onboarding')}>Go to Property Onboarding</Button>
+        </Card>
       </div>
     );
   }
 
-  if (loading) {
-    return <div className="flex flex-col max-w-[640px] w-full mx-auto animate-pulse">Loading declaration...</div>;
-  }
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin size-8 border-2 border-[#00e5a0] border-t-transparent rounded-full" /></div>;
 
   return (
-    <div className="flex flex-col max-w-[640px] w-full mx-auto">
-      <div className="mb-8">
-        <h1 className="text-slate-900 dark:text-slate-100 text-3xl font-bold leading-tight mb-2 text-center">Final Declaration</h1>
-        <p className="text-slate-500 dark:text-slate-400 text-base text-center">Please review and electronically sign the following statements to finalize your property listing.</p>
+    <div className="max-w-2xl mx-auto p-6 md:p-10 space-y-10">
+      <div className="text-center space-y-2">
+        <h1 className="text-4xl font-black font-heading text-white tracking-tight">Final Step: Declaration</h1>
+        <p className="text-zinc-400">Review and verify the accuracy of your property information pack.</p>
       </div>
-      
+
       {message && (
-        <div className={`p-4 mb-6 rounded-lg border ${message.type === 'success' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
+        <div className={`p-4 rounded-2xl border font-bold animate-in fade-in slide-in-from-top-2 duration-300 ${
+          message.type === 'success' 
+            ? 'bg-green-900/20 border-green-800 text-green-400' 
+            : 'bg-red-900/20 border-red-800 text-red-400'
+        }`}>
           {message.text}
         </div>
       )}
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-2xl mb-12">
-        <div className="p-6 md:p-8">
-          <div className="mb-8 text-center">
-            <div className="inline-flex items-center justify-center p-3 bg-primary/10 rounded-full mb-4">
-              <span className="material-symbols-outlined text-primary text-3xl">gavel</span>
+      <Card className="p-8 border-white/5 bg-zinc-900 space-y-8 shadow-2xl">
+        <div className="space-y-6">
+          <label className="flex items-start gap-4 p-5 rounded-2xl bg-white/[0.03] border border-white/5 cursor-pointer hover:border-[#00e5a0]/30 transition-all group">
+            <div className="pt-1">
+              <input 
+                type="checkbox"
+                checked={confirmsAccuracy}
+                onChange={(e) => setConfirmsAccuracy(e.target.checked)}
+                className="size-6 rounded-lg border-2 border-white/10 bg-black/50 checked:bg-[#00e5a0] checked:border-[#00e5a0] transition-all cursor-pointer appearance-none relative checked:after:content-['✓'] checked:after:absolute checked:after:inset-0 checked:after:flex checked:after:items-center checked:after:justify-center checked:after:text-black checked:after:font-black"
+              />
             </div>
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Legal Agreement</h2>
-            <p className="text-slate-500 text-sm max-w-sm mx-auto mt-2">Your electronic signature below confirms you have read and agreed to the following terms.</p>
-          </div>
-          <div className="space-y-4">
-            <label className="flex items-start gap-4 p-5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 cursor-pointer hover:border-primary/30 hover:bg-white dark:hover:bg-slate-800 transition-all group">
-              <div className="pt-0.5">
-                <input 
-                  className="h-6 w-6 rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-primary checked:bg-primary checked:border-primary focus:ring-0 focus:ring-offset-0 focus:outline-none transition-all cursor-pointer" 
-                  checked={confirmsAccuracy}
-                  onChange={(e) => setConfirmsAccuracy(e.target.checked)}
-                  style={{ appearance: 'none', WebkitAppearance: 'none', backgroundSize: '100% 100%', backgroundImage: confirmsAccuracy ? 'var(--checkbox-tick-svg)' : 'none' }} 
-                  type="checkbox"
-                />
-              </div>
-              <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-base font-medium">
-                I confirm that all information provided regarding the property is accurate and complete to the best of my knowledge.
-              </p>
-            </label>
-            <label className="flex items-start gap-4 p-5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 cursor-pointer hover:border-primary/30 hover:bg-white dark:hover:bg-slate-800 transition-all group">
-              <div className="pt-0.5">
-                <input 
-                  className="h-6 w-6 rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-primary checked:bg-primary checked:border-primary focus:ring-0 focus:ring-offset-0 focus:outline-none transition-all cursor-pointer" 
-                  checked={confirmsAiReview}
-                  onChange={(e) => setConfirmsAiReview(e.target.checked)}
-                  style={{ appearance: 'none', WebkitAppearance: 'none', backgroundSize: '100% 100%', backgroundImage: confirmsAiReview ? 'var(--checkbox-tick-svg)' : 'none' }} 
-                  type="checkbox"
-                />
-              </div>
-              <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-base font-medium">
-                I acknowledge and accept the AI-generated suggestions for my property listing and have reviewed them for correctness and quality.
-              </p>
-            </label>
+            <div className="space-y-1">
+              <p className="text-white font-bold text-sm">Accuracy Confirmation</p>
+              <p className="text-zinc-500 text-xs leading-relaxed italic">"I confirm that all information provided regarding the property is accurate and complete to the best of my knowledge."</p>
+            </div>
+          </label>
+
+          <label className="flex items-start gap-4 p-5 rounded-2xl bg-white/[0.03] border border-white/5 cursor-pointer hover:border-[#00e5a0]/30 transition-all group">
+            <div className="pt-1">
+              <input 
+                type="checkbox"
+                checked={confirmsLegalRight}
+                onChange={(e) => setConfirmsLegalRight(e.target.checked)}
+                className="size-6 rounded-lg border-2 border-white/10 bg-black/50 checked:bg-[#00e5a0] checked:border-[#00e5a0] transition-all cursor-pointer appearance-none relative checked:after:content-['✓'] checked:after:absolute checked:after:inset-0 checked:after:flex checked:after:items-center checked:after:justify-center checked:after:text-black checked:after:font-black"
+              />
+            </div>
+            <div className="space-y-1">
+              <p className="text-white font-bold text-sm">Legal Right to Sell</p>
+              <p className="text-zinc-500 text-xs leading-relaxed italic">"I confirm that I have the legal right to sell this property and have disclosed any relevant restrictions or encumbrances."</p>
+            </div>
+          </label>
+        </div>
+
+        <div className="pt-8 border-t border-white/5">
+          <Button 
+            variant="primary" 
+            onClick={handleSign} 
+            disabled={saving || !confirmsAccuracy || !confirmsLegalRight}
+            className="w-full h-14 rounded-2xl text-black font-black font-heading text-lg shadow-xl shadow-[#00e5a0]/20 active:scale-95 transition-all"
+          >
+            {saving ? 'Signing Pack...' : 'Digitally Sign & Complete'}
+          </Button>
+          <div className="mt-6 flex flex-col items-center gap-2">
+             <div className="text-[10px] text-zinc-600 font-black uppercase tracking-[0.2em] flex items-center gap-2">
+                <span className="material-symbols-outlined text-sm">verified</span>
+                Verified by HomeSalesReady
+             </div>
+             <Link to="/seller/documents" className="text-xs text-zinc-500 hover:text-white transition-colors">Go back and review documents</Link>
           </div>
         </div>
-      </div>
-      <div className="flex flex-col gap-4">
-        <button 
-          onClick={handleSign}
-          disabled={saving || !confirmsAccuracy || !confirmsAiReview}
-          className="w-full flex items-center justify-center rounded-xl h-14 bg-primary text-white text-base font-bold leading-normal tracking-wide shadow-lg shadow-primary/20 hover:brightness-110 active:scale-[0.98] transition-all uppercase text-sm disabled:opacity-50 disabled:cursor-not-allowed" 
-          style={{ backgroundColor: '#1E6F5C' }}
-        >
-          {saving ? 'Signing...' : 'Confirm & Sign Listing'}
-        </button>
-        <Link to="/seller/documents" className="w-full flex items-center justify-center rounded-xl h-12 bg-transparent text-slate-500 dark:text-slate-400 text-sm font-semibold hover:text-primary transition-colors">
-          Go back and edit details
-        </Link>
-      </div>
-      <div className="mt-12 pt-8 border-t border-primary/10 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-400 uppercase tracking-widest font-bold">
-        <span>Step 5 of 5</span>
-        <div className="flex gap-2">
-          <div className="w-8 h-1 bg-primary rounded-full"></div>
-          <div className="w-8 h-1 bg-primary rounded-full"></div>
-          <div className="w-8 h-1 bg-primary rounded-full"></div>
-          <div className="w-8 h-1 bg-primary rounded-full"></div>
-          <div className="w-8 h-1 bg-primary rounded-full"></div>
-        </div>
-      </div>
+      </Card>
     </div>
   );
 }

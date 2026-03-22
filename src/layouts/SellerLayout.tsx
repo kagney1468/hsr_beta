@@ -1,89 +1,118 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 
 export default function SellerLayout() {
+  const { user } = useAuth();
   const location = useLocation();
-  
-  const navItems = [
-    { path: '/seller/dashboard', label: 'Dashboard', icon: 'dashboard' },
-    { path: '/seller/profile', label: 'Profile', icon: 'account_circle' },
-    { path: '/seller/property', label: 'Property', icon: 'home_work' },
-    { path: '/seller/documents', label: 'Documents', icon: 'folder_shared' },
-    { path: '/seller/declaration', label: 'Declaration', icon: 'draw' },
-    { path: '/seller/readiness', label: 'Readiness', icon: 'fact_check' },
-    { path: '/seller/certificate', label: 'Certificate', icon: 'verified' },
-    { path: '/seller/help', label: 'Help', icon: 'help' },
-  ];
+
+  const isActive = (path: string) => location.pathname === path;
 
   return (
-    <div className="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
-      {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-50 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 py-3 lg:px-10">
-        <Link to="/seller/dashboard" className="flex items-center gap-3">
-          <div className="flex items-center justify-center size-10 rounded-lg bg-primary/10 text-primary">
-            <span className="material-symbols-outlined">real_estate_agent</span>
-          </div>
-          <h2 className="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100">Home Sales Ready</h2>
-        </Link>
-        
-        <nav className="hidden md:flex items-center gap-1 mx-4 overflow-x-auto">
-          {navItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
-              <Link 
-                key={item.path} 
-                to={item.path}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
-                  isActive 
-                    ? 'bg-primary text-white shadow-md shadow-primary/20' 
-                    : 'text-slate-500 hover:text-primary hover:bg-slate-50 dark:hover:bg-slate-800'
-                }`}
-              >
-                <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="flex items-center gap-3">
-          <button className="flex items-center justify-center rounded-xl size-10 bg-primary/5 text-slate-600 dark:text-slate-400 hover:bg-primary/10 transition-colors">
-            <span className="material-symbols-outlined">notifications</span>
-          </button>
-          <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block"></div>
-          <div className="flex items-center gap-3">
-            <div className="text-right hidden sm:block">
-              <p className="text-sm font-semibold leading-none">John Doe</p>
-              <p className="text-xs text-slate-500 mt-1">Seller</p>
+    <div className="min-h-screen bg-[var(--night)] text-[var(--text)] flex">
+      {/* ── SIDEBAR ── */}
+      <aside className="w-[280px] border-r border-[var(--border)] flex flex-col fixed inset-y-0 bg-[#0a0d14]">
+        {/* Brand Block */}
+        <div className="p-6">
+          <Link to="/seller/dashboard" className="block group">
+            <div className="relative p-4 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 overflow-hidden transition-all hover:border-[var(--accent)]/50 hover:bg-[var(--accent)]/10">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="size-10 rounded-xl bg-[var(--accent)] flex items-center justify-center text-black shadow-lg shadow-[var(--accent)]/20">
+                  <span className="material-symbols-outlined font-black">real_estate_agent</span>
+                </div>
+                <div className="font-heading font-black text-white leading-tight">
+                  <div className="text-lg">Home Sales</div>
+                  <div className="text-sm">Ready</div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between mt-4">
+                <span className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-widest">Seller View</span>
+                <span className="px-2 py-0.5 rounded-full bg-[var(--accent)]/20 text-[var(--accent)] text-[9px] font-black uppercase tracking-wider">Active Pack</span>
+              </div>
             </div>
-            <div className="size-10 rounded-full bg-slate-200 dark:bg-slate-700 border-2 border-primary/20 flex items-center justify-center overflow-hidden">
-              <span className="material-symbols-outlined text-slate-400">person</span>
-            </div>
-          </div>
+          </Link>
         </div>
-      </header>
-      
-      {/* Mobile Navigation (Bottom) */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex justify-around p-2 pb-safe">
-        {navItems.slice(0, 5).map((item) => {
-          const isActive = location.pathname === item.path;
-          return (
-            <Link 
-              key={item.path} 
-              to={item.path}
-              className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
-                isActive ? 'text-primary' : 'text-slate-400'
-              }`}
-            >
-              <span className="material-symbols-outlined text-2xl">{item.icon}</span>
-              <span className="text-[10px] font-medium mt-1">{item.label}</span>
-            </Link>
-          );
-        })}
-      </div>
 
-      {/* Main Content Container */}
-      <main className="flex-1 w-full max-w-7xl mx-auto p-4 md:p-8 pb-24 md:pb-8">
-        <Outlet />
+        {/* Navigation */}
+        <nav className="flex-1 px-4 space-y-6 overflow-y-auto pb-8">
+          {/* Main Pack Nav */}
+          <div>
+            <div className="text-[10px] font-bold tracking-[0.15em] text-[var(--muted)] uppercase px-3 mb-3">Property Pack</div>
+            <div className="space-y-1">
+              {[
+                { to: '/seller/dashboard', icon: 'dashboard', label: 'My Property Pack' },
+                { to: '/seller/documents', icon: 'folder_shared', label: 'Documents' },
+                { to: '/seller/onboarding', icon: 'info', label: 'Material Information' },
+                { to: '/seller/dashboard', icon: 'share', label: 'Share Pack' },
+              ].map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
+                    isActive(item.to)
+                      ? 'bg-[var(--accent)]/10 text-[var(--accent)] font-bold shadow-sm'
+                      : 'text-[var(--muted)] hover:bg-white/5 hover:text-white'
+                  }`}
+                >
+                  <span className={`material-symbols-outlined text-[20px] ${isActive(item.to) ? 'text-[var(--accent)]' : ''}`}>
+                    {item.icon}
+                  </span>
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Account Nav */}
+          <div>
+            <div className="text-[10px] font-bold tracking-[0.15em] text-[var(--muted)] uppercase px-3 mb-3">Account</div>
+            <div className="space-y-1">
+              {[
+      { path: '/seller/dashboard', icon: 'visibility', label: "Who's Viewed" },
+      { path: '/seller/dashboard', icon: 'chat_bubble', label: 'Messages' },
+      { path: '/seller/profile', icon: 'settings', label: 'Settings' },
+    ].map((item) => (
+      <Link
+        key={item.label}
+        to={item.path}
+        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
+          isActive(item.path)
+            ? 'bg-[var(--accent)]/10 text-[var(--accent)] font-bold shadow-sm'
+            : 'text-[var(--muted)] hover:bg-white/5 hover:text-white'
+        }`}
+      >
+        <span className={`material-symbols-outlined text-[20px] ${isActive(item.path) ? 'text-[var(--accent)]' : ''}`}>
+          {item.icon}
+        </span>
+        {item.label}
+      </Link>
+    ))}
+  </div>
+</div>
+</nav>
+
+{/* User Profile Footer */}
+<div className="p-4 border-t border-[var(--border)] bg-[#0a0d14]">
+<div className="flex items-center gap-3 p-2 rounded-xl bg-white/5 border border-white/5">
+  <div className="size-9 rounded-lg bg-[var(--card)] border border-[var(--border)] flex items-center justify-center text-[var(--muted)]">
+    <span className="material-symbols-outlined text-xl">person</span>
+  </div>
+  <div className="flex-1 min-w-0">
+    <p className="text-xs font-bold text-white truncate">{user?.user_metadata?.full_name || 'My Account'}</p>
+    <p className="text-[10px] text-[var(--muted)] font-medium">Seller Account</p>
+  </div>
+  <button onClick={() => supabase.auth.signOut()} className="text-[var(--muted)] hover:text-white">
+    <span className="material-symbols-outlined text-lg">logout</span>
+  </button>
+</div>
+</div>
+      </aside>
+
+      {/* ── MAIN CONTENT ── */}
+      <main className="flex-1 ml-[280px]">
+        <div className="min-h-screen">
+          <Outlet />
+        </div>
       </main>
     </div>
   );

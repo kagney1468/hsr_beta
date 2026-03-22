@@ -3,12 +3,14 @@ import { useParams, Link } from 'react-router-dom';
 import QRCode from 'react-qr-code';
 import { supabase } from '../lib/supabase';
 import { Card } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
 
 export default function AgentPropertyDetail() {
   const { id } = useParams<{ id: string }>();
   const [property, setProperty] = useState<any>(null);
   const [seller, setSeller] = useState<any>(null);
   const [documents, setDocuments] = useState<any[]>([]);
+  const [viewers, setViewers] = useState<any[]>([]);
   const [declaration, setDeclaration] = useState<any>(null);
   const [shareToken, setShareToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,6 +56,15 @@ export default function AgentPropertyDetail() {
         if (docsError) throw docsError;
         setDocuments(docsData || []);
 
+        // Fetch Viewers
+        const { data: viewersData } = await supabase
+          .from('pack_viewers')
+          .select('*')
+          .eq('property_id', id)
+          .order('viewed_at', { ascending: false });
+        
+        setViewers(viewersData || []);
+
         // Fetch Declaration
         const { data: declData, error: declError } = await supabase
           .from('seller_declarations')
@@ -64,16 +75,9 @@ export default function AgentPropertyDetail() {
         if (declError && declError.code !== 'PGRST116') throw declError;
         setDeclaration(declData);
 
-        // Fetch Share Token
-        const { data: shareData, error: shareError } = await supabase
-          .from('shares')
-          .select('token')
-          .eq('property_id', id)
-          .single();
-
-        if (shareError && shareError.code !== 'PGRST116') throw shareError;
-        if (shareData) {
-          setShareToken(shareData.token);
+        // Fetch Share Token (Using property.shareable_link_token directly from properties table if available)
+        if (propData.shareable_link_token) {
+          setShareToken(propData.shareable_link_token);
         }
 
         // Calculate Readiness
@@ -112,242 +116,229 @@ export default function AgentPropertyDetail() {
   }, [id]);
 
   const handleViewDocument = async (doc: any) => {
-    try {
-      const { data, error } = await supabase.storage
-        .from('property-documents')
-        .createSignedUrl(doc.storage_path, 60);
-
-      if (error) throw error;
-      
-      if (data?.signedUrl) {
-        window.open(data.signedUrl, '_blank');
-      } else {
-        throw new Error('Could not generate secure link');
-      }
-    } catch (err: any) {
-      console.error('Error viewing document:', err);
-      alert(err.message || 'Failed to open document');
+    if (doc.file_url) {
+      window.open(doc.file_url, '_blank');
+      return;
     }
+    // Fallback if file_url is missing
+    alert('Document URL not found.');
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-black flex items-center justify-center p-6">
+        <div className="animate-spin size-10 border-4 border-[#00e5a0] border-t-transparent rounded-full" />
       </div>
     );
   }
 
   if (!property) {
     return (
-      <div className="p-8 text-center text-slate-500">Property not found.</div>
+      <div className="min-h-screen bg-black flex items-center justify-center p-8 text-zinc-500 font-heading font-black text-2xl">
+        Property not found.
+      </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
-      <div className="flex items-center gap-4">
-        <Link to="/agent/dashboard" className="flex items-center justify-center size-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-primary transition-colors">
-          <span className="material-symbols-outlined">arrow_back</span>
-        </Link>
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">{property.address || 'Property Details'}</h1>
-          <p className="text-slate-500 mt-1">{property.city ? `${property.city}, ` : ''}{property.postcode}</p>
+    <div className="min-h-screen bg-[#050505] text-white pb-20">
+      {/* Header */}
+      <div className="px-6 md:px-12 pt-10 pb-8 border-b border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="flex items-center gap-5">
+          <Link to="/agent/dashboard" className="size-12 rounded-2xl bg-zinc-900 border border-white/5 flex items-center justify-center text-zinc-400 hover:text-white hover:border-white/10 transition-all">
+            <span className="material-symbols-outlined">arrow_back</span>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-black font-heading tracking-tight">{property.address}</h1>
+            <p className="text-zinc-500 flex items-center gap-2">
+               {property.postcode} • {property.property_type}
+               <span className="size-1 bg-zinc-700 rounded-full" />
+               Managed for {seller?.full_name}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+           <Button variant="outline" className="h-12 px-6 rounded-xl border-white/10 text-zinc-400 font-bold">Edit Details</Button>
+           <Button variant="primary" className="h-12 px-6 rounded-xl bg-[#00e5a0] text-black font-black font-heading shadow-xl shadow-[#00e5a0]/10">Download Pack</Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column: Summary & Readiness */}
-        <div className="lg:col-span-2 space-y-8">
-          {/* Property Summary */}
-          <Card className="p-8 border border-slate-100 dark:border-slate-800 shadow-soft">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-6">Property Summary</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Type</p>
-                <p className="font-medium text-slate-900 dark:text-slate-100">{property.property_type || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Bedrooms</p>
-                <p className="font-medium text-slate-900 dark:text-slate-100">{property.bedrooms || '0'}</p>
-              </div>
-              <div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Bathrooms</p>
-                <p className="font-medium text-slate-900 dark:text-slate-100">{property.bathrooms || '0'}</p>
-              </div>
-              <div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Tenure</p>
-                <p className="font-medium text-slate-900 dark:text-slate-100">{property.tenure || 'N/A'}</p>
-              </div>
+      <main className="max-w-7xl mx-auto p-6 md:p-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Column */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Stats Overview */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: 'Pack Progress', value: `${readiness.score}%`, color: readiness.score === 100 ? 'text-[#00e5a0]' : 'text-amber-500' },
+                { label: 'Documents', value: documents.length, color: 'text-white' },
+                { label: 'Total Views', value: viewers.length, color: 'text-blue-400' },
+                { label: 'Priority Leads', value: viewers.filter(v => v.is_selling).length, color: 'text-[#00e5a0]' },
+              ].map(stat => (
+                <Card key={stat.label} className="p-5 bg-zinc-900/40 border-white/5 space-y-1">
+                  <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">{stat.label}</p>
+                  <p className={`text-2xl font-black font-heading ${stat.color}`}>{stat.value}</p>
+                </Card>
+              ))}
             </div>
-          </Card>
 
-          {/* Readiness Breakdown */}
-          <Card className="p-8 border border-slate-100 dark:border-slate-800 shadow-soft">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Readiness Breakdown</h2>
-              <div className="flex items-center gap-3">
-                <div className="w-32 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                  <div className={`h-full rounded-full ${readiness.score === 100 ? 'bg-green-500' : 'bg-primary'}`} style={{ width: `${readiness.score}%` }}></div>
-                </div>
-                <span className="text-sm font-bold text-slate-900 dark:text-slate-100">{readiness.score}%</span>
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <span className={`material-symbols-outlined ${readiness.profileComplete ? 'text-green-500' : 'text-slate-400'}`}>
-                    {readiness.profileComplete ? 'check_circle' : 'radio_button_unchecked'}
-                  </span>
-                  <span className="font-medium text-slate-900 dark:text-slate-100">Seller Profile</span>
-                </div>
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">{readiness.profileComplete ? 'Complete' : 'Pending'}</span>
-              </div>
-              <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <span className={`material-symbols-outlined ${readiness.propertyComplete ? 'text-green-500' : 'text-slate-400'}`}>
-                    {readiness.propertyComplete ? 'check_circle' : 'radio_button_unchecked'}
-                  </span>
-                  <span className="font-medium text-slate-900 dark:text-slate-100">Property Details</span>
-                </div>
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">{readiness.propertyComplete ? 'Complete' : 'Pending'}</span>
-              </div>
-              <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <span className={`material-symbols-outlined ${readiness.documentsComplete ? 'text-green-500' : 'text-slate-400'}`}>
-                    {readiness.documentsComplete ? 'check_circle' : 'radio_button_unchecked'}
-                  </span>
-                  <span className="font-medium text-slate-900 dark:text-slate-100">Documents</span>
-                </div>
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">{readiness.documentsComplete ? 'Complete' : 'Pending'}</span>
-              </div>
-              <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <span className={`material-symbols-outlined ${readiness.declarationComplete ? 'text-green-500' : 'text-slate-400'}`}>
-                    {readiness.declarationComplete ? 'check_circle' : 'radio_button_unchecked'}
-                  </span>
-                  <span className="font-medium text-slate-900 dark:text-slate-100">Declaration</span>
-                </div>
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">{readiness.declarationComplete ? 'Complete' : 'Pending'}</span>
-              </div>
-            </div>
-          </Card>
+            {/* Viewer Registrations (NEW) */}
+            <Card className="border-white/5 bg-zinc-900/40 overflow-hidden">
+               <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                 <h3 className="text-lg font-black font-heading tracking-tight">Viewer Registrations</h3>
+                 <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest bg-black px-3 py-1 rounded-full">{viewers.length} Registered</span>
+               </div>
+               <div className="overflow-x-auto">
+                 <table className="w-full text-left border-collapse">
+                   <thead>
+                     <tr className="bg-white/[0.02]">
+                       <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest">Viewer</th>
+                       <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest">Date Viewed</th>
+                       <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest">Selling Status</th>
+                     </tr>
+                   </thead>
+                   <tbody className="divide-y divide-white/5">
+                     {viewers.length === 0 ? (
+                       <tr>
+                         <td colSpan={3} className="px-6 py-12 text-center text-zinc-500 italic">No registrations for this property yet.</td>
+                       </tr>
+                     ) : viewers.map(viewer => (
+                       <tr key={viewer.id} className="hover:bg-white/[0.015] transition-colors">
+                         <td className="px-6 py-4">
+                           <div className="font-bold">{viewer.viewer_name}</div>
+                           <div className="text-[10px] text-zinc-500 font-mono">{viewer.viewer_email}</div>
+                         </td>
+                         <td className="px-6 py-4 text-sm text-zinc-500">
+                           {new Date(viewer.viewed_at).toLocaleDateString()}
+                         </td>
+                         <td className="px-6 py-4">
+                            {viewer.is_selling ? (
+                              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-[#00e5a0]/10 text-[#00e5a0] text-[10px] font-black uppercase tracking-widest border border-[#00e5a0]/20">
+                                <span className="size-1 rounded-full bg-[#00e5a0] animate-pulse" />
+                                Selling in {viewer.selling_location}
+                              </div>
+                            ) : (
+                              <span className="text-[10px] font-bold text-zinc-700 uppercase">Search only</span>
+                            )}
+                         </td>
+                       </tr>
+                     ))}
+                   </tbody>
+                 </table>
+               </div>
+            </Card>
 
-          {/* Documents List */}
-          <Card className="p-8 border border-slate-100 dark:border-slate-800 shadow-soft">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-6">Uploaded Documents</h2>
-            {documents.length === 0 ? (
-              <div className="p-8 text-center text-slate-500 border border-dashed border-slate-200 dark:border-slate-700 rounded-xl">
-                No documents uploaded yet.
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {documents.map(doc => (
-                  <div key={doc.id} className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-primary/30 transition-colors">
-                    <div className="flex items-center gap-4">
-                      <div className="size-10 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500">
-                        <span className="material-symbols-outlined">description</span>
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{doc.file_name}</p>
-                        <p className="text-xs text-slate-500">{doc.document_type || doc.category}</p>
-                      </div>
-                    </div>
-                    <button 
-                      onClick={() => handleViewDocument(doc)}
-                      className="p-2 text-slate-400 hover:text-primary transition-colors" 
-                      title="View Document"
-                    >
-                      <span className="material-symbols-outlined">visibility</span>
-                    </button>
+            {/* Readiness List */}
+            <Card className="p-8 border-white/5 bg-zinc-900/40 space-y-6">
+              <h3 className="text-xl font-black font-heading tracking-tight">Readiness Checklist</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  { label: 'Seller Profile', done: readiness.profileComplete },
+                  { label: 'Property Details', done: readiness.propertyComplete },
+                  { label: 'Required Documents', done: readiness.documentsComplete },
+                  { label: 'Final Declaration', done: readiness.declarationComplete },
+                ].map(item => (
+                  <div key={item.label} className="p-4 rounded-2xl bg-black/40 border border-white/5 flex items-center justify-between">
+                    <span className="font-bold text-sm tracking-tight text-zinc-300">{item.label}</span>
+                    <span className={`material-symbols-outlined ${item.done ? 'text-[#00e5a0]' : 'text-zinc-800'}`}>
+                      {item.done ? 'check_circle' : 'pending'}
+                    </span>
                   </div>
                 ))}
               </div>
-            )}
-          </Card>
-        </div>
+            </Card>
 
-        {/* Right Column: Seller Info & Certificate */}
-        <div className="space-y-8">
-          {/* Seller Info */}
-          <Card className="p-8 border border-slate-100 dark:border-slate-800 shadow-soft">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-6">Seller Information</h2>
-            <div className="space-y-6">
-              <div className="flex items-center gap-4">
-                <div className="size-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-                  <span className="material-symbols-outlined">person</span>
-                </div>
-                <div>
-                  <p className="font-bold text-slate-900 dark:text-slate-100">
-                    {seller ? `${seller.first_name || ''} ${seller.last_name || ''}`.trim() || seller.full_name || 'Unknown' : 'Unknown'}
-                  </p>
-                  <p className="text-xs text-slate-500">Property Owner</p>
-                </div>
+            {/* Documents */}
+            <Card className="p-8 border-white/5 bg-zinc-900/40 space-y-6">
+              <h3 className="text-xl font-black font-heading tracking-tight">Compliance Documents</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                 {documents.map(doc => (
+                   <div key={doc.id} className="p-5 rounded-2xl bg-black/40 border border-white/5 group hover:border-white/10 transition-all flex items-center justify-between">
+                     <div className="flex items-center gap-4">
+                       <div className="size-10 rounded-xl bg-zinc-900 flex items-center justify-center text-zinc-500">
+                         <span className="material-symbols-outlined">description</span>
+                       </div>
+                       <div>
+                         <p className="font-bold text-sm tracking-tight">{doc.document_type || doc.category}</p>
+                         <p className="text-[10px] text-zinc-600 font-mono uppercase">{doc.file_name?.substring(0, 20)}...</p>
+                       </div>
+                     </div>
+                     <button onClick={() => handleViewDocument(doc)} className="size-8 rounded-lg flex items-center justify-center text-zinc-600 hover:text-white hover:bg-white/5 transition-colors">
+                       <span className="material-symbols-outlined text-[18px]">visibility</span>
+                     </button>
+                   </div>
+                 ))}
+                 {documents.length === 0 && (
+                   <p className="col-span-full py-10 text-center text-zinc-600 italic">No documents uploaded by seller.</p>
+                 )}
               </div>
-              
-              <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
-                <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Email</p>
-                  <p className="font-medium text-slate-900 dark:text-slate-100">{seller?.email || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Phone</p>
-                  <p className="font-medium text-slate-900 dark:text-slate-100">{seller?.phone || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Contact Preference</p>
-                  <p className="font-medium text-slate-900 dark:text-slate-100 capitalize">{seller?.contact_preference || 'Email'}</p>
-                </div>
-              </div>
-            </div>
-          </Card>
+            </Card>
+          </div>
 
-          {/* Certificate Preview & Share */}
-          <Card className="p-8 border border-slate-100 dark:border-slate-800 shadow-soft bg-gradient-to-b from-white to-slate-50 dark:from-slate-900 dark:to-slate-800/50">
-            <div className="flex items-center gap-3 mb-6">
-              <span className="material-symbols-outlined text-primary text-2xl">verified</span>
-              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Certificate Status</h2>
-            </div>
-            
-            {readiness.score === 100 ? (
-              <div className="space-y-6 flex flex-col items-center text-center">
-                <div className="inline-flex items-center gap-2 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest">
-                  <span className="material-symbols-outlined text-sm">check_circle</span>
-                  Home Sales Ready
+          {/* Sidebar */}
+          <div className="space-y-8">
+            {/* Share Card */}
+            <Card className="p-8 border-[#00e5a0]/20 bg-[#00e5a0]/5 overflow-hidden relative">
+              <div className="absolute top-0 right-0 size-32 bg-[#00e5a0]/10 blur-[60px] pointer-events-none" />
+              <div className="relative z-10 space-y-6">
+                <div className="inline-flex items-center gap-2 text-[#00e5a0] text-[10px] font-black uppercase tracking-[0.2em]">
+                  <span className="material-symbols-outlined text-sm">qr_code_2</span>
+                  Property QR Gate
                 </div>
+                <h3 className="text-2xl font-black font-heading tracking-tight leading-none">Share Property Pack</h3>
                 
                 {shareToken ? (
-                  <div className="w-full flex flex-col items-center pt-4 border-t border-slate-200 dark:border-slate-700">
-                    <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Public Share Link</p>
-                    <div className="bg-white p-3 rounded-xl shadow-sm border border-slate-100 mb-4">
-                      <QRCode value={`${window.location.origin}/share/${shareToken}`} size={100} />
+                  <>
+                    <div className="bg-white p-4 rounded-3xl flex justify-center shadow-2xl">
+                       <QRCode value={`${window.location.origin}/share/${shareToken}`} size={160} />
                     </div>
-                    <a 
-                      href={`/share/${shareToken}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full py-2 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-lg text-sm font-bold transition-colors block text-center"
-                    >
-                      Open Public Preview
-                    </a>
-                  </div>
+                    <div className="space-y-2">
+                      <Button 
+                        variant="primary" 
+                        onClick={() => {
+                          navigator.clipboard.writeText(`${window.location.origin}/share/${shareToken}`);
+                          alert('Public link copied!');
+                        }}
+                        className="w-full h-14 rounded-2xl bg-[#00e5a0] text-black font-black font-heading text-sm shadow-lg shadow-[#00e5a0]/20"
+                      >
+                         Copy Public Link
+                      </Button>
+                      <Link to={`/share/${shareToken}`} target="_blank" className="block w-full text-center py-2 text-[10px] font-black text-zinc-500 uppercase tracking-widest hover:text-[#00e5a0] transition-colors">
+                        Preview as Viewer
+                      </Link>
+                    </div>
+                  </>
                 ) : (
-                  <p className="text-sm text-slate-500">Share token not generated yet.</p>
+                  <div className="py-10 text-center space-y-4">
+                     <p className="text-zinc-500 text-sm">Generate a secure share link for this property.</p>
+                     <Button className="w-full h-14 rounded-2xl bg-white text-black font-black font-heading">Generate Link</Button>
+                  </div>
                 )}
               </div>
-            ) : (
-              <div className="text-center py-6">
-                <div className="size-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
-                  <span className="material-symbols-outlined text-3xl">lock</span>
-                </div>
-                <p className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">Certificate Locked</p>
-                <p className="text-xs text-slate-500">The property must reach 100% readiness to generate a certificate and share link.</p>
-              </div>
-            )}
-          </Card>
+            </Card>
+
+            {/* Seller Contact */}
+            <Card className="p-8 border-white/5 bg-zinc-900/40 space-y-6">
+               <h3 className="text-lg font-black font-heading tracking-tight">Seller Contact</h3>
+               <div className="space-y-4">
+                 <div className="space-y-1">
+                   <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Name</p>
+                   <p className="font-bold text-white">{seller?.full_name}</p>
+                 </div>
+                 <div className="space-y-1">
+                   <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Email</p>
+                   <p className="font-bold text-white text-sm">{seller?.email}</p>
+                 </div>
+                 <div className="space-y-1">
+                   <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Phone</p>
+                   <p className="font-bold text-white text-sm">{seller?.phone}</p>
+                 </div>
+               </div>
+               <Button variant="outline" className="w-full h-12 rounded-xl border-white/5 text-zinc-400 hover:text-white font-bold">Message Seller</Button>
+            </Card>
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

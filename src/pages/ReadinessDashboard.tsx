@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { Card } from '../components/ui/Card';
 
 export default function ReadinessDashboard() {
   const { user } = useAuth();
@@ -21,36 +22,31 @@ export default function ReadinessDashboard() {
       if (!user) return;
       
       try {
-        // Fetch User Profile
         const { data: profile } = await supabase
           .from('users')
           .select('*')
           .eq('auth_user_id', user.id)
           .single();
 
-        // Fetch Property
         const { data: propData } = await supabase
           .from('properties')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('user_id', profile?.id)
           .single();
 
         if (propData) setProperty(propData);
 
-        // Fetch Documents
         const { data: docs } = await supabase
           .from('documents')
           .select('*')
-          .eq('user_id', user.id);
+          .eq('property_id', propData?.id);
 
-        // Fetch Declaration
         const { data: declaration } = await supabase
           .from('seller_declarations')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('property_id', propData?.id)
           .single();
 
-        // Calculate Readiness
         let score = 0;
         let missing = [];
         
@@ -58,20 +54,20 @@ export default function ReadinessDashboard() {
         if (profileComplete) score += 25;
         else missing.push('Complete Seller Profile');
 
-        const propertyComplete = !!(propData?.address && propData?.property_type);
+        const propertyComplete = !!(propData?.address_line1 && propData?.property_type);
         if (propertyComplete) score += 25;
         else missing.push('Complete Property Details');
 
-        const hasID = docs?.some(d => d.category === 'ID');
-        const hasOwnership = docs?.some(d => d.category === 'Proof of Ownership');
-        const documentsComplete = !!(hasID && hasOwnership);
+        const hasLandRegistry = docs?.some(d => d.document_type === 'Land Registry');
+        const hasEPC = docs?.some(d => d.document_type === 'EPC certificate');
+        const documentsComplete = !!(hasLandRegistry && hasEPC);
         if (documentsComplete) score += 25;
         else {
-          if (!hasID) missing.push('Upload ID Document');
-          if (!hasOwnership) missing.push('Upload Proof of Ownership');
+          if (!hasLandRegistry) missing.push('Upload Land Registry');
+          if (!hasEPC) missing.push('Upload EPC Certificate');
         }
 
-        const declarationComplete = !!(declaration?.confirms_accuracy && declaration?.confirms_ai_review);
+        const declarationComplete = !!(declaration?.signed_at);
         if (declarationComplete) score += 25;
         else missing.push('Sign Seller Declaration');
 
@@ -94,150 +90,101 @@ export default function ReadinessDashboard() {
     loadData();
   }, [user]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin size-8 border-2 border-[#00e5a0] border-t-transparent rounded-full" /></div>;
 
   return (
-    <div className="mx-auto flex w-full max-w-[1200px] flex-1 flex-col gap-8">
-      {/* Header Section */}
+    <div className="max-w-4xl mx-auto p-6 md:p-10 space-y-10">
       <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2 text-primary">
-          <span className="material-symbols-outlined">dashboard</span>
-          <span className="text-sm font-semibold uppercase tracking-wider">Dashboard</span>
-        </div>
-        <h1 className="text-4xl font-black tracking-tight">Readiness Dashboard</h1>
-        <p className="text-slate-500 dark:text-slate-400">Track your progress and ensure your property is market-ready.</p>
+        <h1 className="text-4xl font-black font-heading text-white tracking-tight">Readiness Report</h1>
+        <p className="text-zinc-400">Advanced analysis of your property pack completion status.</p>
       </div>
-      {/* Overall Status Card */}
-      <div className="rounded-xl border border-primary/10 bg-white dark:bg-slate-900/50 p-6 shadow-sm">
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold">Overall Preparation Status</h2>
-            <p className="text-sm text-slate-500">Property: {property?.address || 'Not specified'}</p>
+
+      <Card className="p-10 border-white/5 bg-zinc-900 shadow-2xl relative overflow-hidden">
+        {/* Decorative background glow */}
+        <div className="absolute top-0 right-0 size-64 bg-[#00e5a0]/5 blur-3xl -mr-32 -mt-32 rounded-full" />
+        
+        <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
+          <div className="size-40 relative flex items-center justify-center">
+             <svg className="size-full -rotate-90" viewBox="0 0 100 100">
+               <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="8" />
+               <circle cx="50" cy="50" r="44" fill="none" stroke="#00e5a0" strokeWidth="8" strokeDasharray="276" strokeDashoffset={276 - (276 * readiness.score) / 100} strokeLinecap="round" className="transition-all duration-1000 ease-out" />
+             </svg>
+             <span className="absolute text-4xl font-black font-heading text-white">{readiness.score}%</span>
           </div>
-          <div className="text-right">
-            <span className="text-3xl font-black text-primary">{readiness.score}%</span>
-            <p className="text-xs font-bold uppercase text-slate-400">Ready</p>
-          </div>
-        </div>
-        <div className="h-4 w-full rounded-full bg-primary/10 overflow-hidden">
-          <div className="h-full rounded-full bg-primary transition-all duration-1000" style={{ width: `${readiness.score}%` }}></div>
-        </div>
-        <div className="mt-4 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-          <span className="material-symbols-outlined text-primary text-lg">info</span>
-          <p>
-            {readiness.score === 100 
-              ? "You're all set! Your property is ready for the market."
-              : `Almost there! Complete the remaining ${readiness.missingItems.length} items to go live on the market.`}
-          </p>
-        </div>
-      </div>
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        {/* Completed Checklist */}
-        <div className="flex flex-col gap-4">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-500">
-            Completed Sections
-          </h3>
-          <div className="flex flex-col border-t border-slate-100">
-            {readiness.profileComplete && (
-              <div className="flex items-center justify-between py-4 border-b border-slate-100">
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-primary text-xl">check_circle</span>
-                  <span className="text-sm font-medium text-slate-700">Seller Profile</span>
+
+          <div className="flex-1 text-center md:text-left space-y-4">
+             <h2 className="text-2xl font-black font-heading text-white">
+                {readiness.score === 100 ? "Ready to sell!" : "Almost at the finish line"}
+             </h2>
+             <p className="text-zinc-400 text-sm leading-relaxed">
+                {readiness.score === 100 
+                  ? "Your property information pack is 100% verified and compliant. You can now share it with potential buyers."
+                  : `You have ${readiness.missingItems.length} critical items remaining. Completing these now will save an average of 3 weeks during the legal process.`}
+             </p>
+             <div className="pt-2">
+                <div className="inline-flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full border border-white/5">
+                   <div className={`size-2 rounded-full ${readiness.score === 100 ? 'bg-green-500' : 'bg-amber-500 animate-pulse'}`} />
+                   <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                      Status: {readiness.score === 100 ? 'Market Ready' : 'In Preparation'}
+                   </span>
                 </div>
-                <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Verified</span>
-              </div>
-            )}
-            {readiness.propertyComplete && (
-              <div className="flex items-center justify-between py-4 border-b border-slate-100">
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-primary text-xl">check_circle</span>
-                  <span className="text-sm font-medium text-slate-700">Property Details</span>
-                </div>
-                <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Verified</span>
-              </div>
-            )}
-            {readiness.documentsComplete && (
-              <div className="flex items-center justify-between py-4 border-b border-slate-100">
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-primary text-xl">check_circle</span>
-                  <span className="text-sm font-medium text-slate-700">Required Documents</span>
-                </div>
-                <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Uploaded</span>
-              </div>
-            )}
-            {readiness.declarationComplete && (
-              <div className="flex items-center justify-between py-4 border-b border-slate-100">
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-primary text-xl">check_circle</span>
-                  <span className="text-sm font-medium text-slate-700">Seller Declaration</span>
-                </div>
-                <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Signed</span>
-              </div>
-            )}
-            {readiness.score === 0 && (
-              <div className="py-4 text-sm text-slate-500 italic">No sections completed yet.</div>
-            )}
+             </div>
           </div>
         </div>
-        {/* Missing Items */}
-        <div className="flex flex-col gap-4">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-amber-custom">
-            Action Required
-          </h3>
-          <div className="flex flex-col border-t border-slate-100">
-            {readiness.missingItems.length > 0 ? (
-              readiness.missingItems.map((item, index) => (
-                <div key={index} className="flex items-center justify-between py-4 border-b border-slate-100">
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-3">
-                      <div className="w-1 h-4 bg-amber-custom rounded-full"></div>
-                      <span className="text-sm font-semibold text-slate-900">{item}</span>
-                    </div>
-                  </div>
-                  <Link 
+      </Card>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="space-y-6">
+           <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 px-2">Completed Steps</h3>
+           <div className="space-y-3">
+              {[
+                { label: 'Seller Profile', done: readiness.profileComplete },
+                { label: 'Property Metadata', done: readiness.propertyComplete },
+                { label: 'Legal Documents', done: readiness.documentsComplete },
+                { label: 'Digital Signature', done: readiness.declarationComplete }
+              ].filter(i => i.done).map(item => (
+                <div key={item.label} className="p-4 bg-zinc-900 border border-white/5 rounded-2xl flex items-center justify-between">
+                   <div className="flex items-center gap-3">
+                      <span className="material-symbols-outlined text-[#00e5a0]">check_circle</span>
+                      <span className="text-sm font-bold text-white">{item.label}</span>
+                   </div>
+                   <span className="text-[9px] font-black uppercase tracking-widest text-[#00e5a0] bg-[#00e5a0]/10 px-2 py-1 rounded">Verified</span>
+                </div>
+              ))}
+              {!readiness.profileComplete && !readiness.propertyComplete && !readiness.documentsComplete && !readiness.declarationComplete && (
+                  <p className="text-zinc-600 italic text-sm px-2">No steps completed yet.</p>
+              )}
+           </div>
+        </div>
+
+        <div className="space-y-6">
+           <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500 px-2">Action Required</h3>
+           <div className="space-y-3">
+              {readiness.missingItems.length > 0 ? readiness.missingItems.map(item => (
+                <div key={item} className="p-4 bg-zinc-900 border border-white/5 rounded-2xl flex items-center justify-between group hover:border-amber-500/30 transition-all">
+                   <div className="flex items-center gap-3">
+                      <span className="material-symbols-outlined text-amber-500">pending</span>
+                      <span className="text-sm font-bold text-white">{item}</span>
+                   </div>
+                   <Link 
                     to={
                       item.includes('Profile') ? '/seller/profile' :
                       item.includes('Property') ? '/seller/property' :
-                      item.includes('Document') || item.includes('ID') || item.includes('Ownership') ? '/seller/documents' :
+                      item.includes('Registry') || item.includes('EPC') ? '/seller/documents' :
                       '/seller/declaration'
-                    } 
-                    className="rounded border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors inline-block text-center"
-                  >
-                    Fix Now
-                  </Link>
+                    }
+                    className="text-[9px] font-black uppercase tracking-widest text-amber-500 bg-amber-500/10 px-3 py-2 rounded-lg hover:bg-amber-500 hover:text-black transition-all"
+                   >
+                     Fix Now
+                   </Link>
                 </div>
-              ))
-            ) : (
-              <div className="py-4 text-sm text-slate-500 italic">All required actions completed!</div>
-            )}
-          </div>
-        </div>
-      </div>
-      {/* Property Insights Section (Extra Component for context) */}
-      <div className="mt-4">
-        <h3 className="mb-6 text-sm font-semibold uppercase tracking-wider text-slate-500">Preparation Recommendations</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="group flex flex-col gap-3 rounded-lg border border-slate-100 bg-white p-5 transition-all hover:border-primary/20 hover:shadow-sm">
-            <span className="material-symbols-outlined text-primary text-xl">lightbulb</span>
-            <h4 className="text-sm font-semibold text-slate-900">Curb Appeal</h4>
-            <p className="text-xs leading-relaxed text-slate-500">Consider repainting the front door to increase first-impression value by up to 2%.</p>
-          </div>
-          <div className="group flex flex-col gap-3 rounded-lg border border-slate-100 bg-white p-5 transition-all hover:border-primary/20 hover:shadow-sm">
-            <span className="material-symbols-outlined text-primary text-xl">cleaning_services</span>
-            <h4 className="text-sm font-semibold text-slate-900">Deep Clean</h4>
-            <p className="text-xs leading-relaxed text-slate-500">Professional staging and cleaning recommended prior to your high-resolution photography shoot.</p>
-          </div>
-          <div className="group flex flex-col gap-3 rounded-lg border border-slate-100 bg-white p-5 transition-all hover:border-primary/20 hover:shadow-sm">
-            <span className="material-symbols-outlined text-primary text-xl">sell</span>
-            <h4 className="text-sm font-semibold text-slate-900">Market Timing</h4>
-            <p className="text-xs leading-relaxed text-slate-500">Properties in your area currently sell 12% faster when listed on Tuesdays or Wednesdays.</p>
-          </div>
+              )) : (
+                <div className="p-8 text-center bg-zinc-900/50 border border-dashed border-white/5 rounded-3xl">
+                   <span className="material-symbols-outlined text-3xl text-[#00e5a0] mb-2">auto_awesome</span>
+                   <p className="text-zinc-500 text-sm">Perfect Score! All actions completed.</p>
+                </div>
+              )}
+           </div>
         </div>
       </div>
     </div>
