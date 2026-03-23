@@ -21,6 +21,7 @@ export default function SellerProfile() {
     home_address_line2: '',
     home_address_town: '',
     home_address_county: '',
+    home_address_city: '',
     home_address_postcode: '',
   });
 
@@ -44,9 +45,10 @@ export default function SellerProfile() {
             contact_preference: data.contact_preference || 'email',
             home_address_line1: data.home_address_line1 || '',
             home_address_line2: data.home_address_line2 || '',
-            home_address_town: data.home_city || '', // Maps to DB home_city
-            home_address_county: '', 
-            home_address_postcode: data.home_postcode || '',
+            home_address_town: data.home_address_town || '',
+            home_address_county: data.home_address_county || '', 
+            home_address_city: data.home_address_city || '', 
+            home_address_postcode: data.home_address_postcode || '',
           });
         }
       } catch (error) {
@@ -80,15 +82,8 @@ export default function SellerProfile() {
         email: user.email,
         role: 'seller',
         ...formData,
-        home_city: formData.home_address_town, // Map back to DB schema
-        home_postcode: formData.home_address_postcode,
         updated_at: new Date().toISOString(),
       };
-      
-      // Delete the fields that don't exist in Supabase users table natively to prevent errors
-      delete (payload as any).home_address_town;
-      delete (payload as any).home_address_county;
-      delete (payload as any).home_address_postcode;
 
       if (existingUser) {
           const { error } = await supabase
@@ -215,6 +210,7 @@ export default function SellerProfile() {
                     home_address_line2: addr.line2,
                     home_address_town: addr.town,
                     home_address_county: addr.county,
+                    home_address_city: addr.town, // Fill city automatically from town for now
                     home_address_postcode: addr.postcode
                   }));
                 }} 
@@ -270,6 +266,18 @@ export default function SellerProfile() {
                     placeholder="Greater London"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">City</label>
+                <input 
+                  type="text" 
+                  name="home_address_city"
+                  value={formData.home_address_city}
+                  onChange={handleChange}
+                  className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
+                  placeholder="e.g. London"
+                />
               </div>
 
               <div className="space-y-2">

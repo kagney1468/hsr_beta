@@ -54,8 +54,10 @@ export type Database = {
           contact_preference: string | null
           home_address_line1: string | null
           home_address_line2: string | null
-          home_city: string | null
-          home_postcode: string | null
+          home_address_town: string | null
+          home_address_county: string | null
+          home_address_city: string | null
+          home_address_postcode: string | null
           created_at: string
           updated_at: string
         }
@@ -70,8 +72,10 @@ export type Database = {
           contact_preference?: string | null
           home_address_line1?: string | null
           home_address_line2?: string | null
-          home_city?: string | null
-          home_postcode?: string | null
+          home_address_town?: string | null
+          home_address_county?: string | null
+          home_address_city?: string | null
+          home_address_postcode?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -86,8 +90,10 @@ export type Database = {
           contact_preference?: string | null
           home_address_line1?: string | null
           home_address_line2?: string | null
-          home_city?: string | null
-          home_postcode?: string | null
+          home_address_town?: string | null
+          home_address_county?: string | null
+          home_address_city?: string | null
+          home_address_postcode?: string | null
           created_at?: string
           updated_at?: string
         }
