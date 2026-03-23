@@ -47,7 +47,7 @@ export default function AgentLayout() {
               <span className="material-symbols-outlined font-black">real_estate_agent</span>
             </div>
           )}
-          <div className="font-heading font-black text-[0.9rem] text-white leading-tight">{agency?.agency_name || 'Home Sales Ready'}</div>
+          <div className="font-heading font-black text-[0.9rem] text-white leading-tight">{agency?.agency_name || 'HomeSalesReady'}</div>
           <div className="text-[10px] text-[var(--accent)] uppercase font-black tracking-widest mt-1">Estate Agent Portal</div>
         </div>
 

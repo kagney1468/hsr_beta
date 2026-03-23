@@ -69,8 +69,8 @@ export default function AgentPropertyDetail() {
         const { data: declData, error: declError } = await supabase
           .from('seller_declarations')
           .select('*')
-          .eq('user_id', propData.user_id)
-          .single();
+          .eq('property_id', (propData as any).id)
+          .maybeSingle();
 
         if (declError && declError.code !== 'PGRST116') throw declError;
         setDeclaration(declData);

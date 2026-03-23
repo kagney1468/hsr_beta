@@ -72,7 +72,7 @@ export default function SellerOnboarding() {
           if (matInfo) {
             setFormData(prev => ({
               ...prev,
-              utilities: matInfo.utilities || prev.utilities,
+              utilities: (matInfo.utilities as any) || prev.utilities,
               parking: matInfo.parking || prev.parking,
               flooding_risk: matInfo.flooding_risk || prev.flooding_risk,
               building_safety: matInfo.building_safety || prev.building_safety,

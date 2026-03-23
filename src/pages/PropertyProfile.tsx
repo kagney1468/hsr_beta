@@ -77,7 +77,7 @@ export default function PropertyProfile() {
         }
 
         if (data) {
-          const mi = data.material_information?.[0] || {};
+          const mi = Array.isArray(data.material_information) ? data.material_information[0] : data.material_information;
           setFormData({
             address_line1: data.address_line1 || '',
             address_line2: data.address_line2 || '',
@@ -93,21 +93,21 @@ export default function PropertyProfile() {
             
             heating: data.heating || 'Gas Central Heating',
             drainage: data.drainage || 'Mains Sewerage',
-            water_supply: mi.water_supply || 'Mains',
-            electricity_supply: mi.electricity_supply || 'Mains',
-            broadband_speed: mi.broadband_speed || 'Superfast',
-            mobile_signal: mi.mobile_signal || 'Good',
+            water_supply: mi?.water_supply || 'Mains',
+            electricity_supply: mi?.electricity_supply || 'Mains',
+            broadband_speed: mi?.broadband_speed || 'Superfast',
+            mobile_signal: mi?.mobile_signal || 'Good',
             parking: data.parking || 'Driveway',
             
             building_changes: data.building_changes || '',
-            restrictions: mi.restrictions || '',
-            rights_easements: mi.rights_easements || '',
-            flood_risk: mi.flood_risk || 'Low',
-            coastal_erosion: mi.coastal_erosion || 'No',
-            planning_permissions: mi.planning_permissions || '',
-            coalfield_area: mi.coalfield_area || 'No',
-            disputes: mi.disputes || 'None',
-            building_regs_required: mi.building_regs_required || false,
+            restrictions: mi?.restrictions || '',
+            rights_easements: mi?.rights_easements || '',
+            flood_risk: mi?.flood_risk || 'Low',
+            coastal_erosion: mi?.coastal_erosion || 'No',
+            planning_permissions: mi?.planning_permissions || '',
+            coalfield_area: mi?.coalfield_area || 'No',
+            disputes: mi?.disputes || 'None',
+            building_regs_required: mi?.building_regs_required || false,
           });
         }
       } catch (error) {

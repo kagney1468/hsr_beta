@@ -6,7 +6,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export interface Database {
+export type Database = {
   public: {
     Tables: {
       agencies: {
@@ -40,6 +40,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       users: {
         Row: {
@@ -50,6 +51,11 @@ export interface Database {
           phone: string | null
           role: string | null
           agency_id: string | null
+          contact_preference: string | null
+          home_address_line1: string | null
+          home_address_line2: string | null
+          home_city: string | null
+          home_postcode: string | null
           created_at: string
           updated_at: string
         }
@@ -61,6 +67,11 @@ export interface Database {
           phone?: string | null
           role?: string | null
           agency_id?: string | null
+          contact_preference?: string | null
+          home_address_line1?: string | null
+          home_address_line2?: string | null
+          home_city?: string | null
+          home_postcode?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -72,21 +83,37 @@ export interface Database {
           phone?: string | null
           role?: string | null
           agency_id?: string | null
+          contact_preference?: string | null
+          home_address_line1?: string | null
+          home_address_line2?: string | null
+          home_city?: string | null
+          home_postcode?: string | null
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       properties: {
         Row: {
           id: string
           seller_user_id: string | null
+          user_id: string | null
           address: string | null
+          address_line1: string | null
+          address_line2: string | null
+          city: string | null
           postcode: string | null
           property_type: string | null
           tenure: string | null
           bedrooms: number | null
+          bathrooms: number | null
           council_tax_band: string | null
           epc_rating: string | null
+          asking_price: string | null
+          heating: string | null
+          drainage: string | null
+          parking: string | null
+          building_changes: string | null
           is_link_active: boolean
           shareable_link_token: string | null
           created_at: string
@@ -95,13 +122,23 @@ export interface Database {
         Insert: {
           id?: string
           seller_user_id?: string | null
+          user_id?: string | null
           address?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
           postcode?: string | null
           property_type?: string | null
           tenure?: string | null
           bedrooms?: number | null
+          bathrooms?: number | null
           council_tax_band?: string | null
           epc_rating?: string | null
+          asking_price?: string | null
+          heating?: string | null
+          drainage?: string | null
+          parking?: string | null
+          building_changes?: string | null
           is_link_active?: boolean
           shareable_link_token?: string | null
           created_at?: string
@@ -110,31 +147,52 @@ export interface Database {
         Update: {
           id?: string
           seller_user_id?: string | null
+          user_id?: string | null
           address?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
           postcode?: string | null
           property_type?: string | null
           tenure?: string | null
           bedrooms?: number | null
+          bathrooms?: number | null
           council_tax_band?: string | null
           epc_rating?: string | null
+          asking_price?: string | null
+          heating?: string | null
+          drainage?: string | null
+          parking?: string | null
+          building_changes?: string | null
           is_link_active?: boolean
           shareable_link_token?: string | null
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       material_information: {
         Row: {
           id: string
           property_id: string | null
           utilities: Json | null
+          water_supply: string | null
+          electricity_supply: string | null
+          broadband_speed: string | null
+          mobile_signal: string | null
           parking: string | null
           flooding_risk: string | null
+          flood_risk: string | null
           building_safety: string | null
           planning_history: string | null
+          planning_permissions: string | null
           disputes_notices: string | null
           building_reg_works: string | null
           disputes: string | null
+          restrictions: string | null
+          rights_easements: string | null
+          coastal_erosion: string | null
+          coalfield_area: string | null
           building_regs_required: boolean | null
           updated_at: string | null
           created_at: string
@@ -143,13 +201,23 @@ export interface Database {
           id?: string
           property_id?: string | null
           utilities?: Json | null
+          water_supply?: string | null
+          electricity_supply?: string | null
+          broadband_speed?: string | null
+          mobile_signal?: string | null
           parking?: string | null
           flooding_risk?: string | null
+          flood_risk?: string | null
           building_safety?: string | null
           planning_history?: string | null
+          planning_permissions?: string | null
           disputes_notices?: string | null
           building_reg_works?: string | null
           disputes?: string | null
+          restrictions?: string | null
+          rights_easements?: string | null
+          coastal_erosion?: string | null
+          coalfield_area?: string | null
           building_regs_required?: boolean | null
           updated_at?: string | null
           created_at?: string
@@ -158,17 +226,28 @@ export interface Database {
           id?: string
           property_id?: string | null
           utilities?: Json | null
+          water_supply?: string | null
+          electricity_supply?: string | null
+          broadband_speed?: string | null
+          mobile_signal?: string | null
           parking?: string | null
           flooding_risk?: string | null
+          flood_risk?: string | null
           building_safety?: string | null
           planning_history?: string | null
+          planning_permissions?: string | null
           disputes_notices?: string | null
           building_reg_works?: string | null
           disputes?: string | null
+          restrictions?: string | null
+          rights_easements?: string | null
+          coastal_erosion?: string | null
+          coalfield_area?: string | null
           building_regs_required?: boolean | null
           updated_at?: string | null
           created_at?: string
         }
+        Relationships: []
       }
       shares: {
         Row: {
@@ -192,6 +271,7 @@ export interface Database {
           active?: boolean
           created_at?: string
         }
+        Relationships: []
       }
       seller_declarations: {
         Row: {
@@ -221,6 +301,7 @@ export interface Database {
           signed_at?: string | null
           created_at?: string
         }
+        Relationships: []
       }
       documents: {
         Row: {
@@ -250,6 +331,7 @@ export interface Database {
           category?: string | null
           created_at?: string
         }
+        Relationships: []
       }
       pack_viewers: {
         Row: {
@@ -282,7 +364,20 @@ export interface Database {
           is_selling?: boolean
           selling_location?: string | null
         }
+        Relationships: []
       }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
     }
   }
 }

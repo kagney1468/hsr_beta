@@ -98,7 +98,12 @@ export default function DocumentUpload() {
         .order('uploaded_at', { ascending: false });
 
       if (error) throw error;
-      setDocuments(data || []);
+      setDocuments((data || []).map(d => ({
+        ...d,
+        file_name: d.name || 'Untitled',
+        storage_path: d.file_url || '',
+        uploaded_at: d.created_at
+      })) as any);
     } catch (err: any) {
       console.error('Error loading documents:', err);
       setError(err.message || 'Failed to load documents');

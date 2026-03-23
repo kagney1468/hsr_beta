@@ -43,13 +43,13 @@ export default function PublicPack() {
         const { data: matInfo } = await supabase
           .from('material_information')
           .select('*')
-          .eq('property_id', prop.id)
+          .eq('property_id', (prop as any).id)
           .maybeSingle();
         
         const { data: docs } = await supabase
           .from('documents')
           .select('*')
-          .eq('property_id', prop.id);
+          .eq('property_id', (prop as any).id);
 
         setMaterialInfo(matInfo);
         setDocuments(docs || []);
@@ -74,17 +74,29 @@ export default function PublicPack() {
       const { error } = await supabase
         .from('pack_viewers')
         .insert({
-          property_id: property.id,
+          property_id: (property as any).id,
           viewer_name: viewerForm.name,
           viewed_at: new Date().toISOString(),
           is_selling: viewerForm.is_selling,
           selling_location: viewerForm.is_selling ? viewerForm.selling_location : null
-        });
+        } as any);
 
       if (error) throw error;
 
-      // 2. Note: Email notifications would typically be triggered by a Supabase Edge Function 
-      // or a DB trigger on the pack_viewers table.
+      // 2. Send Notifications to Seller and Agent
+      await supabase.functions.invoke('send-notification', {
+        body: {
+          type: 'viewerRegistration',
+          propertyId: (property as any).id,
+          viewerData: {
+            full_name: viewerForm.name,
+            email: viewerForm.email,
+            phone: viewerForm.phone,
+            is_selling: viewerForm.is_selling,
+            selling_location: viewerForm.selling_location
+          }
+        }
+      });
       
       setIsRegistered(true);
       window.scrollTo(0, 0);

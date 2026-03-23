@@ -3,8 +3,8 @@ import { Card } from '../components/ui/Card';
 
 const faqs = [
   {
-    question: "What is Home Sales Ready?",
-    answer: "Home Sales Ready is a digital dataroom that helps you prepare the key information and documents about your property before it goes on the market. By gathering everything in one place early, you can reduce delays later in the sales process and make it easier for agents, buyers, solicitors etc to understand your property."
+    question: "What is HomeSalesReady?",
+    answer: "HomeSalesReady is a digital dataroom that helps you prepare the key information and documents about your property before it goes on the market. By gathering everything in one place early, you can reduce delays later in the sales process and make it easier for agents, buyers, solicitors etc to understand your property."
   },
   {
     question: "Why are you asking for this information?",
@@ -12,7 +12,7 @@ const faqs = [
   },
   {
     question: "Do I need to complete everything?",
-    answer: "No. You can save your information as a draft and return later. However, the more information you provide, the more useful your Home Sales Ready report will be."
+    answer: "No. You can save your information as a draft and return later. However, the more information you provide, the more useful your HomeSalesReady report will be."
   },
   {
     question: "What if I don’t have a document?",
