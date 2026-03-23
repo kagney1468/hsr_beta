@@ -15,6 +15,7 @@ export default function SellerOnboarding() {
   const [saving, setSaving] = useState(false);
   const [lookupLoading, setLookupLoading] = useState(false);
   const [lookupError, setLookupError] = useState('');
+  const [addressOptions, setAddressOptions] = useState<string[]>([]);
   const [propertyId, setPropertyId] = useState<string | null>(null);
 
   // Form State
@@ -176,30 +177,43 @@ export default function SellerOnboarding() {
     
     setLookupLoading(true);
     setLookupError('');
+    setAddressOptions([]);
     
     try {
-      const response = await fetch(`https://api.postcodes.io/postcodes/${formData.postcode.replace(/\s+/g, '')}`);
+      // NOTE: Royal Mail PAF data for exact house numbers is commercial.
+      // We are wiring this up for GetAddress.io which provides exact UK house dropdowns.
+      // You must provide an API key in your Vercel Environment Variables.
+      const apiKey = import.meta.env.VITE_GETADDRESS_API_KEY || '';
+      
+      if (!apiKey) {
+        throw new Error('Missing GetAddress.io API Key in environment variables');
+      }
+
+      const response = await fetch(`https://api.getaddress.io/find/${formData.postcode.replace(/\s+/g, '')}?api-key=${apiKey}`);
       const data = await response.json();
       
-      if (response.status !== 200 || !data.result) {
-        throw new Error('Postcode not found');
+      if (response.status !== 200 || !data.addresses || data.addresses.length === 0) {
+        throw new Error('No addresses found for this postcode');
       }
       
-      const { admin_ward, admin_district, region, country, postcode } = data.result;
-      const addressParts = [admin_ward, admin_district, region, country].filter(Boolean);
-      const newAddress = addressParts.join(', ');
+      // GetAddress returns array of comma separated strings
+      const formattedAddresses = data.addresses.map((addr: string) => {
+        // Remove empty segments
+        return addr.split(',').filter(part => part.trim().length > 0).join(', ');
+      });
       
-      setFormData(prev => ({
-        ...prev,
-        address: prev.address && !prev.address.includes(region) 
-          ? `${prev.address}\n${newAddress}`
-          : newAddress,
-        postcode: postcode
-      }));
-    } catch (err) {
-      setLookupError('Postcode not found. Please check and try again.');
+      setAddressOptions(formattedAddresses);
+    } catch (err: any) {
+      setLookupError(err.message || 'Postcode not found. Please check and try again.');
     } finally {
       setLookupLoading(false);
+    }
+  };
+
+  const handleAddressSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selected = e.target.value;
+    if (selected) {
+      setFormData({ ...formData, address: selected });
     }
   };
 
@@ -272,14 +286,14 @@ export default function SellerOnboarding() {
                 <div className="space-y-3">
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 flex items-center">
                     Postcode
-                    <HelpTooltip text="A valid postcode allows us to automatically fetch EPC data and local authority flood risk records." />
+                    <HelpTooltip text="A valid postcode allows us to fetch exact property addresses from the Royal Mail database." />
                   </label>
                   <div className="flex flex-col md:flex-row gap-4">
                     <input 
                       className="flex-1 h-16 px-6 rounded-2xl border border-white/10 bg-black/40 text-white focus:border-[#00e5a0]/50 outline-none transition-all text-xl font-black tracking-widest uppercase placeholder:text-zinc-800"
                       placeholder="E.G. SW1A 1AA"
                       value={formData.postcode}
-                      onChange={(e) => setFormData({...formData, postcode: e.target.value})}
+                      onChange={(e) => setFormData({...formData, postcode: e.target.value.toUpperCase()})}
                     />
                     <Button 
                       variant="primary" 
@@ -293,6 +307,24 @@ export default function SellerOnboarding() {
                   {lookupError && <p className="text-red-500 text-sm font-bold pl-2">{lookupError}</p>}
                 </div>
 
+                {addressOptions.length > 0 && (
+                  <div className="space-y-3 animate-in fade-in slide-in-from-top-4 duration-500">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#00e5a0] flex items-center">
+                      Select Your Address
+                    </label>
+                    <select 
+                      className="w-full h-16 px-6 rounded-2xl border border-[#00e5a0]/30 bg-[#00e5a0]/5 text-white focus:border-[#00e5a0] outline-none transition-all appearance-none cursor-pointer"
+                      onChange={handleAddressSelect}
+                      defaultValue=""
+                    >
+                      <option value="" disabled>-- Choose an address from the list --</option>
+                      {addressOptions.map((addr, idx) => (
+                        <option key={idx} value={addr}>{addr}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 <div className="space-y-3">
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 flex items-center">
                     Full Property Address
@@ -304,7 +336,6 @@ export default function SellerOnboarding() {
                     value={formData.address}
                     onChange={(e) => setFormData({...formData, address: e.target.value})}
                   />
-                  <p className="text-xs text-zinc-500 italic pl-2">Please add your house name or number if you used the postcode finder.</p>
                 </div>
               </div>
             )}
