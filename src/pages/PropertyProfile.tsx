@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { AddressLookup } from '../components/AddressLookup';
 import { Tooltip } from '../components/ui/Tooltip';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -14,10 +15,10 @@ export default function PropertyProfile() {
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   
   const [formData, setFormData] = useState({
-    // Basic Details
     address_line1: '',
     address_line2: '',
-    city: '',
+    address_town: '',
+    address_county: '',
     postcode: '',
     property_type: 'Detached House',
     bedrooms: 3,
@@ -81,7 +82,8 @@ export default function PropertyProfile() {
           setFormData({
             address_line1: data.address_line1 || '',
             address_line2: data.address_line2 || '',
-            city: data.city || '',
+            address_town: data.city || '',
+            address_county: '',
             postcode: data.postcode || '',
             property_type: data.property_type || 'Detached House',
             bedrooms: data.bedrooms || 3,
@@ -150,7 +152,7 @@ export default function PropertyProfile() {
           user_id: userData.id,
           address_line1: formData.address_line1,
           address_line2: formData.address_line2,
-          city: formData.city,
+          city: formData.address_town,
           postcode: formData.postcode,
           property_type: formData.property_type,
           bedrooms: formData.bedrooms,
@@ -217,6 +219,91 @@ export default function PropertyProfile() {
       )}
 
       <div className="space-y-12">
+        <Card className="p-8 border-l-4 border-l-[#00e5a0]/50 border-white/5 bg-zinc-900 shadow-2xl space-y-8 text-white">
+          <div className="flex items-center gap-2 mb-6">
+            <h2 className="text-xl font-bold font-heading">Property Address</h2>
+          </div>
+          
+          <div className="space-y-6">
+            <div className="space-y-6">
+              <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Postcode Search</label>
+              <AddressLookup 
+                postcode={formData.postcode} 
+                onPostcodeChange={(val) => setFormData({...formData, postcode: val})} 
+                onAddressSelect={(addr) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    address_line1: addr.line1,
+                    address_line2: addr.line2,
+                    address_town: addr.town,
+                    address_county: addr.county,
+                    postcode: addr.postcode
+                  }));
+                }} 
+              />
+            </div>
+
+            <div className="pt-4 space-y-4 border-t border-white/5">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Address Line 1</label>
+                <input 
+                  type="text" 
+                  name="address_line1"
+                  value={formData.address_line1}
+                  onChange={handleChange}
+                  className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Address Line 2</label>
+                <input 
+                  type="text" 
+                  name="address_line2"
+                  value={formData.address_line2}
+                  onChange={handleChange}
+                  className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Town / City</label>
+                  <input 
+                    type="text" 
+                    name="address_town"
+                    value={formData.address_town}
+                    onChange={handleChange}
+                    className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">County</label>
+                  <input 
+                    type="text" 
+                    name="address_county"
+                    value={formData.address_county}
+                    onChange={handleChange}
+                    className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Postcode</label>
+                <input 
+                  type="text" 
+                  name="postcode"
+                  value={formData.postcode}
+                  onChange={handleChange}
+                  className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
+                />
+              </div>
+            </div>
+          </div>
+        </Card>
+
         {/* PART A */}
         <Card className="p-8 border-l-4 border-l-primary/50">
           <div className="flex items-center gap-2 mb-6">

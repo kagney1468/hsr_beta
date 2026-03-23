@@ -4,6 +4,7 @@ import { Button } from '../components/ui/Button';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { AddressLookup } from '../components/AddressLookup';
 
 export default function SellerProfile() {
   const { user } = useAuth();
@@ -18,8 +19,9 @@ export default function SellerProfile() {
     contact_preference: 'email',
     home_address_line1: '',
     home_address_line2: '',
-    home_city: '',
-    home_postcode: '',
+    home_address_town: '',
+    home_address_county: '',
+    home_address_postcode: '',
   });
 
   useEffect(() => {
@@ -42,8 +44,9 @@ export default function SellerProfile() {
             contact_preference: data.contact_preference || 'email',
             home_address_line1: data.home_address_line1 || '',
             home_address_line2: data.home_address_line2 || '',
-            home_city: data.home_city || '',
-            home_postcode: data.home_postcode || '',
+            home_address_town: data.home_city || '', // Maps to DB home_city
+            home_address_county: '', 
+            home_address_postcode: data.home_postcode || '',
           });
         }
       } catch (error) {
@@ -77,8 +80,15 @@ export default function SellerProfile() {
         email: user.email,
         role: 'seller',
         ...formData,
+        home_city: formData.home_address_town, // Map back to DB schema
+        home_postcode: formData.home_address_postcode,
         updated_at: new Date().toISOString(),
       };
+      
+      // Delete the fields that don't exist in Supabase users table natively to prevent errors
+      delete (payload as any).home_address_town;
+      delete (payload as any).home_address_county;
+      delete (payload as any).home_address_postcode;
 
       if (existingUser) {
           const { error } = await supabase
@@ -193,40 +203,86 @@ export default function SellerProfile() {
           </div>
 
           <div className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Address Line 1</label>
-              <input 
-                type="text" 
-                name="home_address_line1"
-                value={formData.home_address_line1}
-                onChange={handleChange}
-                className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
-                placeholder="123 Example Street"
+            <div className="space-y-6">
+              <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Postcode Search</label>
+              <AddressLookup 
+                postcode={formData.home_address_postcode} 
+                onPostcodeChange={(val) => setFormData({...formData, home_address_postcode: val})} 
+                onAddressSelect={(addr) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    home_address_line1: addr.line1,
+                    home_address_line2: addr.line2,
+                    home_address_town: addr.town,
+                    home_address_county: addr.county,
+                    home_address_postcode: addr.postcode
+                  }));
+                }} 
               />
             </div>
-            
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Town / City</label>
-              <input 
-                type="text" 
-                name="home_city"
-                value={formData.home_city}
-                onChange={handleChange}
-                className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
-                placeholder="London"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Postcode</label>
-              <input 
-                type="text" 
-                name="home_postcode"
-                value={formData.home_postcode}
-                onChange={handleChange}
-                className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
-                placeholder="SW1A 1AA"
-              />
+
+            <div className="pt-4 space-y-4 border-t border-white/5">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Address Line 1</label>
+                <input 
+                  type="text" 
+                  name="home_address_line1"
+                  value={formData.home_address_line1}
+                  onChange={handleChange}
+                  className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
+                  placeholder="123 Example Street"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Address Line 2 (Optional)</label>
+                <input 
+                  type="text" 
+                  name="home_address_line2"
+                  value={formData.home_address_line2}
+                  onChange={handleChange}
+                  className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
+                  placeholder="Apt 4B"
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Town / City</label>
+                  <input 
+                    type="text" 
+                    name="home_address_town"
+                    value={formData.home_address_town}
+                    onChange={handleChange}
+                    className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
+                    placeholder="London"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">County</label>
+                  <input 
+                    type="text" 
+                    name="home_address_county"
+                    value={formData.home_address_county}
+                    onChange={handleChange}
+                    className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
+                    placeholder="Greater London"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Postcode</label>
+                <input 
+                  type="text" 
+                  name="home_address_postcode"
+                  value={formData.home_address_postcode}
+                  onChange={handleChange}
+                  className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
+                  placeholder="SW1A 1AA"
+                />
+              </div>
             </div>
 
             <div className="pt-4">

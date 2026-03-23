@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { AddressLookup } from '../components/AddressLookup';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 
@@ -13,15 +14,15 @@ export default function SellerOnboarding() {
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [lookupLoading, setLookupLoading] = useState(false);
-  const [lookupError, setLookupError] = useState('');
-  const [addressOptions, setAddressOptions] = useState<string[]>([]);
   const [propertyId, setPropertyId] = useState<string | null>(null);
 
   // Form State
   const [formData, setFormData] = useState({
     // Step 1: Address
-    address: '',
+    address_line1: '',
+    address_line2: '',
+    address_town: '',
+    address_county: '',
     postcode: '',
     // Step 2: Details
     property_type: 'Detached',
@@ -56,7 +57,10 @@ export default function SellerOnboarding() {
           setPropertyId(prop.id);
           setFormData(prev => ({
             ...prev,
-            address: prop.address || '',
+            address_line1: prop.address_line1 || '',
+            address_line2: prop.address_line2 || '',
+            address_town: prop.city || '',
+            address_county: '',
             postcode: prop.postcode || '',
             property_type: prop.property_type || 'Detached',
             tenure: prop.tenure || 'Freehold',
@@ -105,7 +109,10 @@ export default function SellerOnboarding() {
       if (step === 1 || step === 2) {
         const payload = {
           seller_user_id: user.id,
-          address: formData.address,
+          address: [formData.address_line1, formData.address_line2, formData.address_town, formData.address_county, formData.postcode].filter(Boolean).join(', '),
+          address_line1: formData.address_line1,
+          address_line2: formData.address_line2,
+          city: formData.address_town,
           postcode: formData.postcode,
           property_type: formData.property_type,
           tenure: formData.tenure,
@@ -166,54 +173,6 @@ export default function SellerOnboarding() {
   const prevStep = () => {
     if (currentStep > 1) {
       setCurrentStep((prev) => (prev - 1) as Step);
-    }
-  };
-
-  const handlePostcodeLookup = async () => {
-    if (!formData.postcode) {
-      setLookupError('Please enter a postcode');
-      return;
-    }
-    
-    setLookupLoading(true);
-    setLookupError('');
-    setAddressOptions([]);
-    
-    try {
-      // NOTE: Royal Mail PAF data for exact house numbers is commercial.
-      // We are wiring this up for GetAddress.io which provides exact UK house dropdowns.
-      // You must provide an API key in your Vercel Environment Variables.
-      const apiKey = import.meta.env.VITE_GETADDRESS_API_KEY || '';
-      
-      if (!apiKey) {
-        throw new Error('Missing GetAddress.io API Key in environment variables');
-      }
-
-      const response = await fetch(`https://api.getaddress.io/find/${formData.postcode.replace(/\s+/g, '')}?api-key=${apiKey}`);
-      const data = await response.json();
-      
-      if (response.status !== 200 || !data.addresses || data.addresses.length === 0) {
-        throw new Error('No addresses found for this postcode');
-      }
-      
-      // GetAddress returns array of comma separated strings
-      const formattedAddresses = data.addresses.map((addr: string) => {
-        // Remove empty segments
-        return addr.split(',').filter(part => part.trim().length > 0).join(', ');
-      });
-      
-      setAddressOptions(formattedAddresses);
-    } catch (err: any) {
-      setLookupError(err.message || 'Postcode not found. Please check and try again.');
-    } finally {
-      setLookupLoading(false);
-    }
-  };
-
-  const handleAddressSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selected = e.target.value;
-    if (selected) {
-      setFormData({ ...formData, address: selected });
     }
   };
 
@@ -283,59 +242,89 @@ export default function SellerOnboarding() {
           <div className="min-h-[350px] animate-in fade-in slide-in-from-bottom-6 duration-700">
             {currentStep === 1 && (
               <div className="space-y-8">
-                <div className="space-y-3">
+                <div className="space-y-6">
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 flex items-center">
-                    Postcode
+                    Postcode Search
                     <HelpTooltip text="A valid postcode allows us to fetch exact property addresses from the Royal Mail database." />
                   </label>
-                  <div className="flex flex-col md:flex-row gap-4">
-                    <input 
-                      className="flex-1 h-16 px-6 rounded-2xl border border-white/10 bg-black/40 text-white focus:border-[#00e5a0]/50 outline-none transition-all text-xl font-black tracking-widest uppercase placeholder:text-zinc-800"
-                      placeholder="E.G. SW1A 1AA"
-                      value={formData.postcode}
-                      onChange={(e) => setFormData({...formData, postcode: e.target.value.toUpperCase()})}
-                    />
-                    <Button 
-                      variant="primary" 
-                      onClick={handlePostcodeLookup}
-                      disabled={lookupLoading}
-                      className="h-16 px-8 rounded-2xl whitespace-nowrap text-black font-black"
-                    >
-                      {lookupLoading ? 'Finding...' : 'Find Address'}
-                    </Button>
-                  </div>
-                  {lookupError && <p className="text-red-500 text-sm font-bold pl-2">{lookupError}</p>}
+                  <AddressLookup 
+                    postcode={formData.postcode} 
+                    onPostcodeChange={(val) => setFormData({...formData, postcode: val})} 
+                    onAddressSelect={(addr) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        address_line1: addr.line1,
+                        address_line2: addr.line2,
+                        address_town: addr.town,
+                        address_county: addr.county,
+                        postcode: addr.postcode
+                      }));
+                    }} 
+                  />
                 </div>
 
-                {addressOptions.length > 0 && (
-                  <div className="space-y-3 animate-in fade-in slide-in-from-top-4 duration-500">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#00e5a0] flex items-center">
-                      Select Your Address
-                    </label>
-                    <select 
-                      className="w-full h-16 px-6 rounded-2xl border border-[#00e5a0]/30 bg-[#00e5a0]/5 text-white focus:border-[#00e5a0] outline-none transition-all appearance-none cursor-pointer"
-                      onChange={handleAddressSelect}
-                      defaultValue=""
-                    >
-                      <option value="" disabled>-- Choose an address from the list --</option>
-                      {addressOptions.map((addr, idx) => (
-                        <option key={idx} value={addr}>{addr}</option>
-                      ))}
-                    </select>
+                <div className="pt-4 space-y-4 border-t border-white/5 animate-in fade-in duration-500">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-[#00e5a0]">Address Line 1</label>
+                    <input 
+                      type="text" 
+                      name="address_line1"
+                      value={formData.address_line1}
+                      onChange={(e) => setFormData({...formData, address_line1: e.target.value})}
+                      className="w-full h-14 px-6 rounded-2xl border border-white/10 bg-black/40 text-white focus:border-[#00e5a0]/50 outline-none transition-all text-lg font-bold placeholder:text-zinc-800"
+                      placeholder="123 Example Street"
+                    />
                   </div>
-                )}
 
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 flex items-center">
-                    Full Property Address
-                    <HelpTooltip text="Solicitors need your exact address as it appears on the Land Registry to verify ownership and perform searches." />
-                  </label>
-                  <textarea 
-                    className="w-full p-6 h-40 rounded-[32px] border border-white/10 bg-black/40 text-white focus:border-[#00e5a0]/50 outline-none transition-all resize-none text-lg font-medium placeholder:text-zinc-700"
-                    placeholder="e.g. 123 High Street, London..."
-                    value={formData.address}
-                    onChange={(e) => setFormData({...formData, address: e.target.value})}
-                  />
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Address Line 2 (Optional)</label>
+                    <input 
+                      type="text" 
+                      name="address_line2"
+                      value={formData.address_line2}
+                      onChange={(e) => setFormData({...formData, address_line2: e.target.value})}
+                      className="w-full h-14 px-6 rounded-2xl border border-white/10 bg-black/40 text-white focus:border-[#00e5a0]/50 outline-none transition-all text-lg font-bold placeholder:text-zinc-800"
+                      placeholder="Apt 4B"
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-[#00e5a0]">Town / City</label>
+                      <input 
+                        type="text" 
+                        name="address_town"
+                        value={formData.address_town}
+                        onChange={(e) => setFormData({...formData, address_town: e.target.value})}
+                        className="w-full h-14 px-6 rounded-2xl border border-white/10 bg-black/40 text-white focus:border-[#00e5a0]/50 outline-none transition-all text-lg font-bold placeholder:text-zinc-800"
+                        placeholder="London"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">County</label>
+                      <input 
+                        type="text" 
+                        name="address_county"
+                        value={formData.address_county}
+                        onChange={(e) => setFormData({...formData, address_county: e.target.value})}
+                        className="w-full h-14 px-6 rounded-2xl border border-white/10 bg-black/40 text-white focus:border-[#00e5a0]/50 outline-none transition-all text-lg font-bold placeholder:text-zinc-800"
+                        placeholder="Greater London"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-[#00e5a0]">Postcode</label>
+                    <input 
+                      type="text" 
+                      name="postcode"
+                      value={formData.postcode}
+                      onChange={(e) => setFormData({...formData, postcode: e.target.value})}
+                      className="w-full h-14 px-6 rounded-2xl border border-white/10 bg-black/40 text-white focus:border-[#00e5a0]/50 outline-none transition-all text-lg font-bold tracking-widest uppercase placeholder:text-zinc-800"
+                      placeholder="SW1A 1AA"
+                    />
+                  </div>
                 </div>
               </div>
             )}
