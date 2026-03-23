@@ -45,10 +45,12 @@ export type Database = {
       users: {
         Row: {
           id: string
-          auth_user_id: string
           email: string | null
           full_name: string | null
           phone: string | null
+          user_type: string | null
+          created_at: string
+          auth_user_id: string
           role: string | null
           agency_id: string | null
           contact_preference: string | null
@@ -56,17 +58,17 @@ export type Database = {
           home_address_line2: string | null
           home_address_town: string | null
           home_address_county: string | null
-          home_address_city: string | null
           home_address_postcode: string | null
-          created_at: string
-          updated_at: string
+          home_address_city: string | null
         }
         Insert: {
           id?: string
-          auth_user_id: string
           email?: string | null
           full_name?: string | null
           phone?: string | null
+          user_type?: string | null
+          created_at?: string
+          auth_user_id: string
           role?: string | null
           agency_id?: string | null
           contact_preference?: string | null
@@ -74,17 +76,17 @@ export type Database = {
           home_address_line2?: string | null
           home_address_town?: string | null
           home_address_county?: string | null
-          home_address_city?: string | null
           home_address_postcode?: string | null
-          created_at?: string
-          updated_at?: string
+          home_address_city?: string | null
         }
         Update: {
           id?: string
-          auth_user_id?: string
           email?: string | null
           full_name?: string | null
           phone?: string | null
+          user_type?: string | null
+          created_at?: string
+          auth_user_id?: string
           role?: string | null
           agency_id?: string | null
           contact_preference?: string | null
@@ -92,10 +94,8 @@ export type Database = {
           home_address_line2?: string | null
           home_address_town?: string | null
           home_address_county?: string | null
-          home_address_city?: string | null
           home_address_postcode?: string | null
-          created_at?: string
-          updated_at?: string
+          home_address_city?: string | null
         }
         Relationships: []
       }

@@ -81,8 +81,7 @@ export default function SellerProfile() {
       const payload = {
         email: user.email,
         role: 'seller',
-        ...formData,
-        updated_at: new Date().toISOString(),
+        ...formData
       };
 
       if (existingUser) {
