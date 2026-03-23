@@ -10,10 +10,8 @@ export default function ReadinessDashboard() {
   const [property, setProperty] = useState<any>(null);
   const [readiness, setReadiness] = useState({
     score: 0,
-    profileComplete: false,
-    propertyComplete: false,
     documentsComplete: false,
-    declarationComplete: false,
+    materialComplete: false,
     missingItems: [] as string[]
   });
 
@@ -41,42 +39,62 @@ export default function ReadinessDashboard() {
           .select('*')
           .eq('property_id', propData?.id);
 
-        const { data: declaration } = await supabase
-          .from('seller_declarations')
+        const { data: miData } = await supabase
+          .from('material_information')
           .select('*')
           .eq('property_id', propData?.id)
           .single();
 
         let score = 0;
         let missing = [];
-        
-        const profileComplete = !!(profile?.full_name && profile?.phone);
-        if (profileComplete) score += 25;
-        else missing.push('Complete Seller Profile');
 
-        const propertyComplete = !!(propData?.address_line1 && propData?.property_type);
-        if (propertyComplete) score += 25;
-        else missing.push('Complete Property Details');
-
-        const hasLandRegistry = docs?.some(d => d.document_type === 'Land Registry');
-        const hasEPC = docs?.some(d => d.document_type === 'EPC certificate');
-        const documentsComplete = !!(hasLandRegistry && hasEPC);
-        if (documentsComplete) score += 25;
-        else {
-          if (!hasLandRegistry) missing.push('Upload Land Registry');
-          if (!hasEPC) missing.push('Upload EPC Certificate');
+        // 1. Mandatory Documents (50%)
+        const mandatoryDocs = ['Title Deeds', 'EPC Certificate'];
+        if (propData?.tenure === 'Leasehold') {
+          mandatoryDocs.push('Leasehold Documents');
         }
 
-        const declarationComplete = !!(declaration?.signed_at);
-        if (declarationComplete) score += 25;
-        else missing.push('Sign Seller Declaration');
+        let uploadedMandatoryCount = 0;
+        mandatoryDocs.forEach(docType => {
+          if (docs?.some(d => d.document_type === docType)) {
+            uploadedMandatoryCount++;
+          } else {
+            missing.push(`Upload ${docType}`);
+          }
+        });
+
+        const docsRatio = uploadedMandatoryCount / mandatoryDocs.length;
+        score += Math.round(docsRatio * 50);
+        const documentsComplete = docsRatio === 1;
+
+        // 2. Material Information Answers (50%)
+        // Assume material information is complete if the record exists and key fields are answered.
+        const miFields = [
+          'water_supply', 'electricity_supply', 'broadband_speed', 'mobile_signal',
+          'flood_risk', 'coastal_erosion', 'coalfield_area', 'disputes'
+        ];
+        
+        let answeredMiCount = 0;
+        if (miData) {
+          miFields.forEach(field => {
+            if (miData[field] && miData[field] !== '') {
+              answeredMiCount++;
+            }
+          });
+        }
+        
+        const miRatio = miData ? (answeredMiCount / miFields.length) : 0;
+        score += Math.round(miRatio * 50);
+        const materialComplete = miRatio >= 1;
+        
+        if (!materialComplete) {
+          missing.push('Complete Material Information Form');
+        }
 
         setReadiness({
           score,
-          profileComplete,
-          propertyComplete,
           documentsComplete,
-          declarationComplete,
+          materialComplete,
           missingItems: missing
         });
 
@@ -138,10 +156,8 @@ export default function ReadinessDashboard() {
            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 px-2">Completed Steps</h3>
            <div className="space-y-3">
               {[
-                { label: 'Seller Profile', done: readiness.profileComplete },
-                { label: 'Property Metadata', done: readiness.propertyComplete },
-                { label: 'Legal Documents', done: readiness.documentsComplete },
-                { label: 'Digital Signature', done: readiness.declarationComplete }
+                { label: 'Mandatory Documents', done: readiness.documentsComplete },
+                { label: 'Material Information Form', done: readiness.materialComplete }
               ].filter(i => i.done).map(item => (
                 <div key={item.label} className="p-4 bg-zinc-900 border border-white/5 rounded-2xl flex items-center justify-between">
                    <div className="flex items-center gap-3">
@@ -151,7 +167,7 @@ export default function ReadinessDashboard() {
                    <span className="text-[9px] font-black uppercase tracking-widest text-[#00e5a0] bg-[#00e5a0]/10 px-2 py-1 rounded">Verified</span>
                 </div>
               ))}
-              {!readiness.profileComplete && !readiness.propertyComplete && !readiness.documentsComplete && !readiness.declarationComplete && (
+              {!readiness.documentsComplete && !readiness.materialComplete && (
                   <p className="text-zinc-600 italic text-sm px-2">No steps completed yet.</p>
               )}
            </div>
@@ -166,15 +182,10 @@ export default function ReadinessDashboard() {
                       <span className="material-symbols-outlined text-amber-500">pending</span>
                       <span className="text-sm font-bold text-white">{item}</span>
                    </div>
-                   <Link 
-                    to={
-                      item.includes('Profile') ? '/seller/profile' :
-                      item.includes('Property') ? '/seller/property' :
-                      item.includes('Registry') || item.includes('EPC') ? '/seller/documents' :
-                      '/seller/declaration'
-                    }
-                    className="text-[9px] font-black uppercase tracking-widest text-amber-500 bg-amber-500/10 px-3 py-2 rounded-lg hover:bg-amber-500 hover:text-black transition-all"
-                   >
+                     <Link 
+                      to={item.includes('Material Information') ? '/seller/property' : '/seller/documents'}
+                      className="text-[9px] font-black uppercase tracking-widest text-amber-500 bg-amber-500/10 px-3 py-2 rounded-lg hover:bg-amber-500 hover:text-black transition-all"
+                     >
                      Fix Now
                    </Link>
                 </div>

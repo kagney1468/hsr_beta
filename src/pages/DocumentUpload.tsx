@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { Tooltip } from '../components/ui/Tooltip';
 
 interface Document {
   id: string;
@@ -22,21 +23,25 @@ export default function DocumentUpload() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('Land Registry');
+  const [activeTab, setActiveTab] = useState('');
+  const [property, setProperty] = useState<any>(null);
   const [propertyId, setPropertyId] = useState<string | null>(null);
   const [noProperty, setNoProperty] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const tabs = [
-    'Land Registry',
-    'EPC certificate',
-    'Gas safety',
-    'Electrical / EICR',
-    'Planning Docs',
-    'Warranties',
-    'FENSA',
-    'Other'
+  const categories = [
+    { id: 'Title Deeds', tooltip: 'Proves you legally own the property and have the right to sell it.', required: true },
+    { id: 'EPC Certificate', tooltip: 'Legally required to market the property. Shows energy efficiency.', required: true },
+    { id: 'Building Regulations Certificates', tooltip: 'Proves any alterations meet safety standards.', required: false },
+    { id: 'Warranties and Guarantees', tooltip: 'Provides buyer peace of mind for recent works like a new boiler or roof.', required: false },
+    { id: 'Leasehold Documents', tooltip: 'Crucial for flats. Contains the lease, service charges, and ground rent details.', required: true, condition: (p: any) => p?.tenure === 'Leasehold' },
+    { id: 'Planning Permissions', tooltip: 'Shows that extensions or changes to the property were legally approved.', required: false },
+    { id: 'Gas Safety Certificate', tooltip: 'Shows boiler and gas appliances are safe and maintained.', required: false },
+    { id: 'Electrical Installation Certificate', tooltip: 'Shows the wiring and electrical systems are safe.', required: false }
   ];
+
+
 
   useEffect(() => {
     async function init() {
@@ -57,7 +62,7 @@ export default function DocumentUpload() {
 
         const { data: propData, error: propError } = await supabase
           .from('properties')
-          .select('id')
+          .select('*')
           .eq('user_id', userData.id)
           .single();
 
@@ -67,6 +72,7 @@ export default function DocumentUpload() {
           return;
         }
 
+        setProperty(propData);
         setPropertyId(propData.id);
       } catch (err) {
         console.error('Error initializing:', err);
@@ -83,7 +89,7 @@ export default function DocumentUpload() {
     if (propertyId) {
       loadDocuments();
     }
-  }, [propertyId, activeTab]);
+  }, [propertyId]);
 
   const loadDocuments = async () => {
     if (!propertyId) return;
@@ -94,7 +100,6 @@ export default function DocumentUpload() {
         .from('documents')
         .select('*')
         .eq('property_id', propertyId)
-        .eq('document_type', activeTab)
         .order('uploaded_at', { ascending: false });
 
       if (error) throw error;
@@ -112,13 +117,14 @@ export default function DocumentUpload() {
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: string) => {
     const files = e.target.files;
     if (!files || files.length === 0 || !user || !propertyId) return;
 
     setUploading(true);
     setError(null);
     setSuccessMessage(null);
+    setUploadProgress(prev => ({ ...prev, [type]: 0 }));
 
     try {
       for (let i = 0; i < files.length; i++) {
@@ -132,17 +138,21 @@ export default function DocumentUpload() {
         const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
         const filePath = `${propertyId}/${fileName}`;
 
+        setUploadProgress(prev => ({ ...prev, [type]: 50 }));
+
         const { error: uploadError } = await supabase.storage
           .from('property-documents')
           .upload(filePath, file);
 
         if (uploadError) throw uploadError;
+        
+        setUploadProgress(prev => ({ ...prev, [type]: 80 }));
 
         const { error: dbError } = await supabase
           .from('documents')
           .insert({
             property_id: propertyId,
-            document_type: activeTab,
+            document_type: type,
             file_name: file.name,
             storage_path: filePath,
             uploaded_at: new Date().toISOString()
@@ -151,7 +161,9 @@ export default function DocumentUpload() {
         if (dbError) throw dbError;
       }
       
+      setUploadProgress(prev => ({ ...prev, [type]: 100 }));
       setSuccessMessage('Documents uploaded successfully!');
+      setTimeout(() => setUploadProgress(prev => { const newP = {...prev}; delete newP[type]; return newP; }), 2000);
       loadDocuments();
     } catch (err: any) {
       console.error('Error uploading document:', err);
@@ -236,82 +248,97 @@ export default function DocumentUpload() {
       {successMessage && <div className="p-4 bg-green-900/20 border border-green-800 text-green-400 rounded-xl font-bold">{successMessage}</div>}
       {error && <div className="p-4 bg-red-900/20 border border-red-800 text-red-400 rounded-xl font-bold">{error}</div>}
 
-      <div className="flex flex-wrap gap-2 p-1 bg-zinc-950 border border-white/5 rounded-2xl">
-        {tabs.map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-              activeTab === tab 
-                ? 'bg-[#00e5a0] text-black shadow-lg shadow-[#00e5a0]/20' 
-                : 'text-zinc-500 hover:text-white'
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {categories.filter(c => !c.condition || c.condition(property)).map(category => {
+          const catDocs = documents.filter(d => d.document_type === category.id);
+          const hasDoc = catDocs.length > 0;
+          const isUploading = uploadProgress[category.id] !== undefined;
+          const progress = uploadProgress[category.id] || 0;
 
-      <Card className="p-0 border-white/5 bg-zinc-900 overflow-hidden shadow-2xl">
-        <div 
-          className="p-16 flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-white/[0.02] transition-colors border-b border-white/5"
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            onChange={handleFileUpload} 
-            className="hidden" 
-            multiple 
-            accept=".pdf,.jpg,.jpeg,.png"
-          />
-          <div className="size-16 bg-[#00e5a0]/10 text-[#00e5a0] flex items-center justify-center rounded-2xl border border-[#00e5a0]/20">
-            <span className="material-symbols-outlined text-3xl">
-              {uploading ? 'cloud_sync' : 'upload_file'}
-            </span>
-          </div>
-          <div className="text-center">
-            <h3 className="text-xl font-bold text-white mb-1">{uploading ? 'Processing Upload...' : `Upload ${activeTab}`}</h3>
-            <p className="text-zinc-500 text-sm">Drag and drop or click to browse (Max 10MB per file)</p>
-          </div>
-        </div>
-
-        <div className="p-6 bg-black/20">
-          <h4 className="text-[10px] uppercase tracking-widest font-black text-zinc-600 mb-4 px-2">Uploaded in this Category</h4>
-          
-          {loading ? (
-            <div className="p-8 text-center animate-pulse text-zinc-500 italic">Syncing with cloud...</div>
-          ) : documents.length === 0 ? (
-            <div className="p-12 text-center text-zinc-600 border border-dashed border-white/5 rounded-2xl italic text-sm">
-              No files uploaded for {activeTab} yet.
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {documents.map(doc => (
-                <div key={doc.id} className="group flex items-center justify-between p-4 bg-zinc-900 border border-white/5 rounded-2xl hover:border-[#00e5a0]/30 transition-all">
-                  <div className="flex items-center gap-4">
-                    <div className="size-10 bg-white/5 rounded-xl flex items-center justify-center text-zinc-500 group-hover:bg-[#00e5a0]/10 group-hover:text-[#00e5a0] transition-colors">
-                      <span className="material-symbols-outlined">description</span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-white">{doc.file_name}</p>
-                      <p className="text-[10px] text-zinc-500 uppercase tracking-widest">{formatDate(doc.uploaded_at)}</p>
-                    </div>
+          return (
+            <Card key={category.id} className="p-6 border-white/5 bg-zinc-900 shadow-xl flex flex-col justify-between h-full group transition-all hover:border-white/10">
+              <div className="space-y-4">
+                <div className="flex justify-between items-start gap-4">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-white">{category.id}</h3>
+                    <Tooltip content={category.tooltip}>
+                      <span className="material-symbols-outlined text-zinc-500 text-sm cursor-help hover:text-[#00e5a0] transition-colors">help</span>
+                    </Tooltip>
                   </div>
-                  <div className="flex gap-1">
-                    <button onClick={() => handleView(doc)} className="size-9 flex items-center justify-center rounded-lg text-zinc-500 hover:bg-[#00e5a0]/10 hover:text-[#00e5a0] transition-all">
-                      <span className="material-symbols-outlined text-[18px]">visibility</span>
-                    </button>
-                    <button onClick={() => handleDelete(doc)} className="size-9 flex items-center justify-center rounded-lg text-zinc-500 hover:bg-red-500/10 hover:text-red-500 transition-all">
-                      <span className="material-symbols-outlined text-[18px]">delete</span>
-                    </button>
-                  </div>
+                  {hasDoc ? (
+                    <span className="bg-green-500/10 text-green-500 text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs">check_circle</span>
+                      Uploaded
+                    </span>
+                  ) : category.required ? (
+                    <span className="bg-red-500/10 text-red-500 text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full flex items-center gap-1">
+                      Action Required
+                    </span>
+                  ) : (
+                    <span className="bg-zinc-800 text-zinc-500 text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full flex items-center gap-1">
+                      Optional
+                    </span>
+                  )}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </Card>
+
+                <div className="space-y-3">
+                  {catDocs.map(doc => (
+                    <div key={doc.id} className="p-3 bg-black/30 border border-white/5 rounded-xl flex items-center justify-between">
+                      <div className="flex items-center gap-3 truncate">
+                        <span className="material-symbols-outlined text-[#00e5a0]">description</span>
+                        <div className="truncate">
+                          <p className="text-sm font-bold text-white truncate">{doc.file_name}</p>
+                          <p className="text-[10px] text-zinc-500 uppercase tracking-widest">{formatDate(doc.uploaded_at)}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-1 ml-4 shrink-0">
+                        <button onClick={(e) => { e.stopPropagation(); handleView(doc); }} className="size-8 flex items-center justify-center rounded-lg text-zinc-400 hover:bg-[#00e5a0]/10 hover:text-[#00e5a0] transition-colors">
+                          <span className="material-symbols-outlined text-[18px]">visibility</span>
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); handleDelete(doc); }} className="size-8 flex items-center justify-center rounded-lg text-zinc-400 hover:bg-red-500/10 hover:text-red-500 transition-colors">
+                          <span className="material-symbols-outlined text-[18px]">delete</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-6 pt-6 border-t border-white/5 relative">
+                {isUploading ? (
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs text-zinc-400 font-bold uppercase tracking-widest">
+                      <span>Uploading...</span>
+                      <span>{progress}%</span>
+                    </div>
+                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                      <div className="h-full bg-[#00e5a0] transition-all duration-300" style={{ width: `${progress}%` }} />
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <input 
+                      type="file" 
+                      id={`file-${category.id}`}
+                      className="hidden" 
+                      multiple 
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={(e) => handleFileUpload(e, category.id)}
+                    />
+                    <label 
+                      htmlFor={`file-${category.id}`}
+                      className="w-full flex items-center justify-center h-12 rounded-xl border border-dashed border-zinc-700 text-zinc-400 text-sm font-bold hover:border-[#00e5a0]/50 hover:text-[#00e5a0] hover:bg-[#00e5a0]/5 transition-all cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined mr-2">upload_file</span>
+                      {hasDoc ? 'Upload Another File' : 'Browse Files'}
+                    </label>
+                  </div>
+                )}
+              </div>
+            </Card>
+          );
+        })}
+      </div>
 
       <div className="flex justify-between items-center pt-8 border-t border-white/5">
         <Button variant="ghost" onClick={() => navigate('/seller/property')}>Back to Property</Button>
