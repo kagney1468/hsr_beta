@@ -13,6 +13,8 @@ export default function SellerOnboarding() {
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [lookupError, setLookupError] = useState('');
   const [propertyId, setPropertyId] = useState<string | null>(null);
 
   // Form State
@@ -166,6 +168,41 @@ export default function SellerOnboarding() {
     }
   };
 
+  const handlePostcodeLookup = async () => {
+    if (!formData.postcode) {
+      setLookupError('Please enter a postcode');
+      return;
+    }
+    
+    setLookupLoading(true);
+    setLookupError('');
+    
+    try {
+      const response = await fetch(`https://api.postcodes.io/postcodes/${formData.postcode.replace(/\s+/g, '')}`);
+      const data = await response.json();
+      
+      if (response.status !== 200 || !data.result) {
+        throw new Error('Postcode not found');
+      }
+      
+      const { admin_ward, admin_district, region, country, postcode } = data.result;
+      const addressParts = [admin_ward, admin_district, region, country].filter(Boolean);
+      const newAddress = addressParts.join(', ');
+      
+      setFormData(prev => ({
+        ...prev,
+        address: prev.address && !prev.address.includes(region) 
+          ? `${prev.address}\n${newAddress}`
+          : newAddress,
+        postcode: postcode
+      }));
+    } catch (err) {
+      setLookupError('Postcode not found. Please check and try again.');
+    } finally {
+      setLookupLoading(false);
+    }
+  };
+
   const HelpTooltip = ({ text }: { text: string }) => {
     const [open, setOpen] = useState(false);
     return (
@@ -234,6 +271,30 @@ export default function SellerOnboarding() {
               <div className="space-y-8">
                 <div className="space-y-3">
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 flex items-center">
+                    Postcode
+                    <HelpTooltip text="A valid postcode allows us to automatically fetch EPC data and local authority flood risk records." />
+                  </label>
+                  <div className="flex flex-col md:flex-row gap-4">
+                    <input 
+                      className="flex-1 h-16 px-6 rounded-2xl border border-white/10 bg-black/40 text-white focus:border-[#00e5a0]/50 outline-none transition-all text-xl font-black tracking-widest uppercase placeholder:text-zinc-800"
+                      placeholder="E.G. SW1A 1AA"
+                      value={formData.postcode}
+                      onChange={(e) => setFormData({...formData, postcode: e.target.value})}
+                    />
+                    <Button 
+                      variant="primary" 
+                      onClick={handlePostcodeLookup}
+                      disabled={lookupLoading}
+                      className="h-16 px-8 rounded-2xl whitespace-nowrap text-black font-black"
+                    >
+                      {lookupLoading ? 'Finding...' : 'Find Address'}
+                    </Button>
+                  </div>
+                  {lookupError && <p className="text-red-500 text-sm font-bold pl-2">{lookupError}</p>}
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 flex items-center">
                     Full Property Address
                     <HelpTooltip text="Solicitors need your exact address as it appears on the Land Registry to verify ownership and perform searches." />
                   </label>
@@ -243,18 +304,7 @@ export default function SellerOnboarding() {
                     value={formData.address}
                     onChange={(e) => setFormData({...formData, address: e.target.value})}
                   />
-                </div>
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 flex items-center">
-                    Postcode
-                    <HelpTooltip text="A valid postcode allows us to automatically fetch EPC data and local authority flood risk records." />
-                  </label>
-                  <input 
-                    className="w-full h-16 px-6 rounded-2xl border border-white/10 bg-black/40 text-white focus:border-[#00e5a0]/50 outline-none transition-all text-xl font-black tracking-widest uppercase placeholder:text-zinc-800"
-                    placeholder="E.G. SW1A 1AA"
-                    value={formData.postcode}
-                    onChange={(e) => setFormData({...formData, postcode: e.target.value})}
-                  />
+                  <p className="text-xs text-zinc-500 italic pl-2">Please add your house name or number if you used the postcode finder.</p>
                 </div>
               </div>
             )}
