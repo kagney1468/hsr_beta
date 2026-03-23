@@ -14,6 +14,10 @@ export default function PropertyProfile() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   
+  const [epcLoading, setEpcLoading] = useState(false);
+  const [epcStatus, setEpcStatus] = useState<'initial' | 'found' | 'not_found' | 'multiple'>('initial');
+  const [epcOptions, setEpcOptions] = useState<any[]>([]);
+  
   const [formData, setFormData] = useState({
     address_line1: '',
     address_line2: '',
@@ -23,6 +27,9 @@ export default function PropertyProfile() {
     property_type: 'Detached House',
     bedrooms: 3,
     bathrooms: 2,
+    epc_rating: '',
+    epc_expiry: '',
+    construction_age_band: '',
     
     // Part A
     asking_price: '',
@@ -88,6 +95,9 @@ export default function PropertyProfile() {
             property_type: data.property_type || 'Detached House',
             bedrooms: data.bedrooms || 3,
             bathrooms: data.bathrooms || 2,
+            epc_rating: mi?.epc_rating || '',
+            epc_expiry: mi?.epc_expiry || '',
+            construction_age_band: mi?.construction_age_band || '',
             
             asking_price: data.asking_price || '',
             tenure: data.tenure || 'Freehold',
@@ -121,6 +131,68 @@ export default function PropertyProfile() {
 
     loadProperty();
   }, [user]);
+
+  const handleEpcLookup = async (postcode: string, addressLine1: string) => {
+    try {
+      setEpcLoading(true);
+      setEpcStatus('initial');
+      setEpcOptions([]);
+      
+      const epcKey = import.meta.env.VITE_EPC_API_KEY || import.meta.env.NEXT_PUBLIC_EPC_API_KEY;
+      if (!epcKey) throw new Error('EPC API Key missing');
+
+      const encodedPostcode = encodeURIComponent(postcode.replace(/\s+/g, '').toUpperCase());
+      const response = await fetch(`https://epc.opendatacommunities.org/api/v1/domestic/search?postcode=${encodedPostcode}`, {
+        headers: {
+          'Authorization': `Basic ${epcKey}`,
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (!response.ok) throw new Error('Failed to fetch EPC');
+      
+      const data = await response.json();
+      if (!data || !data.rows || data.rows.length === 0) {
+        setEpcStatus('not_found');
+        return;
+      }
+      
+      const exactMatch = data.rows.filter((r: any) => r.address.toLowerCase().includes(addressLine1.toLowerCase()));
+      
+      if (exactMatch.length === 1) {
+        applyEpcDetails(exactMatch[0]);
+        setEpcStatus('found');
+      } else if (data.rows.length === 1) {
+        applyEpcDetails(data.rows[0]);
+        setEpcStatus('found');
+      } else {
+        setEpcOptions(data.rows);
+        setEpcStatus('multiple');
+      }
+    } catch (err) {
+      console.error(err);
+      setEpcStatus('not_found');
+    } finally {
+      setEpcLoading(false);
+    }
+  };
+
+  const applyEpcDetails = (epcData: any) => {
+    let formattedExpiry = '';
+    if (epcData['lodgement-date']) {
+      const lodgement = new Date(epcData['lodgement-date']);
+      lodgement.setFullYear(lodgement.getFullYear() + 10);
+      formattedExpiry = lodgement.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+    
+    setFormData(prev => ({
+      ...prev,
+      epc_rating: epcData['current-energy-rating'] || prev.epc_rating,
+      epc_expiry: formattedExpiry || prev.epc_expiry,
+      property_type: epcData['property-type'] || prev.property_type,
+      construction_age_band: epcData['construction-age-band'] || prev.construction_age_band
+    }));
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -188,6 +260,9 @@ export default function PropertyProfile() {
           coalfield_area: formData.coalfield_area,
           disputes: formData.disputes,
           building_regs_required: formData.building_regs_required,
+          epc_rating: formData.epc_rating,
+          epc_expiry: formData.epc_expiry,
+          construction_age_band: formData.construction_age_band,
           updated_at: new Date().toISOString(),
         }, { onConflict: 'property_id' });
 
@@ -239,6 +314,7 @@ export default function PropertyProfile() {
                     address_county: addr.county,
                     postcode: addr.postcode
                   }));
+                  handleEpcLookup(addr.postcode, addr.line1);
                 }} 
               />
             </div>
@@ -301,6 +377,62 @@ export default function PropertyProfile() {
                 />
               </div>
             </div>
+
+            {epcLoading && (
+              <div className="p-4 bg-primary/10 border border-primary/20 rounded-xl flex items-center gap-3 text-primary animate-pulse">
+                <span className="material-symbols-outlined spin">autorenew</span>
+                <span className="text-sm font-bold">Looking up Energy Performance Certificate (EPC)...</span>
+              </div>
+            )}
+            
+            {epcStatus === 'found' && (
+              <div className="bg-green-500/10 border border-green-500/30 p-4 rounded-xl flex items-start gap-4 animate-in fade-in duration-500">
+                <span className="material-symbols-outlined text-green-500 bg-green-500/20 p-1.5 rounded-full text-lg">check</span>
+                <div>
+                  <h4 className="text-green-500 font-bold uppercase tracking-widest text-xs mb-1">EPC Found</h4>
+                  <p className="text-sm text-green-100/70">EPC certificate found and added to your pack automatically.</p>
+                  <p className="text-xs font-semibold mt-2 text-green-400">Rating: {formData.epc_rating} (Expires {formData.epc_expiry})</p>
+                </div>
+              </div>
+            )}
+            
+            {epcStatus === 'multiple' && epcOptions.length > 0 && (
+              <div className="bg-orange-500/10 border border-orange-500/30 p-4 rounded-xl animate-in fade-in duration-500 space-y-3">
+                <div className="flex gap-4">
+                  <span className="material-symbols-outlined text-orange-500">dynamic_form</span>
+                  <div>
+                    <h4 className="text-orange-500 font-bold uppercase tracking-widest text-xs mb-1">Multiple EPCs Found</h4>
+                    <p className="text-sm text-orange-200/70">Select the correct EPC for your property from the list below:</p>
+                  </div>
+                </div>
+                <select 
+                  className="w-full h-12 px-4 rounded-xl border border-orange-500/30 bg-orange-500/10 text-white focus:border-orange-500 outline-none"
+                  onChange={(e) => {
+                    const selectedData = epcOptions.find((o, idx) => idx.toString() === e.target.value);
+                    if (selectedData) {
+                      applyEpcDetails(selectedData);
+                      setEpcStatus('found');
+                    }
+                  }}
+                  defaultValue=""
+                >
+                  <option value="" disabled>-- Select EPC --</option>
+                  {epcOptions.map((opt, idx) => (
+                    <option key={idx} value={idx}>{opt.address} (Rating {opt['current-energy-rating']})</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {epcStatus === 'not_found' && (
+              <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl flex items-start gap-4 animate-in fade-in duration-500">
+                <span className="material-symbols-outlined text-amber-500 mt-1">info</span>
+                <div>
+                  <h4 className="text-amber-500 font-bold uppercase tracking-widest text-xs mb-1">EPC Required</h4>
+                  <p className="text-sm text-amber-100/70">No EPC found for this address. You may need to commission one before marketing your property. EPCs are now required at the point of marketing.</p>
+                </div>
+              </div>
+            )}
           </div>
         </Card>
 

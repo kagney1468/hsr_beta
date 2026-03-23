@@ -194,6 +194,9 @@ export type Database = {
           coastal_erosion: string | null
           coalfield_area: string | null
           building_regs_required: boolean | null
+          epc_rating: string | null
+          epc_expiry: string | null
+          construction_age_band: string | null
           updated_at: string | null
           created_at: string
         }
