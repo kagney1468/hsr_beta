@@ -193,7 +193,7 @@ export default function DocumentUpload() {
       setError(null);
       const { data, error } = await supabase.storage
         .from('property-documents')
-        .createSignedUrl(doc.storage_path, 60);
+        .createSignedUrl(doc.storage_path, 86400);
 
       if (error) throw error;
       
