@@ -41,7 +41,7 @@ export default function AgentSignup() {
             phone: formData.phone,
             role: 'agent',
           },
-          emailRedirectTo: `${window.location.origin}/login`,
+          emailRedirectTo: 'https://homesalesready.com/auth/callback',
         },
       });
 

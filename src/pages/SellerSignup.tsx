@@ -38,7 +38,7 @@ export default function SellerSignup() {
             role: 'seller',
             referred_by_agency: formData.referredBy || null
           },
-          emailRedirectTo: `${window.location.origin}/login`
+          emailRedirectTo: 'https://homesalesready.com/auth/callback'
         }
       });
 
