@@ -24,6 +24,7 @@ import AgentPropertyDetail from './pages/AgentPropertyDetail';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import PublicPack from './pages/PublicPack';
+import AuthCallback from './pages/AuthCallback';
 
 export default function App() {
   console.log("App rendering");
@@ -39,6 +40,7 @@ export default function App() {
           {/* Public Property Pack - Open access before registration gate */}
           <Route path="/pack/:token" element={<PublicPack />} />
           <Route path="/share/:token" element={<PublicPack />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
           
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>
