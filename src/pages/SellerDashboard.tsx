@@ -4,6 +4,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { Tooltip } from '../components/ui/Tooltip';
+import { updatePackCompletion } from '../lib/completion';
 
 export default function SellerDashboard() {
   const { user } = useAuth();
@@ -24,9 +26,9 @@ export default function SellerDashboard() {
   const [stats, setStats] = useState({
     percentage: 0,
     sections: {
-      property: { status: 'urgent', label: 'Action Required', desc: 'Address, type, tenure, bedrooms' },
-      material: { status: 'urgent', label: 'Action Required', desc: 'Utilities, parking, flooding risk' },
-      documents: { status: 'urgent', label: 'Action Required', desc: 'Title deeds, EPC certificates' }
+      property: { status: 'urgent', label: 'Action Required', desc: 'Address, type, tenure' },
+      material: { status: 'urgent', label: 'Action Required', desc: 'Utilities, parking, history' },
+      documents: { status: 'urgent', label: 'Action Required', desc: 'Title deeds, EPC' }
     }
   });
 
@@ -75,8 +77,30 @@ export default function SellerDashboard() {
           viewers: viewers || []
         });
 
-        // 5. Calculate Progress
-        calculateProgress(property, materialInfo, documents || []);
+        // 5. Calculate Progress (Real-time DB sync check)
+        const currentPercentage = await updatePackCompletion(property.id);
+        
+        // Let's determine basic section statuses based on data present for quick visual reference
+        const pStatus = property.property_type && property.address ? 'complete' : 'urgent';
+        const mStatus = materialInfo && materialInfo.water_supply ? 'complete' : 'urgent';
+        
+        let mandatoryCount = 1; // Title Deeds
+        if (property.tenure === 'Leasehold') mandatoryCount++;
+        const hasEpc = !!(materialInfo?.epc_rating || documents?.find(d => d.document_type === 'EPC Certificate'));
+        let dUploaded = hasEpc ? 1 : 0;
+        if (documents?.find(d => d.document_type === 'Title Deeds')) dUploaded++;
+        if (property.tenure === 'Leasehold' && documents?.find(d => d.document_type === 'Leasehold Documents')) dUploaded++;
+        
+        const dStatus = dUploaded > 0 ? (dUploaded >= mandatoryCount + 1 ? 'complete' : 'in-progress') : 'urgent';
+        
+        setStats({
+          percentage: currentPercentage,
+          sections: {
+            property: { status: pStatus, label: getStatusLabel(pStatus), desc: 'Address, type, tenure' },
+            material: { status: mStatus, label: getStatusLabel(mStatus), desc: 'Utilities, parking, history' },
+            documents: { status: dStatus, label: getStatusLabel(dStatus), desc: 'Title deeds, EPC' }
+          }
+        });
 
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
@@ -88,41 +112,7 @@ export default function SellerDashboard() {
     fetchDashboardData();
   }, [user]);
 
-  const calculateProgress = (prop: any, mat: any, docs: any[]) => {
-    let earnedWeight = 0;
 
-    // Property Details (Weight 30)
-    const propFields = ['address', 'postcode', 'property_type', 'tenure', 'bedrooms', 'council_tax_band', 'epc_rating'];
-    const filledPropFields = propFields.filter(f => !!prop[f]).length;
-    earnedWeight += (filledPropFields / propFields.length) * 30;
-    
-    const propStatus = filledPropFields === propFields.length ? 'complete' : filledPropFields > 0 ? 'in-progress' : 'urgent';
-
-    // Material Info (Weight 40)
-    const matFields = ['utilities', 'parking', 'flooding_risk', 'building_safety', 'planning_history', 'disputes_notices', 'building_reg_works'];
-    let filledMatFields = 0;
-    if (mat) {
-      filledMatFields = matFields.filter(f => !!mat[f]).length;
-    }
-    earnedWeight += (filledMatFields / matFields.length) * 40;
-    
-    const matStatus = filledMatFields === matFields.length ? 'complete' : filledMatFields > 0 ? 'in-progress' : 'urgent';
-
-    // Documents (Weight 30)
-    const docCount = Math.min(docs.length, 5);
-    earnedWeight += (docCount / 5) * 30;
-    
-    const docStatus = docCount >= 3 ? 'complete' : docCount > 0 ? 'in-progress' : 'urgent';
-
-    setStats({
-      percentage: Math.round(earnedWeight),
-      sections: {
-        property: { status: propStatus, label: getStatusLabel(propStatus), desc: 'Address, type, tenure, bedrooms' },
-        material: { status: matStatus, label: getStatusLabel(matStatus), desc: 'Utilities, parking, flooding risk' },
-        documents: { status: docStatus, label: getStatusLabel(docStatus), desc: 'Title deeds, EPC certificates' }
-      }
-    });
-  };
 
   const getStatusLabel = (status: string) => {
     if (status === 'complete') return 'Complete';
@@ -222,14 +212,22 @@ export default function SellerDashboard() {
             {copying ? 'Link Copied!' : 'Copy Share Link'}
             <span className="material-symbols-outlined">{copying ? 'check' : 'content_copy'}</span>
           </Button>
-          <Button 
-            variant="primary" 
-            disabled={stats.percentage < 70 || !data.property.is_link_active}
-            className={`h-16 px-10 rounded-2xl flex items-center gap-4 font-black font-heading text-lg transition-all shadow-2xl ${stats.percentage < 70 || !data.property.is_link_active ? 'opacity-50 grayscale cursor-not-allowed shadow-none' : 'shadow-[#00e5a0]/30 hover:scale-105 active:scale-95'}`}
-          >
-            Share My Pack
-            <span className="material-symbols-outlined">send</span>
-          </Button>
+          <Tooltip content={stats.percentage < 70 ? 'Complete more sections to unlock sharing' : 'Share your verified property pack'}>
+            <div>
+              <Button 
+                variant="primary" 
+                disabled={stats.percentage < 70 || !data.property.is_link_active}
+                className={`h-16 px-10 rounded-2xl flex items-center gap-4 font-black font-heading text-lg transition-all shadow-2xl ${
+                  stats.percentage < 70 || !data.property.is_link_active 
+                  ? 'opacity-50 grayscale cursor-not-allowed shadow-none' 
+                  : 'shadow-[#00e5a0]/30 hover:scale-105 active:scale-95'
+                }`}
+              >
+                Share My Pack
+                <span className="material-symbols-outlined">send</span>
+              </Button>
+            </div>
+          </Tooltip>
         </div>
       </div>
 
@@ -263,8 +261,10 @@ export default function SellerDashboard() {
               </h3>
               <p className="text-zinc-400 text-lg max-w-2xl leading-relaxed">
                 {stats.percentage === 100 
-                  ? "Your pack is elite. Every solicitor inquiry is pre-empted, saving you weeks of deal time."
-                  : "You're nearly there. Completing the remaining details now will shave 3-4 weeks off your legal process later."}
+                  ? "Your pack is complete — you are ready to share with buyers, solicitors and your estate agent"
+                  : stats.percentage >= 70
+                  ? "Your pack is nearly ready to share — complete the remaining sections to strengthen your position with buyers"
+                  : "You're just getting started. Completing your profile now will shave 3-4 weeks off your legal process later."}
               </p>
             </div>
             <Button 

@@ -6,6 +6,7 @@ import { AddressLookup } from '../components/AddressLookup';
 import { Tooltip } from '../components/ui/Tooltip';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
+import { updatePackCompletion } from '../lib/completion';
 
 export default function PropertyProfile() {
   const { user } = useAuth();
@@ -267,6 +268,8 @@ export default function PropertyProfile() {
         }, { onConflict: 'property_id' });
 
       if (miError) throw miError;
+      
+      await updatePackCompletion(property.id);
       
       setMessage({ type: 'success', text: 'Property and Material Information saved!' });
       if (redirect) navigate('/seller/documents');

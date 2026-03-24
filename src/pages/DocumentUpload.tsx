@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Tooltip } from '../components/ui/Tooltip';
+import { updatePackCompletion } from '../lib/completion';
 
 interface Document {
   id: string;
@@ -161,6 +162,8 @@ export default function DocumentUpload() {
         if (dbError) throw dbError;
       }
       
+      await updatePackCompletion(propertyId);
+      
       setUploadProgress(prev => ({ ...prev, [type]: 100 }));
       setSuccessMessage('Documents uploaded successfully!');
       setTimeout(() => setUploadProgress(prev => { const newP = {...prev}; delete newP[type]; return newP; }), 2000);
@@ -192,6 +195,8 @@ export default function DocumentUpload() {
         .eq('id', doc.id);
 
       if (dbError) throw dbError;
+
+      await updatePackCompletion(propertyId!);
 
       setDocuments(documents.filter(d => d.id !== doc.id));
     } catch (err: any) {
