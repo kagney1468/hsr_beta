@@ -27,7 +27,10 @@ export default function AgentSignup() {
     setError(null);
 
     try {
-      // 1. Create auth user first so auth.uid() exists for RLS
+      // STEP 1 — Create the Supabase Auth user.
+      // The handle_new_user DB trigger fires automatically here and
+      // writes a row to public.users linked by auth_user_id.
+      // No manual insert to public.users is needed from the client.
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -38,14 +41,16 @@ export default function AgentSignup() {
             phone: formData.phone,
             role: 'agent',
           },
-          emailRedirectTo: `${window.location.origin}/login`
-        }
+          emailRedirectTo: `${window.location.origin}/login`,
+        },
       });
 
       if (authError) throw authError;
       if (!authData.user) throw new Error('Signup failed — no user returned.');
 
-      // 2. Insert agency now that we have an authenticated session
+      // STEP 2 — Create the agency record now that auth.uid() exists.
+      // RLS on agencies requires agent_user_id = auth.uid(), which is
+      // satisfied because signUp() returns an active session.
       const { data: agencyData, error: agencyError } = await supabase
         .from('agencies')
         .insert({
@@ -55,15 +60,15 @@ export default function AgentSignup() {
         .select('id')
         .single();
 
-      if (agencyError) throw agencyError;
+      if (agencyError) throw new Error(`Agency creation failed: ${agencyError.message}`);
 
-      // 3. Update the users row (created by trigger) with the agency_id
-      if (agencyData) {
-        await supabase
-          .from('users')
-          .update({ agency_id: agencyData.id })
-          .eq('auth_user_id', authData.user.id);
-      }
+      // STEP 3 — Back-fill agency_id on the users row the trigger created.
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ agency_id: agencyData.id })
+        .eq('auth_user_id', authData.user.id);
+
+      if (updateError) throw new Error(`Could not link agency to user: ${updateError.message}`);
 
       setSuccess(true);
     } catch (err: any) {
