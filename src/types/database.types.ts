@@ -11,7 +11,7 @@ export type Database = {
     Tables: {
       agencies: {
         Row: {
-          agency_id: string
+          id: string
           agency_name: string | null
           logo_url: string | null
           brand_colour: string | null
@@ -21,7 +21,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          agency_id?: string
+          id?: string
           agency_name?: string | null
           logo_url?: string | null
           brand_colour?: string | null
@@ -31,7 +31,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          agency_id?: string
+          id?: string
           agency_name?: string | null
           logo_url?: string | null
           brand_colour?: string | null
@@ -122,6 +122,7 @@ export type Database = {
           building_changes: string | null
           is_link_active: boolean
           shareable_link_token: string | null
+          pack_completion_percentage: number | null
           created_at: string
           updated_at: string
         }
@@ -147,6 +148,7 @@ export type Database = {
           building_changes?: string | null
           is_link_active?: boolean
           shareable_link_token?: string | null
+          pack_completion_percentage?: number | null
           created_at?: string
           updated_at?: string
         }
@@ -172,6 +174,7 @@ export type Database = {
           building_changes?: string | null
           is_link_active?: boolean
           shareable_link_token?: string | null
+          pack_completion_percentage?: number | null
           created_at?: string
           updated_at?: string
         }

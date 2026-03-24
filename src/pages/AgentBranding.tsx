@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
 interface AgencySettings {
-  agency_id?: string;
+  id?: string;
   name: string;
   logo_url: string;
   brand_colour: string;
@@ -42,7 +42,7 @@ export default function AgentBranding() {
           .single();
         if (data) {
           setSettings({
-            agency_id: data.agency_id,
+            id: data.id,
             name: data.agency_name || '',
             logo_url: data.logo_url || '',
             brand_colour: data.brand_colour || DEFAULT_COLOUR,
@@ -105,11 +105,11 @@ export default function AgentBranding() {
         updated_at: new Date().toISOString(),
       };
 
-      if (settings.agency_id) {
+      if (settings.id) {
         const { error } = await supabase
           .from('agencies')
           .update(payload)
-          .eq('agency_id', settings.agency_id);
+          .eq('id', settings.id);
         if (error) throw error;
       } else {
         const { data, error } = await supabase
@@ -118,7 +118,7 @@ export default function AgentBranding() {
           .select()
           .single();
         if (error) throw error;
-        if (data) setSettings(s => ({ ...s, agency_id: data.agency_id, logo_url }));
+        if (data) setSettings(s => ({ ...s, id: data.id, logo_url }));
       }
 
       setSettings(s => ({ ...s, logo_url }));

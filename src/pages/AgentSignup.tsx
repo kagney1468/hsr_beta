@@ -30,7 +30,7 @@ export default function AgentSignup() {
       // 1. Create entry in public.agencies table first
       const { data: agencyData, error: agencyError } = await supabase.from('agencies').insert({
         agency_name: formData.agencyName,
-      }).select('agency_id').single();
+      }).select('id').single();
 
       if (agencyError) throw agencyError;
 
@@ -44,7 +44,7 @@ export default function AgentSignup() {
             agency_name: formData.agencyName,
             phone: formData.phone,
             role: 'agent',
-            agency_id: agencyData.agency_id
+            agency_id: agencyData.id
           },
           emailRedirectTo: `${window.location.origin}/login`
         }
