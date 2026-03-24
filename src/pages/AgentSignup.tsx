@@ -27,14 +27,7 @@ export default function AgentSignup() {
     setError(null);
 
     try {
-      // 1. Create entry in public.agencies table first
-      const { data: agencyData, error: agencyError } = await supabase.from('agencies').insert({
-        agency_name: formData.agencyName,
-      }).select('id').single();
-
-      if (agencyError) throw agencyError;
-
-      // 2. Sign up user in Supabase Auth with metadata
+      // 1. Create auth user first so auth.uid() exists for RLS
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -44,17 +37,35 @@ export default function AgentSignup() {
             agency_name: formData.agencyName,
             phone: formData.phone,
             role: 'agent',
-            agency_id: agencyData.id
           },
           emailRedirectTo: `${window.location.origin}/login`
         }
       });
 
       if (authError) throw authError;
+      if (!authData.user) throw new Error('Signup failed — no user returned.');
 
-      if (authData.user) {
-        setSuccess(true);
+      // 2. Insert agency now that we have an authenticated session
+      const { data: agencyData, error: agencyError } = await supabase
+        .from('agencies')
+        .insert({
+          agency_name: formData.agencyName,
+          agent_user_id: authData.user.id,
+        })
+        .select('id')
+        .single();
+
+      if (agencyError) throw agencyError;
+
+      // 3. Update the users row (created by trigger) with the agency_id
+      if (agencyData) {
+        await supabase
+          .from('users')
+          .update({ agency_id: agencyData.id })
+          .eq('auth_user_id', authData.user.id);
       }
+
+      setSuccess(true);
     } catch (err: any) {
       console.error('Signup error:', err);
       setError(err.message || 'An error occurred during signup.');
