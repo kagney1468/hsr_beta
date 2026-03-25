@@ -1,4 +1,5 @@
 import type { User } from '@supabase/supabase-js';
+import type { PostgrestError } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 
 /**
@@ -21,10 +22,6 @@ export function getAuthRedirectUrl(): string {
   return 'https://homesalesready.com/auth/callback';
 }
 
-/**
- * After magic-link login, ensure public.users exists and (for agents) an agencies row
- * is linked via users.agency_id. Handles rows pre-created by DB triggers.
- */
 function normalizeAppRole(value: unknown): 'seller' | 'agent' | null {
   const s = typeof value === 'string' ? value.trim().toLowerCase() : '';
   if (s === 'agent') return 'agent';
@@ -32,23 +29,35 @@ function normalizeAppRole(value: unknown): 'seller' | 'agent' | null {
   return null;
 }
 
+function throwDb(ctx: string, err: PostgrestError | null): asserts err is null {
+  if (err) {
+    const bits = [ctx + ':', err.message, err.code, err.details, err.hint].filter(Boolean);
+    throw new Error(bits.join(' — '));
+  }
+}
+
+/**
+ * After magic-link login, ensure public.users exists and (for agents) an agencies row
+ * is linked via users.agency_id. Handles rows pre-created by DB triggers.
+ */
 export async function ensureUserProfile(user: User): Promise<'seller' | 'agent'> {
   const meta = user.user_metadata || {};
   const metaRole = normalizeAppRole(meta.role);
 
-  const { data: existing, error: existingErr } = await supabase
-    .from('users')
-    .select('*')
-    .eq('auth_user_id', user.id)
-    .maybeSingle();
-
-  if (existingErr) {
-    console.error('ensureUserProfile: users select failed', existingErr);
+  async function fetchUserRow() {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('auth_user_id', user.id)
+      .maybeSingle();
+    throwDb('Could not load profile', error);
+    return data;
   }
 
+  let existing = await fetchUserRow();
+
   const dbRole = normalizeAppRole(existing?.role);
-  const effectiveRole: 'seller' | 'agent' =
-    metaRole || dbRole || 'seller';
+  const effectiveRole: 'seller' | 'agent' = metaRole || dbRole || 'seller';
 
   if (!existing) {
     if (effectiveRole === 'agent') {
@@ -61,7 +70,7 @@ export async function ensureUserProfile(user: User): Promise<'seller' | 'agent'>
         .select('id')
         .single();
 
-      if (agencyError) throw agencyError;
+      throwDb('Could not create agency', agencyError);
 
       const { error: insertError } = await supabase.from('users').insert({
         auth_user_id: user.id,
@@ -70,23 +79,37 @@ export async function ensureUserProfile(user: User): Promise<'seller' | 'agent'>
         phone: (meta.phone as string) || null,
         role: 'agent',
         user_type: 'agent',
-        agency_id: agencyData.id,
+        agency_id: agencyData!.id,
       });
-      if (insertError) throw insertError;
-      return 'agent';
-    }
 
-    const { error: insertError } = await supabase.from('users').insert({
-      auth_user_id: user.id,
-      email: user.email,
-      full_name: (meta.full_name as string) || null,
-      phone: (meta.phone as string) || null,
-      contact_preference: (meta.contact_preference as string) || 'email',
-      role: 'seller',
-      user_type: 'seller',
-    });
-    if (insertError) throw insertError;
-    return 'seller';
+      if (insertError?.code === '23505') {
+        existing = await fetchUserRow();
+      } else {
+        throwDb('Could not create profile', insertError);
+        return 'agent';
+      }
+    } else {
+      const { error: insertError } = await supabase.from('users').insert({
+        auth_user_id: user.id,
+        email: user.email,
+        full_name: (meta.full_name as string) || null,
+        phone: (meta.phone as string) || null,
+        contact_preference: (meta.contact_preference as string) || 'email',
+        role: 'seller',
+        user_type: 'seller',
+      });
+
+      if (insertError?.code === '23505') {
+        existing = await fetchUserRow();
+      } else {
+        throwDb('Could not create profile', insertError);
+        return 'seller';
+      }
+    }
+  }
+
+  if (!existing) {
+    throw new Error('Profile row missing after sign-in. Check database triggers and RLS policies on public.users.');
   }
 
   const updates: Record<string, unknown> = {};
@@ -100,16 +123,19 @@ export async function ensureUserProfile(user: User): Promise<'seller' | 'agent'>
   if (metaRole && !existing.user_type) updates.user_type = metaRole;
 
   if (Object.keys(updates).length > 0) {
-    await supabase.from('users').update(updates).eq('id', existing.id);
+    const { error: updErr } = await supabase.from('users').update(updates).eq('id', existing.id);
+    throwDb('Could not update profile', updErr);
   }
 
-  const isAgent = effectiveRole === 'agent' || dbRole === 'agent';
+  const isAgent = effectiveRole === 'agent' || normalizeAppRole(existing.role) === 'agent';
   if (isAgent) {
-    const { data: agency } = await supabase
+    const { data: agency, error: agencySelErr } = await supabase
       .from('agencies')
       .select('id')
       .eq('agent_user_id', user.id)
       .maybeSingle();
+
+    throwDb('Could not load agency', agencySelErr);
 
     if (!agency) {
       const { data: created, error: agencyError } = await supabase
@@ -121,14 +147,19 @@ export async function ensureUserProfile(user: User): Promise<'seller' | 'agent'>
         .select('id')
         .single();
 
-      if (agencyError) throw agencyError;
+      throwDb('Could not create agency', agencyError);
 
-      await supabase
+      const { error: linkErr } = await supabase
         .from('users')
-        .update({ agency_id: created.id, role: 'agent', user_type: 'agent' })
+        .update({ agency_id: created!.id, role: 'agent', user_type: 'agent' })
         .eq('auth_user_id', user.id);
+      throwDb('Could not link agency', linkErr);
     } else if (!existing.agency_id) {
-      await supabase.from('users').update({ agency_id: agency.id }).eq('auth_user_id', user.id);
+      const { error: linkErr } = await supabase
+        .from('users')
+        .update({ agency_id: agency.id })
+        .eq('auth_user_id', user.id);
+      throwDb('Could not link agency', linkErr);
     }
     return 'agent';
   }

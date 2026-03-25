@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { ensureUserProfile } from '../lib/ensureUserProfile';
+import { formatCallbackError } from '../lib/authErrors';
 
 /**
  * AuthCallback — handles the redirect after a user clicks the magic link.
@@ -22,21 +23,32 @@ export default function AuthCallback() {
           throw new Error(decodeURIComponent(oauthError.replace(/\+/g, ' ')));
         }
 
-        // getSession awaits client init, which exchanges ?code= for a session when flowType is pkce
+        // Ensure PKCE code is exchanged (avoids race where getSession runs before init finishes).
         let session = (await supabase.auth.getSession()).data.session;
+        const code = params.get('code');
+        if (!session && code) {
+          const { data: exchanged, error: exchangeErr } = await supabase.auth.exchangeCodeForSession(code);
+          if (!exchangeErr && exchanged.session) {
+            session = exchanged.session;
+          } else if (exchangeErr) {
+            session = (await supabase.auth.getSession()).data.session;
+            if (!session) throw exchangeErr;
+          }
+        }
 
         if (!session) {
-          await new Promise((res) => setTimeout(res, 500));
+          await new Promise((res) => setTimeout(res, 400));
+          session = (await supabase.auth.getSession()).data.session;
+        }
+        if (!session) {
+          await new Promise((res) => setTimeout(res, 1500));
           session = (await supabase.auth.getSession()).data.session;
         }
 
         if (!session) {
-          await new Promise((res) => setTimeout(res, 2000));
-          session = (await supabase.auth.getSession()).data.session;
-        }
-
-        if (!session) {
-          throw new Error('No session found after verification. Please try logging in.');
+          throw new Error(
+            'No session found after verification. Try again, or confirm this site URL is listed under Supabase → Authentication → URL Configuration → Redirect URLs.'
+          );
         }
 
         const role = await ensureUserProfile(session.user);
@@ -48,7 +60,7 @@ export default function AuthCallback() {
         }
       } catch (err: unknown) {
         console.error('Auth callback error:', err);
-        setErrorMsg(err instanceof Error ? err.message : 'Verification failed. Please try logging in.');
+        setErrorMsg(formatCallbackError(err));
         setStatus('error');
       }
     }
@@ -64,7 +76,7 @@ export default function AuthCallback() {
             <span className="material-symbols-outlined text-3xl">error</span>
           </div>
           <h1 className="text-2xl font-black font-heading text-[var(--teal-900)]">Verification failed</h1>
-          <p className="text-[var(--muted)] text-sm">{errorMsg}</p>
+          <p className="text-[var(--muted)] text-sm text-left break-words">{errorMsg}</p>
           <button
             onClick={() => navigate('/login')}
             className="w-full h-12 rounded-xl bg-[var(--teal-600)] text-white font-bold font-heading hover:bg-[var(--teal-900)] transition-colors"
