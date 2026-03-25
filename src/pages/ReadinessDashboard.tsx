@@ -171,10 +171,13 @@ export default function ReadinessDashboard() {
            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500 px-2">Action Required</h3>
            <div className="space-y-3">
               {readiness.missingItems.length > 0 ? readiness.missingItems.map(item => (
-                <div key={item} className="p-4 bg-zinc-900 border border-white/5 rounded-2xl flex items-center justify-between group hover:border-amber-500/30 transition-all">
+                <div
+                  key={item}
+                  className="p-4 bg-white border border-[var(--border)] rounded-2xl flex items-center justify-between group hover:border-amber-400/50 shadow-soft transition-all"
+                >
                    <div className="flex items-center gap-3">
                       <span className="material-symbols-outlined text-amber-500">pending</span>
-                      <span className="text-sm font-bold text-white">{item}</span>
+                      <span className="text-sm font-bold text-[var(--teal-900)]">{item}</span>
                    </div>
                      <Link 
                       to={item.includes('Material Information') ? '/seller/property' : '/seller/documents'}
@@ -184,9 +187,9 @@ export default function ReadinessDashboard() {
                    </Link>
                 </div>
               )) : (
-                <div className="p-8 text-center bg-zinc-900/50 border border-dashed border-white/5 rounded-3xl">
+                <div className="p-8 text-center bg-[var(--teal-050)] border border-dashed border-[var(--border)] rounded-3xl">
                    <span className="material-symbols-outlined text-3xl text-[var(--teal-600)] mb-2">auto_awesome</span>
-                   <p className="text-zinc-500 text-sm">Perfect Score! All actions completed.</p>
+                   <p className="text-[var(--muted)] text-sm">Perfect Score! All actions completed.</p>
                 </div>
               )}
            </div>

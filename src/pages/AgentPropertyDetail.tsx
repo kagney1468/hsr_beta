@@ -131,7 +131,7 @@ export default function AgentPropertyDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-6">
+      <div className="min-h-screen bg-[var(--page)] flex items-center justify-center p-6">
         <div className="animate-spin size-10 border-4 border-[var(--teal-600)] border-t-transparent rounded-full" />
       </div>
     );
@@ -139,32 +139,39 @@ export default function AgentPropertyDetail() {
 
   if (!property) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-8 text-zinc-500 font-heading font-black text-2xl">
+      <div className="min-h-screen bg-[var(--page)] flex items-center justify-center p-8 text-[var(--muted)] font-heading font-black text-2xl">
         Property not found.
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white pb-20">
+    <div className="min-h-screen bg-[var(--page)] text-[var(--text)] pb-20">
       {/* Header */}
-      <div className="px-6 md:px-12 pt-10 pb-8 border-b border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
+      <div className="px-6 md:px-12 pt-10 pb-8 border-b border-[var(--border)] flex flex-col md:flex-row items-center justify-between gap-6 bg-white">
         <div className="flex items-center gap-5">
-          <Link to="/agent/dashboard" className="size-12 rounded-2xl bg-zinc-900 border border-white/5 flex items-center justify-center text-zinc-400 hover:text-white hover:border-white/10 transition-all">
+          <Link
+            to="/agent/dashboard"
+            className="size-12 rounded-2xl bg-[var(--teal-050)] border border-[var(--border)] flex items-center justify-center text-[var(--muted)] hover:text-[var(--teal-900)] hover:border-[var(--teal-500)]/30 transition-all"
+          >
             <span className="material-symbols-outlined">arrow_back</span>
           </Link>
           <div>
-            <h1 className="text-3xl font-black font-heading tracking-tight">{property.address}</h1>
-            <p className="text-zinc-500 flex items-center gap-2">
+            <h1 className="text-3xl font-black font-heading tracking-tight text-[var(--teal-900)]">{property.address}</h1>
+            <p className="text-[var(--muted)] flex items-center gap-2">
                {property.postcode} • {property.property_type}
-               <span className="size-1 bg-zinc-700 rounded-full" />
+               <span className="size-1 bg-[var(--border)] rounded-full" />
                Managed for {seller?.full_name}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-           <Button variant="outline" className="h-12 px-6 rounded-xl border-white/10 text-zinc-400 font-bold">Edit Details</Button>
-           <Button variant="primary" className="h-12 px-6 rounded-xl font-black font-heading">Download Pack</Button>
+           <Button variant="outline" className="h-12 px-6 rounded-xl border-[var(--border)] text-[var(--muted)] font-bold hover:bg-[var(--teal-050)]">
+             Edit Details
+           </Button>
+           <Button variant="primary" className="h-12 px-6 rounded-xl font-black font-heading">
+             Download Pack
+           </Button>
         </div>
       </div>
 
@@ -176,44 +183,48 @@ export default function AgentPropertyDetail() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
                 { label: 'Pack Progress', value: `${readiness.score}%`, color: readiness.score === 100 ? 'text-[var(--teal-600)]' : 'text-amber-500' },
-                { label: 'Documents', value: documents.length, color: 'text-white' },
+                { label: 'Documents', value: documents.length, color: 'text-[var(--teal-900)]' },
                 { label: 'Total Views', value: viewers.length, color: 'text-blue-400' },
                 { label: 'Priority Leads', value: viewers.filter(v => v.is_selling).length, color: 'text-[var(--teal-600)]' },
               ].map(stat => (
-                <Card key={stat.label} className="p-5 bg-zinc-900/40 border-white/5 space-y-1">
-                  <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">{stat.label}</p>
+                <Card key={stat.label} className="p-5 space-y-1">
+                  <p className="text-[10px] font-black text-[var(--muted)] uppercase tracking-widest">{stat.label}</p>
                   <p className={`text-2xl font-black font-heading ${stat.color}`}>{stat.value}</p>
                 </Card>
               ))}
             </div>
 
             {/* Viewer Registrations (NEW) */}
-            <Card className="border-white/5 bg-zinc-900/40 overflow-hidden">
-               <div className="p-6 border-b border-white/5 flex items-center justify-between">
-                 <h3 className="text-lg font-black font-heading tracking-tight">Viewer Registrations</h3>
-                 <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest bg-black px-3 py-1 rounded-full">{viewers.length} Registered</span>
+            <Card className="overflow-hidden">
+               <div className="p-6 border-b border-[var(--border)] flex items-center justify-between bg-[var(--teal-050)]/30">
+                 <h3 className="text-lg font-black font-heading tracking-tight text-[var(--teal-900)]">Viewer Registrations</h3>
+                 <span className="text-[10px] font-black text-[var(--teal-900)] uppercase tracking-widest bg-white border border-[var(--border)] px-3 py-1 rounded-full">
+                   {viewers.length} Registered
+                 </span>
                </div>
                <div className="overflow-x-auto">
                  <table className="w-full text-left border-collapse">
                    <thead>
-                     <tr className="bg-white/[0.02]">
-                       <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest">Viewer</th>
-                       <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest">Date Viewed</th>
-                       <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest">Selling Status</th>
+                     <tr className="bg-[var(--teal-050)]">
+                       <th className="px-6 py-4 text-[10px] font-black text-[var(--muted)] uppercase tracking-widest">Viewer</th>
+                       <th className="px-6 py-4 text-[10px] font-black text-[var(--muted)] uppercase tracking-widest">Date Viewed</th>
+                       <th className="px-6 py-4 text-[10px] font-black text-[var(--muted)] uppercase tracking-widest">Selling Status</th>
                      </tr>
                    </thead>
-                   <tbody className="divide-y divide-white/5">
+                   <tbody className="divide-y divide-[var(--border)]">
                      {viewers.length === 0 ? (
                        <tr>
-                         <td colSpan={3} className="px-6 py-12 text-center text-zinc-500 italic">No registrations for this property yet.</td>
+                         <td colSpan={3} className="px-6 py-12 text-center text-[var(--muted)] italic">
+                           No registrations for this property yet.
+                         </td>
                        </tr>
                      ) : viewers.map(viewer => (
-                       <tr key={viewer.id} className="hover:bg-white/[0.015] transition-colors">
+                       <tr key={viewer.id} className="hover:bg-[var(--teal-050)]/40 transition-colors">
                          <td className="px-6 py-4">
-                           <div className="font-bold">{viewer.viewer_name}</div>
-                           <div className="text-[10px] text-zinc-500 font-mono">{viewer.viewer_email}</div>
+                           <div className="font-bold text-[var(--teal-900)]">{viewer.viewer_name}</div>
+                           <div className="text-[10px] text-[var(--muted)] font-mono">{viewer.viewer_email}</div>
                          </td>
-                         <td className="px-6 py-4 text-sm text-zinc-500">
+                         <td className="px-6 py-4 text-sm text-[var(--muted)]">
                            {new Date(viewer.viewed_at).toLocaleDateString()}
                          </td>
                          <td className="px-6 py-4">
@@ -223,7 +234,7 @@ export default function AgentPropertyDetail() {
                                 Selling in {viewer.selling_location}
                               </div>
                             ) : (
-                              <span className="text-[10px] font-bold text-zinc-700 uppercase">Search only</span>
+                              <span className="text-[10px] font-bold text-[var(--muted)] uppercase">Search only</span>
                             )}
                          </td>
                        </tr>
@@ -234,8 +245,8 @@ export default function AgentPropertyDetail() {
             </Card>
 
             {/* Readiness List */}
-            <Card className="p-8 border-white/5 bg-zinc-900/40 space-y-6">
-              <h3 className="text-xl font-black font-heading tracking-tight">Readiness Checklist</h3>
+            <Card className="p-8 space-y-6">
+              <h3 className="text-xl font-black font-heading tracking-tight text-[var(--teal-900)]">Readiness Checklist</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
                   { label: 'Seller Profile', done: readiness.profileComplete },
@@ -243,9 +254,12 @@ export default function AgentPropertyDetail() {
                   { label: 'Required Documents', done: readiness.documentsComplete },
                   { label: 'Final Declaration', done: readiness.declarationComplete },
                 ].map(item => (
-                  <div key={item.label} className="p-4 rounded-2xl bg-black/40 border border-white/5 flex items-center justify-between">
-                    <span className="font-bold text-sm tracking-tight text-zinc-300">{item.label}</span>
-                    <span className={`material-symbols-outlined ${item.done ? 'text-[var(--teal-600)]' : 'text-zinc-800'}`}>
+                  <div
+                    key={item.label}
+                    className="p-4 rounded-2xl bg-[var(--teal-050)] border border-[var(--border)] flex items-center justify-between"
+                  >
+                    <span className="font-bold text-sm tracking-tight text-[var(--teal-900)]">{item.label}</span>
+                    <span className={`material-symbols-outlined ${item.done ? 'text-[var(--teal-600)]' : 'text-[var(--border)]'}`}>
                       {item.done ? 'check_circle' : 'pending'}
                     </span>
                   </div>
@@ -254,27 +268,36 @@ export default function AgentPropertyDetail() {
             </Card>
 
             {/* Documents */}
-            <Card className="p-8 border-white/5 bg-zinc-900/40 space-y-6">
-              <h3 className="text-xl font-black font-heading tracking-tight">Compliance Documents</h3>
+            <Card className="p-8 space-y-6">
+              <h3 className="text-xl font-black font-heading tracking-tight text-[var(--teal-900)]">Compliance Documents</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                  {documents.map(doc => (
-                   <div key={doc.id} className="p-5 rounded-2xl bg-black/40 border border-white/5 group hover:border-white/10 transition-all flex items-center justify-between">
+                   <div
+                     key={doc.id}
+                     className="p-5 rounded-2xl bg-white border border-[var(--border)] group hover:border-[var(--teal-500)]/30 transition-all flex items-center justify-between shadow-soft"
+                   >
                      <div className="flex items-center gap-4">
-                       <div className="size-10 rounded-xl bg-zinc-900 flex items-center justify-center text-zinc-500">
+                       <div className="size-10 rounded-xl bg-[var(--teal-050)] border border-[var(--border)] flex items-center justify-center text-[var(--teal-600)]">
                          <span className="material-symbols-outlined">description</span>
                        </div>
                        <div>
-                         <p className="font-bold text-sm tracking-tight">{doc.document_type || doc.category}</p>
-                         <p className="text-[10px] text-zinc-600 font-mono uppercase">{doc.file_name?.substring(0, 20)}...</p>
+                         <p className="font-bold text-sm tracking-tight text-[var(--teal-900)]">{doc.document_type || doc.category}</p>
+                         <p className="text-[10px] text-[var(--muted)] font-mono uppercase truncate max-w-[140px]">
+                           {(doc as { name?: string; file_name?: string }).name || (doc as { file_name?: string }).file_name || 'Document'}
+                         </p>
                        </div>
                      </div>
-                     <button onClick={() => handleViewDocument(doc)} className="size-8 rounded-lg flex items-center justify-center text-zinc-600 hover:text-white hover:bg-white/5 transition-colors">
+                     <button
+                       type="button"
+                       onClick={() => handleViewDocument(doc)}
+                       className="size-8 rounded-lg flex items-center justify-center text-[var(--muted)] hover:text-[var(--teal-600)] hover:bg-[var(--teal-050)] transition-colors"
+                     >
                        <span className="material-symbols-outlined text-[18px]">visibility</span>
                      </button>
                    </div>
                  ))}
                  {documents.length === 0 && (
-                   <p className="col-span-full py-10 text-center text-zinc-600 italic">No documents uploaded by seller.</p>
+                   <p className="col-span-full py-10 text-center text-[var(--muted)] italic">No documents uploaded by seller.</p>
                  )}
               </div>
             </Card>
@@ -308,38 +331,42 @@ export default function AgentPropertyDetail() {
                       >
                          Copy Public Link
                       </Button>
-                      <Link to={`/pack/${shareToken}`} target="_blank" className="block w-full text-center py-2 text-[10px] font-black text-zinc-500 uppercase tracking-widest hover:text-[var(--teal-600)] transition-colors">
+                      <Link to={`/pack/${shareToken}`} target="_blank" className="block w-full text-center py-2 text-[10px] font-black text-[var(--muted)] uppercase tracking-widest hover:text-[var(--teal-600)] transition-colors">
                         Preview as Viewer
                       </Link>
                     </div>
                   </>
                 ) : (
                   <div className="py-10 text-center space-y-4">
-                     <p className="text-zinc-500 text-sm">Generate a secure share link for this property.</p>
-                     <Button className="w-full h-14 rounded-2xl bg-white text-black font-black font-heading">Generate Link</Button>
+                     <p className="text-[var(--muted)] text-sm">Generate a secure share link for this property.</p>
+                     <Button variant="primary" className="w-full h-14 rounded-2xl font-black font-heading">
+                       Generate Link
+                     </Button>
                   </div>
                 )}
               </div>
             </Card>
 
             {/* Seller Contact */}
-            <Card className="p-8 border-white/5 bg-zinc-900/40 space-y-6">
-               <h3 className="text-lg font-black font-heading tracking-tight">Seller Contact</h3>
+            <Card className="p-8 space-y-6">
+               <h3 className="text-lg font-black font-heading tracking-tight text-[var(--teal-900)]">Seller Contact</h3>
                <div className="space-y-4">
                  <div className="space-y-1">
-                   <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Name</p>
-                   <p className="font-bold text-white">{seller?.full_name}</p>
+                   <p className="text-[10px] font-black text-[var(--muted)] uppercase tracking-widest">Name</p>
+                   <p className="font-bold text-[var(--teal-900)]">{seller?.full_name}</p>
                  </div>
                  <div className="space-y-1">
-                   <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Email</p>
-                   <p className="font-bold text-white text-sm">{seller?.email}</p>
+                   <p className="text-[10px] font-black text-[var(--muted)] uppercase tracking-widest">Email</p>
+                   <p className="font-bold text-[var(--teal-900)] text-sm">{seller?.email}</p>
                  </div>
                  <div className="space-y-1">
-                   <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Phone</p>
-                   <p className="font-bold text-white text-sm">{seller?.phone}</p>
+                   <p className="text-[10px] font-black text-[var(--muted)] uppercase tracking-widest">Phone</p>
+                   <p className="font-bold text-[var(--teal-900)] text-sm">{seller?.phone}</p>
                  </div>
                </div>
-               <Button variant="outline" className="w-full h-12 rounded-xl border-white/5 text-zinc-400 hover:text-white font-bold">Message Seller</Button>
+               <Button variant="outline" className="w-full h-12 rounded-xl border-[var(--border)] text-[var(--muted)] hover:bg-[var(--teal-050)] font-bold">
+                 Message Seller
+               </Button>
             </Card>
           </div>
         </div>

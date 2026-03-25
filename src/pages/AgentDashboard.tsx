@@ -131,19 +131,19 @@ export default function AgentDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-6">
+      <div className="min-h-screen bg-[var(--page)] flex items-center justify-center p-6">
         <div className="animate-spin size-10 border-4 border-[var(--teal-600)] border-t-transparent rounded-full" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white overflow-y-auto">
+    <div className="min-h-screen bg-[var(--page)] text-[var(--text)] overflow-y-auto">
       {/* ── HEADER ── */}
-      <div className="px-6 md:px-10 pt-10 pb-8 border-b border-white/5 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      <div className="px-6 md:px-10 pt-10 pb-8 border-b border-[var(--border)] flex flex-col md:flex-row items-start md:items-center justify-between gap-6 bg-white">
         <div>
-          <h1 className="text-3xl font-black font-heading tracking-tight">Property Pipeline</h1>
-          <p className="text-zinc-500 mt-1 flex items-center gap-2">
+          <h1 className="text-3xl font-black font-heading tracking-tight text-[var(--teal-900)]">Property Pipeline</h1>
+          <p className="text-[var(--muted)] mt-1 flex items-center gap-2">
             Overview of all active instructions
             {isRefreshing && <span className="size-1.5 rounded-full bg-[var(--teal-500)] animate-pulse" />}
           </p>
@@ -162,55 +162,55 @@ export default function AgentDashboard() {
         {/* ── KPI GRID ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {kpis.map((kpi, i) => (
-            <Card key={i} className="p-6 bg-zinc-900/40 border-white/5 space-y-4 hover:border-white/10 transition-all">
+            <Card key={i} className="p-6 space-y-4 hover:border-[var(--teal-500)]/20 transition-all">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{kpi.label}</span>
-                <span className={`material-symbols-outlined ${kpi.color || 'text-white'} opacity-40`}>{kpi.icon}</span>
+                <span className="text-[10px] font-black text-[var(--muted)] uppercase tracking-widest">{kpi.label}</span>
+                <span className={`material-symbols-outlined ${kpi.color || 'text-[var(--teal-600)]'} opacity-50`}>{kpi.icon}</span>
               </div>
-              <div className="text-4xl font-black font-heading tracking-tight">{kpi.value}</div>
+              <div className="text-4xl font-black font-heading tracking-tight text-[var(--teal-900)]">{kpi.value}</div>
             </Card>
           ))}
         </div>
 
         {/* ── PROPERTY TABLE ── */}
         <div className="space-y-6">
-          <Card className="overflow-hidden border-white/5 bg-zinc-900/40">
+          <Card className="overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-white/5 bg-white/[0.01]">
-                    <th className="px-6 py-5 text-[10px] font-black text-zinc-500 uppercase tracking-[0.15em]">Property Address</th>
-                    <th className="px-6 py-5 text-[10px] font-black text-zinc-500 uppercase tracking-[0.15em]">Seller Name</th>
-                    <th className="px-6 py-5 text-[10px] font-black text-zinc-500 uppercase tracking-[0.15em] w-48">Pack Progress</th>
-                    <th className="px-6 py-5 text-[10px] font-black text-zinc-500 uppercase tracking-[0.15em]">Status</th>
-                    <th className="px-6 py-5 text-[10px] font-black text-zinc-500 uppercase tracking-[0.15em]">Last Updated</th>
+                  <tr className="border-b border-[var(--border)] bg-[var(--teal-050)]">
+                    <th className="px-6 py-5 text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.15em]">Property Address</th>
+                    <th className="px-6 py-5 text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.15em]">Seller Name</th>
+                    <th className="px-6 py-5 text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.15em] w-48">Pack Progress</th>
+                    <th className="px-6 py-5 text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.15em]">Status</th>
+                    <th className="px-6 py-5 text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.15em]">Last Updated</th>
                     <th className="px-6 py-5"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-[var(--border)]">
                   {properties.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-24 text-center text-zinc-600 font-medium italic">
+                      <td colSpan={6} className="px-6 py-24 text-center text-[var(--muted)] font-medium italic">
                         <div className="flex flex-col items-center gap-3">
-                          <span className="material-symbols-outlined text-4xl opacity-20">inventory_2</span>
+                          <span className="material-symbols-outlined text-4xl text-[var(--border)]">inventory_2</span>
                           No active properties in pipeline.
                         </div>
                       </td>
                     </tr>
                   ) : properties.map(prop => (
-                    <tr key={prop.id} className="hover:bg-white/[0.02] transition-colors group">
+                    <tr key={prop.id} className="hover:bg-[var(--teal-050)]/50 transition-colors group">
                       <td className="px-6 py-6">
                         <Link to={`/agent/property/${prop.id}`} className="block">
-                          <div className="font-bold text-white group-hover:text-[var(--teal-600)] transition-colors">{prop.address}</div>
-                          <div className="text-[11px] text-zinc-500 mt-1 uppercase tracking-wider">{prop.postcode}</div>
+                          <div className="font-bold text-[var(--teal-900)] group-hover:text-[var(--teal-600)] transition-colors">{prop.address}</div>
+                          <div className="text-[11px] text-[var(--muted)] mt-1 uppercase tracking-wider">{prop.postcode}</div>
                         </Link>
                       </td>
-                      <td className="px-6 py-6 text-sm text-zinc-300 font-medium">
+                      <td className="px-6 py-6 text-sm text-[var(--text)] font-medium">
                         {prop.sellerName}
                       </td>
                       <td className="px-6 py-6">
                         <div className="space-y-2">
-                           <div className="h-1.5 w-full bg-black/60 rounded-full overflow-hidden">
+                           <div className="h-1.5 w-full bg-[var(--teal-050)] border border-[var(--border)] rounded-full overflow-hidden">
                              <div 
                                className={`h-full rounded-full transition-all duration-700 ${
                                  prop.status === 'Pack Complete' ? 'bg-[var(--teal-600)]' : 
@@ -219,7 +219,7 @@ export default function AgentDashboard() {
                                style={{ width: `${prop.score}%` }} 
                              />
                            </div>
-                           <div className="text-[10px] font-black text-zinc-500">{prop.score}% COMPLETE</div>
+                           <div className="text-[10px] font-black text-[var(--muted)]">{prop.score}% COMPLETE</div>
                         </div>
                       </td>
                       <td className="px-6 py-6">
@@ -235,12 +235,12 @@ export default function AgentDashboard() {
                           {prop.status}
                         </span>
                       </td>
-                      <td className="px-6 py-6 text-[11px] font-bold text-zinc-500 uppercase tracking-wider">
+                      <td className="px-6 py-6 text-[11px] font-bold text-[var(--muted)] uppercase tracking-wider">
                         {new Date(prop.updatedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
                       </td>
                       <td className="px-6 py-6 text-right">
-                         <Link to={`/agent/property/${prop.id}`} className="p-2 hover:bg-white/5 rounded-lg transition-colors inline-block">
-                           <span className="material-symbols-outlined text-zinc-600 group-hover:text-white transition-colors">chevron_right</span>
+                         <Link to={`/agent/property/${prop.id}`} className="p-2 hover:bg-[var(--teal-050)] rounded-lg transition-colors inline-block">
+                           <span className="material-symbols-outlined text-[var(--muted)] group-hover:text-[var(--teal-600)] transition-colors">chevron_right</span>
                          </Link>
                       </td>
                     </tr>
@@ -254,7 +254,7 @@ export default function AgentDashboard() {
 
       {/* ── ADD PROPERTY MODAL ── */}
       {showAddPropertyModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-md">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-[var(--teal-900)]/20 backdrop-blur-md">
           <Card className="w-full max-w-lg p-10 space-y-8 animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between">
               <h3 className="text-2xl font-black font-heading tracking-tight text-[var(--teal-900)]">Add New Instruction</h3>
