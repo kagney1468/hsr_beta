@@ -4,16 +4,17 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { AUTH_CALLBACK } from '../lib/ensureUserProfile';
 
 export default function Login() {
   const [role, setRole] = useState<'seller' | 'agent' | null>(null);
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, signOut, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
 
   useEffect(() => {
     if (location.state?.error) {
@@ -23,10 +24,6 @@ export default function Login() {
 
   useEffect(() => {
     if (user && !authLoading) {
-      /* if (!user.email_confirmed_at) {
-        setError("Please verify your email address to continue.");
-        return;
-      } */
       checkRoleAndRedirect(user.id);
     }
   }, [user, authLoading]);
@@ -34,17 +31,15 @@ export default function Login() {
   const checkRoleAndRedirect = async (userId: string) => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error: fetchError } = await supabase
         .from('users')
         .select('role')
         .eq('auth_user_id', userId)
         .maybeSingle();
-      
-      if (error) throw error;
+
+      if (fetchError) throw fetchError;
 
       if (!data) {
-        // If no user record exists yet, they might be a very fresh signup.
-        // We'll redirect to onboarding as a fallback for now.
         navigate('/seller/onboarding');
         return;
       }
@@ -55,7 +50,8 @@ export default function Login() {
           .select('id')
           .eq('seller_user_id', userId)
           .maybeSingle();
-        
+
+        if (propError) throw propError;
         if (!prop) {
           navigate('/seller/onboarding');
         } else {
@@ -64,9 +60,9 @@ export default function Login() {
       } else if (data.role === 'agent') {
         navigate('/agent/dashboard');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching role:', err);
-      setError(err.message || 'Failed to determine user role. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to determine user role. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -78,23 +74,18 @@ export default function Login() {
     setError(null);
 
     try {
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
+      const { error: otpError } = await supabase.auth.signInWithOtp({
         email,
-        password,
+        options: {
+          emailRedirectTo: AUTH_CALLBACK,
+          shouldCreateUser: false,
+        },
       });
 
-      if (authError) throw authError;
-
-      if (data.user) {
-        if (!data.user.email_confirmed_at) {
-          setError("Verification pending. Please check your inbox for the activation link.");
-          await signOut();
-          return;
-        }
-        await checkRoleAndRedirect(data.user.id);
-      }
-    } catch (err: any) {
-      setError(err.message || 'Invalid login credentials.');
+      if (otpError) throw otpError;
+      setSuccess(true);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Could not send login link.');
     } finally {
       setLoading(false);
     }
@@ -172,6 +163,21 @@ export default function Login() {
     );
   }
 
+  if (success) {
+    return (
+      <div className="min-h-screen bg-[var(--page)] flex flex-col items-center justify-center p-6">
+        <Card className="max-w-md w-full p-10 text-center space-y-6">
+          <div className="size-20 bg-[var(--teal-050)] text-[var(--teal-600)] border border-[var(--border)] flex items-center justify-center rounded-3xl mx-auto">
+            <span className="material-symbols-outlined text-4xl">mark_email_read</span>
+          </div>
+          <h2 className="text-2xl font-black font-heading text-[var(--teal-900)]">Check your inbox</h2>
+          <p className="text-[var(--muted)]">We've sent your login link.</p>
+          <Button variant="primary" className="w-full" onClick={() => navigate('/login')}>Back</Button>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[var(--page)] flex flex-col items-center justify-center p-6 relative overflow-hidden">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-[var(--teal-050)] blur-[120px] rounded-full pointer-events-none" />
@@ -188,7 +194,7 @@ export default function Login() {
           <h1 className="text-4xl font-black font-heading text-[var(--teal-900)] tracking-tight">
             {role === 'seller' ? 'Seller Login' : 'Agent Login'}
           </h1>
-          <p className="text-[var(--muted)]">Welcome back. Enter your details below.</p>
+          <p className="text-[var(--muted)]">Enter your email and we’ll send you a secure link.</p>
         </div>
 
         <Card className="p-8 space-y-6">
@@ -211,28 +217,13 @@ export default function Login() {
               />
             </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)]">Password</label>
-                <button type="button" className="text-[10px] font-semibold uppercase tracking-widest text-[var(--muted)] hover:text-[var(--teal-900)] transition-colors">Forgot?</button>
-              </div>
-              <input 
-                type="password" 
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full h-12 px-4 rounded-xl border border-[var(--border)] bg-white text-[var(--text)] focus:border-[var(--teal-500)] outline-none transition-colors"
-                placeholder="••••••••"
-              />
-            </div>
-
             <Button 
               type="submit" 
               variant="primary" 
               className="w-full h-14 rounded-2xl font-heading font-bold text-lg mt-4"
               disabled={loading}
             >
-              {loading ? 'Logging in...' : 'Sign In'}
+              {loading ? 'Sending…' : 'Send My Login Link'}
             </Button>
           </form>
 

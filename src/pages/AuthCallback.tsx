@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { ensureUserProfile } from '../lib/ensureUserProfile';
 
 /**
- * AuthCallback — handles the redirect after a user clicks the
- * verification link in their email. Supabase appends the session
- * tokens as URL hash fragments (#access_token=...&type=signup).
- * This page exchanges them for a real session, determines the
- * user's role, then redirects to the correct dashboard.
+ * AuthCallback — handles the redirect after a user clicks the magic link.
+ * Ensures public.users (+ agency for agents), then routes to the right dashboard.
  */
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -17,30 +15,27 @@ export default function AuthCallback() {
   useEffect(() => {
     async function handleCallback() {
       try {
-        // Supabase JS automatically picks up the hash tokens and
-        // sets the session. We just need to wait for the session.
-        const { data: { session }, error } = await supabase.auth.getSession();
-
-        if (error) throw error;
+        let session = (await supabase.auth.getSession()).data.session;
 
         if (!session) {
-          // Tokens may arrive slightly after mount — wait briefly
           await new Promise(res => setTimeout(res, 1500));
-          const { data: { session: retrySession }, error: retryError } = await supabase.auth.getSession();
-          if (retryError) throw retryError;
-          if (!retrySession) throw new Error('No session found after verification. Please try logging in.');
+          session = (await supabase.auth.getSession()).data.session;
         }
 
-        // Determine role from user metadata and redirect
-        const role = session?.user?.user_metadata?.role ?? 'seller';
+        if (!session) {
+          throw new Error('No session found after verification. Please try logging in.');
+        }
+
+        const role = await ensureUserProfile(session.user);
+
         if (role === 'agent') {
           navigate('/agent/dashboard', { replace: true });
         } else {
           navigate('/seller/dashboard', { replace: true });
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Auth callback error:', err);
-        setErrorMsg(err.message || 'Verification failed. Please try logging in.');
+        setErrorMsg(err instanceof Error ? err.message : 'Verification failed. Please try logging in.');
         setStatus('error');
       }
     }
@@ -75,7 +70,7 @@ export default function AuthCallback() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--teal-600)]" />
         </div>
         <div>
-          <h1 className="text-2xl font-black font-heading text-[var(--teal-900)]">Verifying your account…</h1>
+          <h1 className="text-2xl font-black font-heading text-[var(--teal-900)]">Signing you in…</h1>
           <p className="text-[var(--muted)] text-sm mt-2">You’ll be redirected to your dashboard shortly.</p>
         </div>
       </div>

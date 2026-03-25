@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { AUTH_CALLBACK } from '../lib/ensureUserProfile';
 
 export default function AgentSignup() {
   const [formData, setFormData] = useState({
@@ -10,7 +11,6 @@ export default function AgentSignup() {
     agencyName: '',
     email: '',
     phone: '',
-    password: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,53 +27,24 @@ export default function AgentSignup() {
     setError(null);
 
     try {
-      // STEP 1 — Create the Supabase Auth user.
-      // The handle_new_user DB trigger fires automatically here and
-      // writes a row to public.users linked by auth_user_id.
-      // No manual insert to public.users is needed from the client.
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      const { error: otpError } = await supabase.auth.signInWithOtp({
         email: formData.email,
-        password: formData.password,
         options: {
+          emailRedirectTo: AUTH_CALLBACK,
           data: {
             full_name: formData.fullName,
             agency_name: formData.agencyName,
             phone: formData.phone,
             role: 'agent',
           },
-          emailRedirectTo: 'https://homesalesready.com/auth/callback',
         },
       });
 
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('Signup failed — no user returned.');
-
-      // STEP 2 — Create the agency record now that auth.uid() exists.
-      // RLS on agencies requires agent_user_id = auth.uid(), which is
-      // satisfied because signUp() returns an active session.
-      const { data: agencyData, error: agencyError } = await supabase
-        .from('agencies')
-        .insert({
-          agency_name: formData.agencyName,
-          agent_user_id: authData.user.id,
-        })
-        .select('id')
-        .single();
-
-      if (agencyError) throw new Error(`Agency creation failed: ${agencyError.message}`);
-
-      // STEP 3 — Back-fill agency_id on the users row the trigger created.
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({ agency_id: agencyData.id })
-        .eq('auth_user_id', authData.user.id);
-
-      if (updateError) throw new Error(`Could not link agency to user: ${updateError.message}`);
-
+      if (otpError) throw otpError;
       setSuccess(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Signup error:', err);
-      setError(err.message || 'An error occurred during signup.');
+      setError(err instanceof Error ? err.message : 'An error occurred during signup.');
     } finally {
       setLoading(false);
     }
@@ -86,8 +57,10 @@ export default function AgentSignup() {
           <div className="size-20 bg-[var(--teal-050)] text-[var(--teal-600)] border border-[var(--border)] flex items-center justify-center rounded-3xl mx-auto">
             <span className="material-symbols-outlined text-4xl">mark_email_read</span>
           </div>
-          <h2 className="text-3xl font-black font-heading text-[var(--teal-900)]">Verify your agency</h2>
-          <p className="text-[var(--muted)]">We've sent a verification link to <span className="text-[var(--teal-900)] font-semibold">{formData.email}</span>. Please verify your email to access your agency dashboard.</p>
+          <h2 className="text-3xl font-black font-heading text-[var(--teal-900)]">Check your inbox</h2>
+          <p className="text-[var(--muted)]">
+            We've sent you a secure access link. Click it to get started.
+          </p>
           <Button variant="primary" className="w-full" onClick={() => navigate('/login')}>Return to Login</Button>
         </Card>
       </div>
@@ -143,19 +116,6 @@ export default function AgentSignup() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)]">Work email</label>
-              <input 
-                type="email" 
-                name="email"
-                required
-                value={formData.email}
-                onChange={handleChange}
-                className="w-full h-12 px-4 rounded-xl border border-[var(--border)] bg-white text-[var(--text)] focus:border-[var(--teal-500)] outline-none transition-colors"
-                placeholder="jane@agency.com"
-              />
-            </div>
-
-            <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)]">Phone number</label>
               <input 
                 type="tel" 
@@ -169,15 +129,15 @@ export default function AgentSignup() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)]">Password</label>
+              <label className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)]">Email address</label>
               <input 
-                type="password" 
-                name="password"
+                type="email" 
+                name="email"
                 required
-                value={formData.password}
+                value={formData.email}
                 onChange={handleChange}
                 className="w-full h-12 px-4 rounded-xl border border-[var(--border)] bg-white text-[var(--text)] focus:border-[var(--teal-500)] outline-none transition-colors"
-                placeholder="••••••••"
+                placeholder="jane@agency.com"
               />
             </div>
 
@@ -187,7 +147,7 @@ export default function AgentSignup() {
               className="w-full h-14 rounded-2xl font-heading font-bold text-lg mt-4"
               disabled={loading}
             >
-              {loading ? 'Registering Agent...' : 'Create Agent Account'}
+              {loading ? 'Sending…' : 'Send My Access Link'}
             </Button>
           </form>
 

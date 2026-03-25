@@ -3,13 +3,14 @@ import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { AUTH_CALLBACK } from '../lib/ensureUserProfile';
 
 export default function SellerSignup() {
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     phone: '',
-    password: '',
+    contactPreference: 'email',
     referredBy: '',
   });
   const [loading, setLoading] = useState(false);
@@ -17,7 +18,7 @@ export default function SellerSignup() {
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -27,34 +28,25 @@ export default function SellerSignup() {
     setError(null);
 
     try {
-      // 1. Sign up user in Supabase Auth
-      const { data, error: authError } = await supabase.auth.signUp({
+      const { error: otpError } = await supabase.auth.signInWithOtp({
         email: formData.email,
-        password: formData.password,
         options: {
+          emailRedirectTo: AUTH_CALLBACK,
           data: {
             full_name: formData.fullName,
             phone: formData.phone,
+            contact_preference: formData.contactPreference,
             role: 'seller',
-            referred_by_agency: formData.referredBy || null
+            referred_by_agency: formData.referredBy || null,
           },
-          emailRedirectTo: 'https://homesalesready.com/auth/callback'
-        }
+        },
       });
 
-      if (authError) throw authError;
-
-      // 2. Logic for automatic linking to agency if referredBy matches
-      // Note: In a real app, a DB trigger on auth.users would handle 
-      // linking the 'users' table record to an 'agency_id' by matching 
-      // the agency name in the metadata.
-      
-      if (data.user) {
-        setSuccess(true);
-      }
-    } catch (err: any) {
+      if (otpError) throw otpError;
+      setSuccess(true);
+    } catch (err: unknown) {
       console.error('Signup error:', err);
-      setError(err.message || 'An error occurred during signup.');
+      setError(err instanceof Error ? err.message : 'An error occurred during signup.');
     } finally {
       setLoading(false);
     }
@@ -67,8 +59,10 @@ export default function SellerSignup() {
           <div className="size-20 bg-[var(--teal-050)] text-[var(--teal-600)] border border-[var(--border)] flex items-center justify-center rounded-3xl mx-auto">
             <span className="material-symbols-outlined text-4xl">mark_email_read</span>
           </div>
-          <h2 className="text-3xl font-black font-heading text-[var(--teal-900)]">Check your email</h2>
-          <p className="text-[var(--muted)]">We've sent a verification link to <span className="text-[var(--teal-900)] font-semibold">{formData.email}</span>. Please verify your email to continue.</p>
+          <h2 className="text-3xl font-black font-heading text-[var(--teal-900)]">Check your inbox</h2>
+          <p className="text-[var(--muted)]">
+            We've sent you a secure access link. Click it to get started.
+          </p>
           <Button variant="primary" className="w-full" onClick={() => navigate('/login')}>Return to Login</Button>
         </Card>
       </div>
@@ -111,19 +105,6 @@ export default function SellerSignup() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)]">Email address</label>
-              <input 
-                type="email" 
-                name="email"
-                required
-                value={formData.email}
-                onChange={handleChange}
-                className="w-full h-12 px-4 rounded-xl border border-[var(--border)] bg-white text-[var(--text)] focus:border-[var(--teal-500)] outline-none transition-colors"
-                placeholder="john@example.com"
-              />
-            </div>
-
-            <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)]">Phone number</label>
               <input 
                 type="tel" 
@@ -137,15 +118,29 @@ export default function SellerSignup() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)]">Password</label>
-              <input 
-                type="password" 
-                name="password"
-                required
-                value={formData.password}
+              <label className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)]">Contact preference</label>
+              <select
+                name="contactPreference"
+                value={formData.contactPreference}
                 onChange={handleChange}
                 className="w-full h-12 px-4 rounded-xl border border-[var(--border)] bg-white text-[var(--text)] focus:border-[var(--teal-500)] outline-none transition-colors"
-                placeholder="••••••••"
+              >
+                <option value="email">Email</option>
+                <option value="phone">Phone</option>
+                <option value="sms">SMS</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)]">Email address</label>
+              <input 
+                type="email" 
+                name="email"
+                required
+                value={formData.email}
+                onChange={handleChange}
+                className="w-full h-12 px-4 rounded-xl border border-[var(--border)] bg-white text-[var(--text)] focus:border-[var(--teal-500)] outline-none transition-colors"
+                placeholder="john@example.com"
               />
             </div>
 
@@ -168,7 +163,7 @@ export default function SellerSignup() {
               className="w-full h-14 rounded-2xl font-heading font-bold text-lg mt-4"
               disabled={loading}
             >
-              {loading ? 'Creating Account...' : 'Create Seller Account'}
+              {loading ? 'Sending…' : 'Send My Access Link'}
             </Button>
           </form>
 
