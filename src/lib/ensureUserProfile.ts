@@ -1,9 +1,25 @@
 import type { User } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 
-const AUTH_CALLBACK = 'https://homesalesready.com/auth/callback';
-
-export { AUTH_CALLBACK };
+/**
+ * Magic link redirect URL. Must be listed in Supabase exactly:
+ * Dashboard → Authentication → URL Configuration → Redirect URLs
+ * (e.g. http://localhost:5173/auth/callback and https://yourdomain.com/auth/callback)
+ */
+export function getAuthRedirectUrl(): string {
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return `${window.location.origin}/auth/callback`;
+  }
+  const site =
+    import.meta.env.VITE_PUBLIC_SITE_URL ||
+    import.meta.env.VITE_SITE_URL ||
+    import.meta.env.VITE_VERCEL_URL;
+  if (site && typeof site === 'string') {
+    const base = site.startsWith('http') ? site : `https://${site}`;
+    return `${base.replace(/\/$/, '')}/auth/callback`;
+  }
+  return 'https://homesalesready.com/auth/callback';
+}
 
 /**
  * After magic-link login, ensure public.users exists and (for agents) an agencies row

@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { AUTH_CALLBACK } from '../lib/ensureUserProfile';
+import { getAuthRedirectUrl } from '../lib/ensureUserProfile';
 
 export default function SellerSignup() {
   const [formData, setFormData] = useState({
@@ -31,7 +31,7 @@ export default function SellerSignup() {
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email: formData.email,
         options: {
-          emailRedirectTo: AUTH_CALLBACK,
+          emailRedirectTo: getAuthRedirectUrl(),
           data: {
             full_name: formData.fullName,
             phone: formData.phone,

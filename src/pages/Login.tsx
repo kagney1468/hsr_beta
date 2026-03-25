@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { AUTH_CALLBACK } from '../lib/ensureUserProfile';
+import { getAuthRedirectUrl } from '../lib/ensureUserProfile';
 
 export default function Login() {
   const [role, setRole] = useState<'seller' | 'agent' | null>(null);
@@ -74,15 +74,30 @@ export default function Login() {
     setError(null);
 
     try {
+      const redirectTo = getAuthRedirectUrl();
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: AUTH_CALLBACK,
+          emailRedirectTo: redirectTo,
           shouldCreateUser: false,
         },
       });
 
-      if (otpError) throw otpError;
+      if (otpError) {
+        const m = otpError.message || '';
+        if (/redirect|not allowed|invalid.*url/i.test(m)) {
+          setError(
+            `Auth redirect blocked. In Supabase → Authentication → URL Configuration, add this exact URL to Redirect URLs: ${redirectTo}`
+          );
+        } else if (/sign up|not found|does not exist|no user|disabled/i.test(m)) {
+          setError(
+            'No account found for this email. Use Sign up if you have not registered yet — login only sends links to existing accounts.'
+          );
+        } else {
+          setError(m || 'Could not send login link.');
+        }
+        return;
+      }
       setSuccess(true);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Could not send login link.');
