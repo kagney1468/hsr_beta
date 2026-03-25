@@ -45,9 +45,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
+  const signedTtlSeconds = 60 * 60 * 24; // 24h — keep in sync with SIGNED_DOCUMENT_URL_TTL_SECONDS in src/lib/storageSignedUrl.ts
   const { data: signed, error: signErr } = await admin.storage
     .from('property-documents')
-    .createSignedUrl(doc.file_url, 60 * 60 * 24);
+    .createSignedUrl(doc.file_url, signedTtlSeconds);
 
   if (signErr || !signed?.signedUrl) {
     res.status(500).json({ error: 'Could not create download link' });

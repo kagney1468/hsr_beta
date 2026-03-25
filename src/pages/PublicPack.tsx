@@ -62,72 +62,55 @@ export default function PublicPack() {
     selling_location: '',
   });
 
-  const loadPackDetails = useCallback(
-    async (propertyId: string, sellerUserId: string | null) => {
-      setDetailLoading(true);
-      try {
-        const { data: matInfo } = await supabase
-          .from('material_information')
-          .select('*')
-          .eq('property_id', propertyId)
-          .maybeSingle();
-
-        const { data: docs } = await supabase.from('documents').select('*').eq('property_id', propertyId);
-
-        let agencyData: any = null;
-        if (sellerUserId) {
-          const { data: sp } = await supabase.from('users').select('agency_id').eq('auth_user_id', sellerUserId).maybeSingle();
-          if (sp?.agency_id) {
-            const { data: ag } = await supabase.from('agencies').select('*').eq('id', sp.agency_id).maybeSingle();
-            agencyData = ag;
-          }
-        }
-
-        setMaterialInfo(matInfo);
-        setDocuments(docs || []);
-        setAgency(agencyData);
-      } finally {
-        setDetailLoading(false);
+  const loadPackDetails = useCallback(async (packToken: string) => {
+    setDetailLoading(true);
+    try {
+      const { data: detail, error: detailErr } = await supabase.rpc('get_public_pack_details', {
+        p_token: packToken,
+      });
+      if (detailErr) throw detailErr;
+      if (!detail || typeof detail !== 'object') {
+        setMaterialInfo(null);
+        setDocuments([]);
+        setAgency(null);
+        return;
       }
-    },
-    []
-  );
+      const d = detail as Record<string, unknown>;
+      setMaterialInfo(d.material_information ?? null);
+      setDocuments(Array.isArray(d.documents) ? d.documents : []);
+      setAgency(d.agency ?? null);
+    } finally {
+      setDetailLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     async function loadGate() {
       if (!token) return;
 
       try {
-        const { data: share, error: shareError } = await supabase
-          .from('shares')
-          .select('*')
-          .eq('token', token)
-          .eq('active', true)
-          .maybeSingle();
-
-        if (shareError || !share) throw new Error('Property pack not found or link has been disabled.');
+        const { data: bundle, error: bundleErr } = await supabase.rpc('get_public_pack_share_property', {
+          p_token: token,
+        });
+        if (bundleErr) throw bundleErr;
+        if (!bundle || typeof bundle !== 'object') {
+          throw new Error('Property pack not found or link has been disabled.');
+        }
+        const b = bundle as Record<string, unknown>;
+        const prop = b.property as Record<string, unknown> | undefined;
+        if (!prop?.id) throw new Error('Property pack could not be loaded.');
 
         const { error: viewErr } = await supabase.rpc('increment_share_view', { p_token: token });
         if (viewErr) {
           console.warn('increment_share_view (apply migration if missing):', viewErr.message);
         }
 
-        const { data: prop, error: propError } = await supabase
-          .from('properties')
-          .select(
-            'id, address, postcode, tenure, property_type, bedrooms, bathrooms, council_tax_band, heating, drainage, parking, building_changes, asking_price, epc_rating, updated_at, created_at, seller_user_id'
-          )
-          .eq('id', share.property_id)
-          .maybeSingle();
-
-        if (propError || !prop) throw new Error('Property pack could not be loaded.');
-
         setProperty(prop);
 
         const regKey = `${STORAGE_PREFIX}${token}`;
         if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(regKey)) {
           setIsRegistered(true);
-          await loadPackDetails(prop.id, prop.seller_user_id);
+          await loadPackDetails(token);
         }
       } catch (err: unknown) {
         console.error('Error loading pack:', err);
@@ -148,22 +131,14 @@ export default function PublicPack() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ token, documentId: doc.id }),
       });
-      const json = await res.json();
-      if (json.url) {
+      const json = (await res.json()) as { url?: string; error?: string };
+      if (res.ok && json.url) {
         window.open(json.url, '_blank', 'noopener,noreferrer');
         return;
       }
+      alert(json.error || 'Unable to download this document. Please try again later.');
     } catch {
-      /* fall through */
-    }
-    try {
-      const { data, error } = await supabase.storage
-        .from('property-documents')
-        .createSignedUrl(doc.file_url, 60 * 60 * 24);
-      if (!error && data?.signedUrl) window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
-      else alert('Unable to download this document. Please try again later.');
-    } catch {
-      alert('Unable to download this document.');
+      alert('Unable to download this document. Please try again later.');
     }
   };
 
@@ -173,47 +148,29 @@ export default function PublicPack() {
     setRegistering(true);
 
     try {
-      const { error } = await supabase.from('pack_viewers').insert({
-        property_id: property.id,
-        viewer_name: viewerForm.name,
-        viewer_email: viewerForm.email,
-        viewer_phone: viewerForm.phone,
-        viewed_at: new Date().toISOString(),
-        is_selling: viewerForm.is_selling,
-        selling_location: viewerForm.is_selling ? viewerForm.selling_location : null,
-      } as any);
+      if (!token) throw new Error('Missing link token');
 
-      if (error) throw error;
+      const { data: reg, error: regErr } = await supabase.rpc('register_public_pack_viewer', {
+        p_token: token,
+        p_viewer_name: viewerForm.name,
+        p_viewer_email: viewerForm.email,
+        p_viewer_phone: viewerForm.phone,
+        p_is_selling: viewerForm.is_selling,
+        p_selling_location: viewerForm.is_selling ? viewerForm.selling_location : null,
+      });
 
-      const { data: sellerRow } = await supabase
-        .from('users')
-        .select('email, agency_id, full_name')
-        .eq('auth_user_id', property.seller_user_id)
-        .maybeSingle();
+      if (regErr) throw regErr;
+      const payload = reg as { ok?: boolean; error?: string; recipients?: unknown; seller_name?: string; property_address?: string; agency_name?: string | null };
+      if (!payload?.ok) throw new Error(payload?.error || 'Registration failed');
 
-      let agencyName: string | undefined;
-      const to: string[] = [];
-      if (sellerRow?.email) to.push(sellerRow.email);
-      if (sellerRow?.agency_id) {
-        const { data: agencyRow } = await supabase
-          .from('agencies')
-          .select('agent_user_id, agency_name')
-          .eq('id', sellerRow.agency_id)
-          .maybeSingle();
-        agencyName = agencyRow?.agency_name || undefined;
-        if (agencyRow?.agent_user_id) {
-          const { data: agentUser } = await supabase
-            .from('users')
-            .select('email')
-            .eq('auth_user_id', agencyRow.agent_user_id)
-            .maybeSingle();
-          if (agentUser?.email) to.push(agentUser.email);
-        }
-      }
-      const recipients = [...new Set(to.filter(Boolean))];
+      const rawRecipients = payload.recipients;
+      const recipients = Array.isArray(rawRecipients)
+        ? [...new Set(rawRecipients.filter((e): e is string => typeof e === 'string'))]
+        : [];
 
-      const sellerName = sellerRow?.full_name || 'Seller';
-      const propertyAddress = property.address || 'Property';
+      const sellerName = typeof payload.seller_name === 'string' ? payload.seller_name : 'Seller';
+      const propertyAddress = typeof payload.property_address === 'string' ? payload.property_address : 'Property';
+      const agencyName = payload.agency_name ?? undefined;
 
       const emailPayload = templates.viewerRegistration(
         sellerName,
@@ -240,7 +197,7 @@ export default function PublicPack() {
 
       if (token) sessionStorage.setItem(`${STORAGE_PREFIX}${token}`, '1');
       setIsRegistered(true);
-      await loadPackDetails(property.id, property.seller_user_id);
+      await loadPackDetails(token);
       window.scrollTo(0, 0);
     } catch (err) {
       console.error('Registration failed:', err);

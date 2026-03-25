@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import QRCode from 'react-qr-code';
 import { supabase } from '../lib/supabase';
+import { SIGNED_DOCUMENT_URL_TTL_SECONDS } from '../lib/storageSignedUrl';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 
@@ -121,12 +122,20 @@ export default function AgentPropertyDetail() {
   }, [id]);
 
   const handleViewDocument = async (doc: any) => {
-    if (doc.file_url) {
-      window.open(doc.file_url, '_blank');
+    if (!doc?.file_url) {
+      alert('Document URL not found.');
       return;
     }
-    // Fallback if file_url is missing
-    alert('Document URL not found.');
+    try {
+      const { data, error } = await supabase.storage
+        .from('property-documents')
+        .createSignedUrl(doc.file_url, SIGNED_DOCUMENT_URL_TTL_SECONDS);
+      if (error) throw error;
+      if (data?.signedUrl) window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+      else alert('Could not open document.');
+    } catch {
+      alert('Could not open document.');
+    }
   };
 
   if (loading) {

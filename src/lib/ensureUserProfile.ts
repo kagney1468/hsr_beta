@@ -4,7 +4,7 @@ import { supabase } from './supabase';
 /**
  * Magic link redirect URL. Must be listed in Supabase exactly:
  * Dashboard → Authentication → URL Configuration → Redirect URLs
- * (e.g. http://localhost:5173/auth/callback and https://yourdomain.com/auth/callback)
+ * (local dev origin + production domain, each with `/auth/callback`)
  */
 export function getAuthRedirectUrl(): string {
   if (typeof window !== 'undefined' && window.location?.origin) {

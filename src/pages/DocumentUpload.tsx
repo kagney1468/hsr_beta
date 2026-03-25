@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { SIGNED_DOCUMENT_URL_TTL_SECONDS } from '../lib/storageSignedUrl';
 import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -193,7 +194,7 @@ export default function DocumentUpload() {
       setError(null);
       const { data, error } = await supabase.storage
         .from('property-documents')
-        .createSignedUrl(doc.file_url, 86400);
+        .createSignedUrl(doc.file_url, SIGNED_DOCUMENT_URL_TTL_SECONDS);
 
       if (error) throw error;
       

@@ -390,6 +390,25 @@ export type Database = {
         Args: { p_token: string }
         Returns: undefined
       }
+      get_public_pack_share_property: {
+        Args: { p_token: string }
+        Returns: Json | null
+      }
+      get_public_pack_details: {
+        Args: { p_token: string }
+        Returns: Json | null
+      }
+      register_public_pack_viewer: {
+        Args: {
+          p_token: string
+          p_viewer_name: string
+          p_viewer_email: string
+          p_viewer_phone: string
+          p_is_selling: boolean
+          p_selling_location: string | null
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
