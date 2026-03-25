@@ -277,14 +277,14 @@ export default function PropertyProfile() {
       )}
 
       <div className="space-y-12">
-        <Card className="p-8 border-l-4 border-l-[var(--teal-500)]/50 space-y-8 text-white">
+        <Card className="p-8 border-l-4 border-l-[var(--teal-500)]/50 space-y-8 bg-white border border-slate-200 text-slate-900">
           <div className="flex items-center gap-2 mb-6">
-            <h2 className="text-xl font-bold font-heading">Property Address</h2>
+            <h2 className="text-xl font-bold font-heading text-slate-900">Property Address</h2>
           </div>
           
           <div className="space-y-6">
             <div className="space-y-6">
-              <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Postcode Search</label>
+              <label className="text-xs font-bold uppercase tracking-widest text-slate-600">Postcode Search</label>
               <AddressLookup 
                 postcode={formData.postcode} 
                 onPostcodeChange={(val) => setFormData({...formData, postcode: val})} 
@@ -302,94 +302,94 @@ export default function PropertyProfile() {
               />
             </div>
 
-            <div className="pt-4 space-y-4 border-t border-white/5">
+            <div className="pt-4 space-y-4 border-t border-slate-200">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Address Line 1</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Address Line 1</label>
                 <input 
                   type="text" 
                   name="address_line1"
                   value={formData.address_line1}
                   onChange={handleChange}
-                  className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all"
+                  className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-[var(--teal-500)] focus:ring-2 focus:ring-[var(--teal-500)]/20 outline-none transition-all"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Address Line 2</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Address Line 2</label>
                 <input 
                   type="text" 
                   name="address_line2"
                   value={formData.address_line2}
                   onChange={handleChange}
-                  className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all"
+                  className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-[var(--teal-500)] focus:ring-2 focus:ring-[var(--teal-500)]/20 outline-none transition-all"
                 />
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Town / City</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Town / City</label>
                   <input 
                     type="text" 
                     name="address_town"
                     value={formData.address_town}
                     onChange={handleChange}
-                    className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all"
+                    className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-[var(--teal-500)] focus:ring-2 focus:ring-[var(--teal-500)]/20 outline-none transition-all"
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">County</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-600">County</label>
                   <input 
                     type="text" 
                     name="address_county"
                     value={formData.address_county}
                     onChange={handleChange}
-                    className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all"
+                    className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-[var(--teal-500)] focus:ring-2 focus:ring-[var(--teal-500)]/20 outline-none transition-all"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Postcode</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Postcode</label>
                 <input 
                   type="text" 
                   name="postcode"
                   value={formData.postcode}
                   onChange={handleChange}
-                  className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all"
+                  className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-[var(--teal-500)] focus:ring-2 focus:ring-[var(--teal-500)]/20 outline-none transition-all"
                 />
               </div>
             </div>
 
             {epcLoading && (
-              <div className="p-4 bg-primary/10 border border-primary/20 rounded-xl flex items-center gap-3 text-primary animate-pulse">
-                <span className="material-symbols-outlined spin">autorenew</span>
+              <div className="p-4 bg-[var(--teal-050)] border border-[var(--border)] rounded-xl flex items-center gap-3 text-[var(--teal-900)] animate-pulse">
+                <span className="material-symbols-outlined spin text-[var(--teal-600)]">autorenew</span>
                 <span className="text-sm font-bold">Looking up Energy Performance Certificate (EPC)...</span>
               </div>
             )}
             
             {epcStatus === 'found' && (
-              <div className="bg-green-500/10 border border-green-500/30 p-4 rounded-xl flex items-start gap-4 animate-in fade-in duration-500">
-                <span className="material-symbols-outlined text-green-500 bg-green-500/20 p-1.5 rounded-full text-lg">check</span>
+              <div className="bg-green-50 border border-green-200 p-4 rounded-xl flex items-start gap-4 animate-in fade-in duration-500">
+                <span className="material-symbols-outlined text-green-700 bg-green-100 p-1.5 rounded-full text-lg">check</span>
                 <div>
-                  <h4 className="text-green-500 font-bold uppercase tracking-widest text-xs mb-1">EPC Found</h4>
-                  <p className="text-sm text-green-100/70">EPC certificate found and added to your pack automatically.</p>
-                  <p className="text-xs font-semibold mt-2 text-green-400">Rating: {formData.epc_rating} (Expires {formData.epc_expiry})</p>
+                  <h4 className="text-green-800 font-bold uppercase tracking-widest text-xs mb-1">EPC Found</h4>
+                  <p className="text-sm text-green-900/80">EPC certificate found and added to your pack automatically.</p>
+                  <p className="text-xs font-semibold mt-2 text-green-800">Rating: {formData.epc_rating} (Expires {formData.epc_expiry})</p>
                 </div>
               </div>
             )}
             
             {epcStatus === 'multiple' && epcOptions.length > 0 && (
-              <div className="bg-orange-500/10 border border-orange-500/30 p-4 rounded-xl animate-in fade-in duration-500 space-y-3">
+              <div className="bg-orange-50 border border-orange-200 p-4 rounded-xl animate-in fade-in duration-500 space-y-3">
                 <div className="flex gap-4">
-                  <span className="material-symbols-outlined text-orange-500">dynamic_form</span>
+                  <span className="material-symbols-outlined text-orange-700">dynamic_form</span>
                   <div>
-                    <h4 className="text-orange-500 font-bold uppercase tracking-widest text-xs mb-1">Multiple EPCs Found</h4>
-                    <p className="text-sm text-orange-200/70">Select the correct EPC for your property from the list below:</p>
+                    <h4 className="text-orange-800 font-bold uppercase tracking-widest text-xs mb-1">Multiple EPCs Found</h4>
+                    <p className="text-sm text-orange-900/90">Select the correct EPC for your property from the list below:</p>
                   </div>
                 </div>
                 <select 
-                  className="w-full h-12 px-4 rounded-xl border border-orange-500/30 bg-orange-500/10 text-white focus:border-orange-500 outline-none"
+                  className="w-full h-12 px-4 rounded-xl border border-orange-200 bg-white text-slate-900 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none"
                   onChange={(e) => {
                     const selectedData = epcOptions.find((o, idx) => idx.toString() === e.target.value);
                     if (selectedData) {
@@ -408,11 +408,11 @@ export default function PropertyProfile() {
             )}
 
             {epcStatus === 'not_found' && (
-              <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl flex items-start gap-4 animate-in fade-in duration-500">
-                <span className="material-symbols-outlined text-amber-500 mt-1">info</span>
+              <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-start gap-4 animate-in fade-in duration-500">
+                <span className="material-symbols-outlined text-amber-700 mt-1">info</span>
                 <div>
-                  <h4 className="text-amber-500 font-bold uppercase tracking-widest text-xs mb-1">EPC Required</h4>
-                  <p className="text-sm text-amber-100/70">No EPC found for this address. You may need to commission one before marketing your property. EPCs are now required at the point of marketing.</p>
+                  <h4 className="text-amber-800 font-bold uppercase tracking-widest text-xs mb-1">EPC Required</h4>
+                  <p className="text-sm text-amber-900/85">No EPC found for this address. You may need to commission one before marketing your property. EPCs are now required at the point of marketing.</p>
                 </div>
               </div>
             )}

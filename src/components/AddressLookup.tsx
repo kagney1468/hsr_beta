@@ -27,21 +27,45 @@ export function AddressLookup({ postcode, onPostcodeChange, onAddressSelect, dis
     setLoading(true);
     setError('');
     setOptions([]);
-    
-    try {
-      const apiKey = import.meta.env.VITE_GETADDRESS_API_KEY || '';
-      if (!apiKey) throw new Error('Missing GetAddress.io API Key in environment variables');
 
-      const response = await fetch(`https://api.getaddress.io/find/${postcode.replace(/\s+/g, '')}?api-key=${apiKey}&expand=true`);
-      const data = await response.json();
-      
-      if (response.status !== 200 || !data.addresses || data.addresses.length === 0) {
+    const clean = postcode.replace(/\s+/g, '').toUpperCase();
+
+    try {
+      // Production / Vercel: server proxy avoids CORS and keeps the key off the client.
+      let response = await fetch(`/api/getaddress-find?postcode=${encodeURIComponent(clean)}`);
+
+      // Local Vite (no /api route): call GetAddress directly if key is in env (domain must be allowlisted on GetAddress for browser use).
+      if (!response.ok && import.meta.env.DEV) {
+        const apiKey = import.meta.env.VITE_GETADDRESS_API_KEY || '';
+        if (apiKey) {
+          response = await fetch(
+            `https://api.getaddress.io/find/${encodeURIComponent(clean)}?api-key=${encodeURIComponent(apiKey)}&expand=true`
+          );
+        }
+      }
+
+      let data: { addresses?: unknown[]; error?: string; Message?: string } = {};
+      try {
+        data = (await response.json()) as typeof data;
+      } catch {
+        if (!response.ok) {
+          throw new Error('Address lookup unavailable. Try again after deploy or check server configuration.');
+        }
+        throw new Error('Invalid response from address service');
+      }
+
+      if (!response.ok) {
+        throw new Error(data.error || data.Message || 'Postcode lookup failed');
+      }
+
+      if (!data.addresses || data.addresses.length === 0) {
         throw new Error('No addresses found for this postcode');
       }
-      
+
       setOptions(data.addresses);
-    } catch (err: any) {
-      setError(err.message || 'Postcode not found.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Postcode not found.';
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -76,23 +100,32 @@ export function AddressLookup({ postcode, onPostcodeChange, onAddressSelect, dis
           <select 
             className="w-full h-16 px-6 rounded-2xl border border-[var(--border)] bg-white text-[var(--text)] focus:border-[var(--teal-500)] outline-none transition-colors cursor-pointer"
             onChange={(e) => {
-              const selectedIndex = parseInt(e.target.value);
-              const addr = options[selectedIndex];
+              const selectedIndex = parseInt(e.target.value, 10);
+              const addr = options[selectedIndex] as {
+                line_1?: string;
+                line_2?: string;
+                town_or_city?: string;
+                county?: string;
+                postcode?: string;
+                formatted_address?: (string | null | undefined)[];
+              };
               if (addr) {
                 onAddressSelect({
-                  line1: addr.line_1,
-                  line2: addr.line_2,
-                  town: addr.town_or_city,
-                  county: addr.county,
-                  postcode: postcode.toUpperCase()
+                  line1: addr.line_1 || '',
+                  line2: addr.line_2 || '',
+                  town: addr.town_or_city || '',
+                  county: addr.county || '',
+                  postcode: (addr.postcode || postcode).replace(/\s+/g, ' ').trim().toUpperCase(),
                 });
               }
             }}
             defaultValue=""
           >
             <option value="" disabled>-- Choose an address from the list --</option>
-            {options.map((addr, idx) => (
-              <option key={idx} value={idx}>{addr.formatted_address.filter(Boolean).join(', ')}</option>
+            {options.map((addr: { formatted_address?: (string | null | undefined)[] }, idx: number) => (
+              <option key={idx} value={idx}>
+                {Array.isArray(addr.formatted_address) ? addr.formatted_address.filter(Boolean).join(', ') : `Address ${idx + 1}`}
+              </option>
             ))}
           </select>
         </div>
