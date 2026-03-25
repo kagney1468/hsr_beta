@@ -267,6 +267,7 @@ export type Database = {
           property_id: string | null
           token: string | null
           active: boolean
+          view_count: number
           created_at: string
         }
         Insert: {
@@ -274,6 +275,7 @@ export type Database = {
           property_id?: string | null
           token?: string | null
           active?: boolean
+          view_count?: number
           created_at?: string
         }
         Update: {
@@ -281,6 +283,7 @@ export type Database = {
           property_id?: string | null
           token?: string | null
           active?: boolean
+          view_count?: number
           created_at?: string
         }
         Relationships: []
@@ -383,7 +386,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_share_view: {
+        Args: { p_token: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

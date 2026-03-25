@@ -6,6 +6,7 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Tooltip } from '../components/ui/Tooltip';
 import { updatePackCompletion } from '../lib/completion';
+import { getPackShareUrl } from '../lib/siteUrl';
 
 export default function SellerDashboard() {
   const { user } = useAuth();
@@ -166,6 +167,16 @@ export default function SellerDashboard() {
         { event: 'UPDATE', schema: 'public', table: 'properties', filter: `id=eq.${pid}` },
         () => loadDashboardData(true)
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'shares', filter: `property_id=eq.${pid}` },
+        () => loadDashboardData(true)
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'pack_viewers', filter: `property_id=eq.${pid}` },
+        () => loadDashboardData(true)
+      )
       .subscribe();
 
     return () => {
@@ -203,18 +214,13 @@ export default function SellerDashboard() {
     return created;
   };
 
-  const shareUrl =
-    data.share?.token && data.share?.active
-      ? `https://homesalesready.com/pack/${data.share.token}`
-      : data.share?.token
-        ? `https://homesalesready.com/pack/${data.share.token}`
-        : '';
+  const shareUrl = data.share?.token ? getPackShareUrl(data.share.token) : '';
 
   const handleCopyLink = async () => {
     try {
       const share = await ensureShareLink();
       if (!share?.token) return;
-      const link = `https://homesalesready.com/pack/${share.token}`;
+      const link = getPackShareUrl(share.token);
       await navigator.clipboard.writeText(link);
       setCopying(true);
       setTimeout(() => setCopying(false), 2000);
@@ -247,7 +253,7 @@ export default function SellerDashboard() {
     try {
       const share = await ensureShareLink();
       if (!share?.token || share.active === false) return;
-      window.open(`https://homesalesready.com/pack/${share.token}`, '_blank', 'noopener,noreferrer');
+      window.open(getPackShareUrl(share.token), '_blank', 'noopener,noreferrer');
     } catch (e) {
       console.error(e);
     }
@@ -288,8 +294,11 @@ export default function SellerDashboard() {
         </div>
       )}
       {pct === 100 && (
-        <div className="bg-[var(--teal-050)] border-b border-[var(--border)] text-[var(--teal-900)] px-6 py-4 text-center font-heading font-bold text-base">
-          Your pack is complete
+        <div className="bg-gradient-to-r from-[#d1fae5] via-[var(--teal-050)] to-[#d1fae5] border-b border-[#a7f3d0] text-[#065f46] px-6 py-4 text-center font-heading font-bold text-base flex items-center justify-center gap-2 flex-wrap">
+          <span className="material-symbols-outlined text-[#059669]" aria-hidden>
+            celebration
+          </span>
+          <span>Your pack is complete — you’re ready to share with buyers and solicitors.</span>
         </div>
       )}
 
@@ -306,7 +315,7 @@ export default function SellerDashboard() {
               {data.share?.active ? 'Link Active' : 'Link Disabled'}
             </span>
             <span className="text-[var(--muted)] text-[10px] font-semibold uppercase tracking-widest">
-              Views: {data.viewerCount}
+              Link views: {data.share?.view_count ?? 0} · Registered: {data.viewerCount}
             </span>
             <button
               type="button"

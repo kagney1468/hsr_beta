@@ -107,6 +107,11 @@ export default function PublicPack() {
 
         if (shareError || !share) throw new Error('Property pack not found or link has been disabled.');
 
+        const { error: viewErr } = await supabase.rpc('increment_share_view', { p_token: token });
+        if (viewErr) {
+          console.warn('increment_share_view (apply migration if missing):', viewErr.message);
+        }
+
         const { data: prop, error: propError } = await supabase
           .from('properties')
           .select(
@@ -277,7 +282,12 @@ export default function PublicPack() {
 
   return (
     <div className="min-h-screen bg-[var(--page)] text-[var(--text)] font-display pack-print-root">
-      <header className="fixed top-0 inset-x-0 z-50 bg-white/90 backdrop-blur-xl border-b border-[var(--border)] shadow-[0_2px_8px_rgba(13,74,74,0.04)] print:static print:break-inside-avoid">
+      <header
+        className="fixed top-0 inset-x-0 z-50 bg-white/90 backdrop-blur-xl border-b shadow-[0_2px_8px_rgba(13,74,74,0.04)] print:static print:break-inside-avoid"
+        style={{
+          borderColor: agency?.brand_colour ? `${agency.brand_colour}40` : 'var(--border)',
+        }}
+      >
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0">
             {brandLogo ? (
@@ -372,7 +382,7 @@ export default function PublicPack() {
 
                 <div className="space-y-4 pt-4 border-t border-[var(--border)]">
                   <p className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-[0.2em]">
-                    Are you selling a property?
+                    Are you selling?
                   </p>
                   <div className="flex gap-4">
                     {[true, false].map((val) => (
@@ -443,11 +453,12 @@ export default function PublicPack() {
               <p className="text-xl text-[var(--muted)]">{property.postcode}</p>
             </div>
 
-            <section className="grid grid-cols-2 md:grid-cols-4 gap-4 print:grid-cols-4">
+            <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 print:grid-cols-5">
               {[
                 { label: 'Type', value: property.property_type, icon: 'home' },
                 { label: 'Tenure', value: property.tenure, icon: 'vpn_key' },
                 { label: 'Bedrooms', value: property.bedrooms, icon: 'bed' },
+                { label: 'Bathrooms', value: property.bathrooms, icon: 'bathtub' },
                 { label: 'Council tax', value: property.council_tax_band ? `Band ${property.council_tax_band}` : '—', icon: 'receipt_long' },
               ].map((item) => (
                 <Card key={item.label} className="p-5 border-[var(--border)] shadow-soft bg-white">
