@@ -61,17 +61,7 @@ export async function ensureUserProfile(user: User): Promise<'seller' | 'agent'>
 
   if (!existing) {
     if (effectiveRole === 'agent') {
-      const { data: agencyData, error: agencyError } = await supabase
-        .from('agencies')
-        .insert({
-          agency_name: meta.agency_name || 'My agency',
-          agent_user_id: user.id,
-        })
-        .select('id')
-        .single();
-
-      throwDb('Could not create agency', agencyError);
-
+      // agencies.agent_user_id FK → public.users — must insert profile row before agencies.
       const { error: insertError } = await supabase.from('users').insert({
         auth_user_id: user.id,
         email: user.email,
@@ -79,14 +69,19 @@ export async function ensureUserProfile(user: User): Promise<'seller' | 'agent'>
         phone: (meta.phone as string) || null,
         role: 'agent',
         user_type: 'agent',
-        agency_id: agencyData!.id,
+        agency_id: null,
       });
 
       if (insertError?.code === '23505') {
         existing = await fetchUserRow();
       } else {
         throwDb('Could not create profile', insertError);
-        return 'agent';
+      }
+      if (!existing) {
+        existing = await fetchUserRow();
+        if (!existing) {
+          throw new Error('Profile not found after sign-in. Try again or contact support.');
+        }
       }
     } else {
       const { error: insertError } = await supabase.from('users').insert({
