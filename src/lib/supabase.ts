@@ -11,8 +11,8 @@ if (import.meta.env.DEV && (!supabaseUrl || !supabaseAnonKey)) {
 }
 
 /**
- * Email magic links return tokens in the URL hash; implicit flow matches that behaviour.
- * PKCE (code in query) can fail to complete session exchange for OTP email links in some setups.
+ * Supabase email magic links use PKCE: redirect is `/auth/callback?code=...`.
+ * `flowType: 'implicit'` breaks PKCE callbacks (session never established → "No session found").
  */
 export const supabase = createClient<Database>(supabaseUrl || '', supabaseAnonKey || '', {
   db: {
@@ -22,6 +22,6 @@ export const supabase = createClient<Database>(supabaseUrl || '', supabaseAnonKe
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
-    flowType: 'implicit',
+    flowType: 'pkce',
   },
 });

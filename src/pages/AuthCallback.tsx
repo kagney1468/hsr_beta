@@ -5,7 +5,8 @@ import { ensureUserProfile } from '../lib/ensureUserProfile';
 
 /**
  * AuthCallback — handles the redirect after a user clicks the magic link.
- * Ensures public.users (+ agency for agents), then routes to the right dashboard.
+ * Supabase sends PKCE: /auth/callback?code=... — client must use flowType 'pkce' so
+ * initialize() exchanges the code before getSession() returns a user.
  */
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -15,10 +16,22 @@ export default function AuthCallback() {
   useEffect(() => {
     async function handleCallback() {
       try {
+        const params = new URLSearchParams(window.location.search);
+        const oauthError = params.get('error_description') || params.get('error');
+        if (oauthError) {
+          throw new Error(decodeURIComponent(oauthError.replace(/\+/g, ' ')));
+        }
+
+        // getSession awaits client init, which exchanges ?code= for a session when flowType is pkce
         let session = (await supabase.auth.getSession()).data.session;
 
         if (!session) {
-          await new Promise(res => setTimeout(res, 1500));
+          await new Promise((res) => setTimeout(res, 500));
+          session = (await supabase.auth.getSession()).data.session;
+        }
+
+        if (!session) {
+          await new Promise((res) => setTimeout(res, 2000));
           session = (await supabase.auth.getSession()).data.session;
         }
 
