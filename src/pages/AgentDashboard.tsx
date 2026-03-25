@@ -42,11 +42,25 @@ export default function AgentDashboard() {
     else setIsRefreshing(true);
     
     try {
-      // 1. Get properties with seller info
+      // 1. Get properties
       const { data: propsData, error: propsError } = await supabase
         .from('properties')
-        .select('*, users!inner(full_name, phone, email)');
+        .select('*');
       if (propsError) throw propsError;
+
+      // 1b. Fetch seller profiles using seller_user_id = auth_user_id
+      const sellerIds = Array.from(
+        new Set(((propsData as any[]) || []).map(p => p.seller_user_id).filter(Boolean))
+      ) as string[];
+
+      const sellersByAuthId = new Map<string, any>();
+      if (sellerIds.length > 0) {
+        const { data: sellers } = await supabase
+          .from('users')
+          .select('auth_user_id, full_name, phone, email')
+          .in('auth_user_id', sellerIds);
+        (sellers || []).forEach((s: any) => sellersByAuthId.set(s.auth_user_id, s));
+      }
 
       // 2. Get all documents and declarations for progress calc
       const { data: docsData } = await supabase
@@ -60,6 +74,7 @@ export default function AgentDashboard() {
       const enrichedProperties = (propsData as any[])?.map(prop => {
         const propDocs = (docsData as any[])?.filter(d => d.property_id === prop.id) || [];
         const propDecl = (declData as any[])?.find(d => d.property_id === prop.id);
+        const seller = sellersByAuthId.get(prop.seller_user_id);
 
         // Progress Scoring (Detailed for the progress bar)
         let score = 0;
@@ -76,7 +91,7 @@ export default function AgentDashboard() {
 
         return {
           ...prop,
-          sellerName: prop.users?.full_name || 'Pending Onboarding',
+          sellerName: seller?.full_name || 'Pending Onboarding',
           score,
           status,
           updatedAt: prop.updated_at || prop.created_at,

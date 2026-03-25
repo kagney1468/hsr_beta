@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
+import { templates } from '../lib/emailTemplates';
 
 export default function PublicPack() {
   const { token } = useParams<{ token: string }>();
@@ -29,7 +30,7 @@ export default function PublicPack() {
         // 1. Fetch Property by Token
         const { data: prop, error: propError } = await supabase
           .from('properties')
-          .select('*, users!inner(full_name, agencies(*))')
+          .select('*')
           .eq('shareable_link_token', token)
           .eq('is_link_active', true)
           .maybeSingle();
@@ -37,6 +38,25 @@ export default function PublicPack() {
         if (propError || !prop) throw new Error('Property pack not found or link has been disabled.');
 
         setProperty(prop);
+
+        // Fetch seller profile + agency (separately to avoid relying on properties.user_id joins)
+        const { data: sellerProfile } = await supabase
+          .from('users')
+          .select('*')
+          .eq('auth_user_id', (prop as any).seller_user_id)
+          .maybeSingle();
+
+        let agencyData: any = null;
+        if ((sellerProfile as any)?.agency_id) {
+          const { data: agency } = await supabase
+            .from('agencies')
+            .select('*')
+            .eq('id', (sellerProfile as any).agency_id)
+            .maybeSingle();
+          agencyData = agency;
+        }
+
+        setProperty((prev: any) => ({ ...(prev || {}), sellerProfile, agency: agencyData }));
 
         // 2. Fetch Material Info & Docs (Only accessible after registration usually, 
         // but for this view we fetch them now and hide behind the state)
@@ -76,6 +96,8 @@ export default function PublicPack() {
         .insert({
           property_id: (property as any).id,
           viewer_name: viewerForm.name,
+          viewer_email: viewerForm.email,
+          viewer_phone: viewerForm.phone,
           viewed_at: new Date().toISOString(),
           is_selling: viewerForm.is_selling,
           selling_location: viewerForm.is_selling ? viewerForm.selling_location : null
@@ -83,19 +105,28 @@ export default function PublicPack() {
 
       if (error) throw error;
 
-      // 2. Send Notifications to Seller and Agent
-      await supabase.functions.invoke('send-notification', {
-        body: {
-          type: 'viewerRegistration',
-          propertyId: (property as any).id,
-          viewerData: {
-            full_name: viewerForm.name,
-            email: viewerForm.email,
-            phone: viewerForm.phone,
-            is_selling: viewerForm.is_selling,
-            selling_location: viewerForm.selling_location
-          }
-        }
+      // 2. Send Notifications via email (server-side)
+      const sellerEmail = (property as any)?.sellerProfile?.email || (property as any)?.users?.email;
+      const sellerName = (property as any)?.sellerProfile?.full_name || (property as any)?.sellerProfile?.full_name || 'Seller';
+      const agencyName = (property as any)?.agency?.agency_name;
+      const propertyAddress = (property as any)?.address || 'Property';
+
+      const email = templates.viewerRegistration(sellerName, {
+        full_name: viewerForm.name,
+        email: viewerForm.email,
+        phone: viewerForm.phone,
+        is_selling: viewerForm.is_selling,
+        selling_location: viewerForm.selling_location,
+      }, propertyAddress, agencyName);
+
+      await fetch('/api/send-viewer-notification', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          to: sellerEmail ? [sellerEmail] : [],
+          subject: email.subject,
+          html: email.html,
+        }),
       });
       
       setIsRegistered(true);
@@ -130,7 +161,7 @@ export default function PublicPack() {
     );
   }
 
-  const agency = property.users?.agencies;
+  const agency = (property as any)?.agency;
 
   return (
     <div className="min-h-screen bg-[#050505] text-white selection:bg-[#00e5a0]/30 font-display">

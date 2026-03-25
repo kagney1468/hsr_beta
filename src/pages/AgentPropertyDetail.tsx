@@ -41,7 +41,7 @@ export default function AgentPropertyDetail() {
         const { data: sellerData, error: sellerError } = await supabase
           .from('users')
           .select('*')
-          .eq('id', propData.user_id)
+          .eq('auth_user_id', propData.seller_user_id)
           .single();
 
         if (sellerError) throw sellerError;

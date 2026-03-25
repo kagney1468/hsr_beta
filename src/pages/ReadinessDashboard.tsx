@@ -20,16 +20,10 @@ export default function ReadinessDashboard() {
       if (!user) return;
       
       try {
-        const { data: profile } = await supabase
-          .from('users')
-          .select('*')
-          .eq('auth_user_id', user.id)
-          .single();
-
         const { data: propData } = await supabase
           .from('properties')
           .select('*')
-          .eq('user_id', profile?.id)
+          .eq('seller_user_id', user.id)
           .single();
 
         if (propData) setProperty(propData);

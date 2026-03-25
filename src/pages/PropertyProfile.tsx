@@ -63,22 +63,10 @@ export default function PropertyProfile() {
       if (!user) return;
       
       try {
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('id')
-          .eq('auth_user_id', user.id)
-          .single();
-          
-        if (userError || !userData) {
-          setMessage({ type: 'error', text: 'Seller profile must exist before saving property details.' });
-          setLoading(false);
-          return;
-        }
-
         const { data, error } = await supabase
           .from('properties')
           .select('*, material_information(*)')
-          .eq('user_id', userData.id)
+          .eq('seller_user_id', user.id)
           .single();
 
         if (error && error.code !== 'PGRST116') {
@@ -210,19 +198,11 @@ export default function PropertyProfile() {
     setMessage(null);
     
     try {
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('auth_user_id', user.id)
-        .single();
-        
-      if (userError || !userData) throw new Error('User profile not found.');
-
       // 1. Update/Insert Property
       const { data: property, error: propError } = await supabase
         .from('properties')
         .upsert({
-          user_id: userData.id,
+          seller_user_id: user.id,
           address_line1: formData.address_line1,
           address_line2: formData.address_line2,
           city: formData.address_town,
@@ -238,7 +218,7 @@ export default function PropertyProfile() {
           parking: formData.parking,
           building_changes: formData.building_changes,
           updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' })
+        }, { onConflict: 'seller_user_id' })
         .select()
         .single();
 

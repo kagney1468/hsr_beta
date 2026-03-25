@@ -11,9 +11,9 @@ interface Document {
   id: string;
   property_id: string;
   document_type: string;
-  file_name: string;
-  storage_path: string;
-  uploaded_at: string;
+  name: string;
+  file_url: string;
+  created_at: string;
 }
 
 export default function DocumentUpload() {
@@ -49,22 +49,10 @@ export default function DocumentUpload() {
       if (!user) return;
       setLoading(true);
       try {
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('id')
-          .eq('auth_user_id', user.id)
-          .single();
-          
-        if (userError || !userData) {
-          setNoProperty(true);
-          setLoading(false);
-          return;
-        }
-
         const { data: propData, error: propError } = await supabase
           .from('properties')
           .select('*')
-          .eq('user_id', userData.id)
+          .eq('seller_user_id', user.id)
           .single();
 
         if (propError || !propData) {
@@ -101,15 +89,10 @@ export default function DocumentUpload() {
         .from('documents')
         .select('*')
         .eq('property_id', propertyId)
-        .order('uploaded_at', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setDocuments((data || []).map(d => ({
-        ...d,
-        file_name: d.name || 'Untitled',
-        storage_path: d.file_url || '',
-        uploaded_at: d.created_at
-      })) as any);
+      setDocuments((data || []) as any);
     } catch (err: any) {
       console.error('Error loading documents:', err);
       setError(err.message || 'Failed to load documents');
@@ -154,9 +137,9 @@ export default function DocumentUpload() {
           .insert({
             property_id: propertyId,
             document_type: type,
-            file_name: file.name,
-            storage_path: filePath,
-            uploaded_at: new Date().toISOString()
+            name: file.name,
+            file_url: filePath,
+            created_at: new Date().toISOString()
           });
 
         if (dbError) throw dbError;
@@ -180,12 +163,12 @@ export default function DocumentUpload() {
   };
 
   const handleDelete = async (doc: Document) => {
-    if (!user || !window.confirm(`Are you sure you want to delete ${doc.file_name}?`)) return;
+    if (!user || !window.confirm(`Are you sure you want to delete ${doc.name}?`)) return;
 
     try {
       const { error: storageError } = await supabase.storage
         .from('property-documents')
-        .remove([doc.storage_path]);
+        .remove([doc.file_url]);
 
       if (storageError) throw storageError;
 
@@ -210,7 +193,7 @@ export default function DocumentUpload() {
       setError(null);
       const { data, error } = await supabase.storage
         .from('property-documents')
-        .createSignedUrl(doc.storage_path, 86400);
+        .createSignedUrl(doc.file_url, 86400);
 
       if (error) throw error;
       
@@ -292,8 +275,8 @@ export default function DocumentUpload() {
                       <div className="flex items-center gap-3 truncate">
                         <span className="material-symbols-outlined text-[#00e5a0]">description</span>
                         <div className="truncate">
-                          <p className="text-sm font-bold text-white truncate">{doc.file_name}</p>
-                          <p className="text-[10px] text-zinc-500 uppercase tracking-widest">{formatDate(doc.uploaded_at)}</p>
+                          <p className="text-sm font-bold text-white truncate">{doc.name}</p>
+                          <p className="text-[10px] text-zinc-500 uppercase tracking-widest">{formatDate(doc.created_at)}</p>
                         </div>
                       </div>
                       <div className="flex gap-1 ml-4 shrink-0">
