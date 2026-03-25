@@ -184,13 +184,13 @@ export default function SellerOnboarding() {
           onClick={() => setOpen(!open)}
           onMouseEnter={() => setOpen(true)}
           onMouseLeave={() => setOpen(false)}
-          className="size-5 rounded-full bg-white/10 flex items-center justify-center text-zinc-400 hover:text-[#00e5a0] hover:bg-[#00e5a0]/10 transition-all"
+          className="size-5 rounded-full bg-white/10 flex items-center justify-center text-zinc-400 hover:text-[var(--teal-600)] hover:bg-[var(--teal-050)] transition-all"
         >
           <span className="material-symbols-outlined text-[14px]">question_mark</span>
         </button>
         {open && (
           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 p-4 bg-zinc-800/95 backdrop-blur-md text-white text-[11px] leading-relaxed rounded-2xl opacity-100 transition-all z-50 border border-white/10 shadow-2xl animate-in zoom-in-95 fade-in duration-200">
-            <div className="font-bold text-[#00e5a0] mb-1">Why this matters</div>
+            <div className="font-bold text-[var(--teal-600)] mb-1">Why this matters</div>
             {text}
             <div className="mt-2 text-[10px] text-zinc-500 italic">This speeds up your legal process by reducing solicitor inquiries later.</div>
             <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-zinc-800/95" />
@@ -200,16 +200,16 @@ export default function SellerOnboarding() {
     );
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-black"><div className="animate-spin size-10 border-4 border-[#00e5a0] border-t-transparent rounded-full" /></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-black"><div className="animate-spin size-10 border-4 border-[var(--teal-600)] border-t-transparent rounded-full" /></div>;
 
   return (
-    <div className="min-h-screen bg-black text-white p-6 md:p-10 font-sans selection:bg-[#00e5a0]/30">
+    <div className="min-h-screen bg-black text-white p-6 md:p-10 font-sans">
       <div className="max-w-3xl mx-auto space-y-10">
         {/* Progress Header */}
         <div className="space-y-6">
           <div className="flex justify-between items-end">
             <div>
-              <p className="text-[#00e5a0] font-black uppercase tracking-[0.2em] text-[10px] mb-2">Step {currentStep} of 4</p>
+              <p className="text-[var(--teal-600)] font-black uppercase tracking-[0.2em] text-[10px] mb-2">Step {currentStep} of 4</p>
               <h1 className="text-4xl md:text-6xl font-black font-heading tracking-tight leading-none">
                 {currentStep === 1 && "The Address"}
                 {currentStep === 2 && "Core Details"}
@@ -221,14 +221,14 @@ export default function SellerOnboarding() {
               <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mb-1">Onboarding Progress</p>
               <div className="flex items-center gap-3">
                 <span className="text-3xl font-black font-heading text-white">{currentStep * 25}%</span>
-                <div className="size-3 rounded-full bg-[#00e5a0] animate-pulse shadow-[0_0_10px_#00e5a0]" />
+                <div className="size-3 rounded-full bg-[var(--teal-500)] animate-pulse shadow-[0_0_10px_var(--teal-500)]" />
               </div>
             </div>
           </div>
           
           <div className="h-2.5 w-full bg-zinc-900 rounded-full overflow-hidden border border-white/5 p-0.5">
             <div 
-              className="h-full bg-gradient-to-r from-[#00e5a0] to-[#00ffb3] transition-all duration-1000 ease-in-out rounded-full shadow-[0_0_25px_rgba(0,229,160,0.4)]"
+              className="h-full bg-gradient-to-r from-[var(--teal-500)] to-[var(--teal-600)] transition-all duration-1000 ease-in-out rounded-full"
               style={{ width: `${currentStep * 25}%` }}
             />
           </div>
@@ -236,7 +236,7 @@ export default function SellerOnboarding() {
 
         <Card className="p-8 md:p-12 border-white/5 bg-zinc-900/40 backdrop-blur-2xl shadow-2xl space-y-10 relative overflow-hidden group/card rounded-[40px]">
           {/* Subtle background glow */}
-          <div className="absolute -top-40 -right-40 size-96 bg-[#00e5a0]/10 blur-[120px] rounded-full pointer-events-none group-hover/card:bg-[#00e5a0]/15 transition-colors duration-1000" />
+          <div className="absolute -top-40 -right-40 size-96 bg-[var(--teal-050)] blur-[120px] rounded-full pointer-events-none transition-colors duration-1000" />
           
           {/* Step Content */}
           <div className="min-h-[350px] animate-in fade-in slide-in-from-bottom-6 duration-700">
@@ -265,13 +265,13 @@ export default function SellerOnboarding() {
 
                 <div className="pt-4 space-y-4 border-t border-white/5 animate-in fade-in duration-500">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-[#00e5a0]">Address Line 1</label>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--teal-600)]">Address Line 1</label>
                     <input 
                       type="text" 
                       name="address_line1"
                       value={formData.address_line1}
                       onChange={(e) => setFormData({...formData, address_line1: e.target.value})}
-                      className="w-full h-14 px-6 rounded-2xl border border-white/10 bg-black/40 text-white focus:border-[#00e5a0]/50 outline-none transition-all text-lg font-bold placeholder:text-zinc-800"
+                      className="w-full h-14 px-6 rounded-2xl border border-white/10 bg-black/40 text-white focus:border-[var(--teal-500)] outline-none transition-all text-lg font-bold placeholder:text-zinc-800"
                       placeholder="123 Example Street"
                     />
                   </div>
@@ -283,20 +283,20 @@ export default function SellerOnboarding() {
                       name="address_line2"
                       value={formData.address_line2}
                       onChange={(e) => setFormData({...formData, address_line2: e.target.value})}
-                      className="w-full h-14 px-6 rounded-2xl border border-white/10 bg-black/40 text-white focus:border-[#00e5a0]/50 outline-none transition-all text-lg font-bold placeholder:text-zinc-800"
+                      className="w-full h-14 px-6 rounded-2xl border border-white/10 bg-black/40 text-white focus:border-[var(--teal-500)] outline-none transition-all text-lg font-bold placeholder:text-zinc-800"
                       placeholder="Apt 4B"
                     />
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-[#00e5a0]">Town / City</label>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--teal-600)]">Town / City</label>
                       <input 
                         type="text" 
                         name="address_town"
                         value={formData.address_town}
                         onChange={(e) => setFormData({...formData, address_town: e.target.value})}
-                        className="w-full h-14 px-6 rounded-2xl border border-white/10 bg-black/40 text-white focus:border-[#00e5a0]/50 outline-none transition-all text-lg font-bold placeholder:text-zinc-800"
+                        className="w-full h-14 px-6 rounded-2xl border border-white/10 bg-black/40 text-white focus:border-[var(--teal-500)] outline-none transition-all text-lg font-bold placeholder:text-zinc-800"
                         placeholder="London"
                       />
                     </div>
@@ -308,20 +308,20 @@ export default function SellerOnboarding() {
                         name="address_county"
                         value={formData.address_county}
                         onChange={(e) => setFormData({...formData, address_county: e.target.value})}
-                        className="w-full h-14 px-6 rounded-2xl border border-white/10 bg-black/40 text-white focus:border-[#00e5a0]/50 outline-none transition-all text-lg font-bold placeholder:text-zinc-800"
+                        className="w-full h-14 px-6 rounded-2xl border border-white/10 bg-black/40 text-white focus:border-[var(--teal-500)] outline-none transition-all text-lg font-bold placeholder:text-zinc-800"
                         placeholder="Greater London"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-[#00e5a0]">Postcode</label>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--teal-600)]">Postcode</label>
                     <input 
                       type="text" 
                       name="postcode"
                       value={formData.postcode}
                       onChange={(e) => setFormData({...formData, postcode: e.target.value})}
-                      className="w-full h-14 px-6 rounded-2xl border border-white/10 bg-black/40 text-white focus:border-[#00e5a0]/50 outline-none transition-all text-lg font-bold tracking-widest uppercase placeholder:text-zinc-800"
+                      className="w-full h-14 px-6 rounded-2xl border border-white/10 bg-black/40 text-white focus:border-[var(--teal-500)] outline-none transition-all text-lg font-bold tracking-widest uppercase placeholder:text-zinc-800"
                       placeholder="SW1A 1AA"
                     />
                   </div>
@@ -337,7 +337,7 @@ export default function SellerOnboarding() {
                     <HelpTooltip text="This helps buyers understand the structural nature of the building (e.g., detached, terrace)." />
                   </label>
                   <select 
-                    className="w-full h-14 px-4 rounded-2xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all appearance-none"
+                    className="w-full h-14 px-4 rounded-2xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all appearance-none"
                     value={formData.property_type}
                     onChange={(e) => setFormData({...formData, property_type: e.target.value})}
                   >
@@ -354,7 +354,7 @@ export default function SellerOnboarding() {
                     <HelpTooltip text="Freehold means you own the land. Leasehold involves a landlord and annual ground rent/service charges." />
                   </label>
                   <select 
-                    className="w-full h-14 px-4 rounded-2xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all appearance-none"
+                    className="w-full h-14 px-4 rounded-2xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all appearance-none"
                     value={formData.tenure}
                     onChange={(e) => setFormData({...formData, tenure: e.target.value})}
                   >
@@ -370,7 +370,7 @@ export default function SellerOnboarding() {
                   </label>
                   <input 
                     type="number"
-                    className="w-full h-14 px-4 rounded-2xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
+                    className="w-full h-14 px-4 rounded-2xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all"
                     value={formData.bedrooms}
                     onChange={(e) => setFormData({...formData, bedrooms: parseInt(e.target.value)})}
                   />
@@ -381,7 +381,7 @@ export default function SellerOnboarding() {
                     <HelpTooltip text="Mandatory disclosure. Buyers need to know their ongoing monthly costs." />
                   </label>
                   <select 
-                    className="w-full h-14 px-4 rounded-2xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all appearance-none"
+                    className="w-full h-14 px-4 rounded-2xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all appearance-none"
                     value={formData.council_tax_band}
                     onChange={(e) => setFormData({...formData, council_tax_band: e.target.value})}
                   >
@@ -395,7 +395,7 @@ export default function SellerOnboarding() {
               <div className="space-y-8 max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/5 space-y-3">
-                      <label className="text-xs font-bold text-[#00e5a0] flex items-center">
+                      <label className="text-xs font-bold text-[var(--teal-600)] flex items-center">
                         Utilities
                         <HelpTooltip text="Confirming mains connections for gas, water, and electric is essential for the TA6 legal form." />
                       </label>
@@ -418,7 +418,7 @@ export default function SellerOnboarding() {
                    </div>
                    
                    <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/5 space-y-3">
-                      <label className="text-xs font-bold text-[#00e5a0] flex items-center">
+                      <label className="text-xs font-bold text-[var(--teal-600)] flex items-center">
                         Parking
                         <HelpTooltip text="Parking availability significantly impacts property value and buyer interest." />
                       </label>
@@ -450,7 +450,7 @@ export default function SellerOnboarding() {
                       <HelpTooltip text={field.help} />
                     </label>
                     <input 
-                      className="w-full h-14 px-4 rounded-2xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
+                      className="w-full h-14 px-4 rounded-2xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all"
                       placeholder="e.g. None known / Detail here..."
                       value={(formData as any)[field.id]}
                       onChange={(e) => setFormData({...formData, [field.id]: e.target.value})}
@@ -470,9 +470,9 @@ export default function SellerOnboarding() {
                     { title: 'Warranties/Guarantees', icon: 'award_star', required: false },
                     { title: 'Leasehold Pack', icon: 'folder_open', required: formData.tenure !== 'Freehold' }
                   ].map((doc) => (
-                    <div key={doc.title} className="p-6 rounded-3xl border border-white/5 bg-white/[0.02] flex items-center justify-between group hover:border-[#00e5a0]/20 transition-all cursor-pointer">
+                    <div key={doc.title} className="p-6 rounded-3xl border border-white/5 bg-white/[0.02] flex items-center justify-between group hover:border-[var(--teal-500)]/20 transition-all cursor-pointer">
                       <div className="flex items-center gap-4">
-                        <div className="size-12 rounded-2xl bg-zinc-800 flex items-center justify-center text-[#00e5a0]">
+                        <div className="size-12 rounded-2xl bg-zinc-800 flex items-center justify-center text-[var(--teal-600)]">
                           <span className="material-symbols-outlined">{doc.icon}</span>
                         </div>
                         <div>
@@ -482,7 +482,7 @@ export default function SellerOnboarding() {
                           </p>
                         </div>
                       </div>
-                      <span className="material-symbols-outlined text-zinc-600 group-hover:text-[#00e5a0] transition-colors">upload_file</span>
+                      <span className="material-symbols-outlined text-zinc-600 group-hover:text-[var(--teal-600)] transition-colors">upload_file</span>
                     </div>
                   ))}
                 </div>
@@ -511,7 +511,7 @@ export default function SellerOnboarding() {
               variant="primary" 
               onClick={nextStep}
               disabled={saving}
-              className="flex-[2] h-14 rounded-2xl text-black font-black font-heading text-lg shadow-xl shadow-[#00e5a0]/10"
+              className="flex-[2] h-14 rounded-2xl text-black font-black font-heading text-lg"
             >
               {saving ? 'Saving...' : currentStep === 4 ? 'Complete Onboarding' : 'Save and Continue'}
             </Button>

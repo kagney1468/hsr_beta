@@ -102,41 +102,41 @@ export default function ReadinessDashboard() {
     loadData();
   }, [user]);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin size-8 border-2 border-[#00e5a0] border-t-transparent rounded-full" /></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin size-8 border-2 border-[var(--teal-600)] border-t-transparent rounded-full" /></div>;
 
   return (
     <div className="max-w-4xl mx-auto p-6 md:p-10 space-y-10">
       <div className="flex flex-col gap-2">
-        <h1 className="text-4xl font-black font-heading text-white tracking-tight">Readiness Report</h1>
-        <p className="text-zinc-400">Advanced analysis of your property pack completion status.</p>
+        <h1 className="text-4xl font-black font-heading text-[var(--teal-900)] tracking-tight">Readiness report</h1>
+        <p className="text-[var(--muted)]">Advanced analysis of your property pack completion status.</p>
       </div>
 
-      <Card className="p-10 border-white/5 bg-zinc-900 shadow-2xl relative overflow-hidden">
+      <Card className="p-10 relative overflow-hidden">
         {/* Decorative background glow */}
-        <div className="absolute top-0 right-0 size-64 bg-[#00e5a0]/5 blur-3xl -mr-32 -mt-32 rounded-full" />
+        <div className="absolute top-0 right-0 size-64 bg-[var(--teal-050)] blur-3xl -mr-32 -mt-32 rounded-full" />
         
         <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
           <div className="size-40 relative flex items-center justify-center">
              <svg className="size-full -rotate-90" viewBox="0 0 100 100">
-               <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="8" />
-               <circle cx="50" cy="50" r="44" fill="none" stroke="#00e5a0" strokeWidth="8" strokeDasharray="276" strokeDashoffset={276 - (276 * readiness.score) / 100} strokeLinecap="round" className="transition-all duration-1000 ease-out" />
+               <circle cx="50" cy="50" r="44" fill="none" stroke="var(--border)" strokeWidth="8" />
+               <circle cx="50" cy="50" r="44" fill="none" stroke="var(--teal-600)" strokeWidth="8" strokeDasharray="276" strokeDashoffset={276 - (276 * readiness.score) / 100} strokeLinecap="round" className="transition-all duration-1000 ease-out" />
              </svg>
-             <span className="absolute text-4xl font-black font-heading text-white">{readiness.score}%</span>
+             <span className="absolute text-4xl font-black font-heading text-[var(--teal-900)]">{readiness.score}%</span>
           </div>
 
           <div className="flex-1 text-center md:text-left space-y-4">
-             <h2 className="text-2xl font-black font-heading text-white">
+             <h2 className="text-2xl font-black font-heading text-[var(--teal-900)]">
                 {readiness.score === 100 ? "Ready to sell!" : "Almost at the finish line"}
              </h2>
-             <p className="text-zinc-400 text-sm leading-relaxed">
+             <p className="text-[var(--muted)] text-sm leading-relaxed">
                 {readiness.score === 100 
                   ? "Your property information pack is 100% verified and compliant. You can now share it with potential buyers."
                   : `You have ${readiness.missingItems.length} critical items remaining. Completing these now will save an average of 3 weeks during the legal process.`}
              </p>
              <div className="pt-2">
-                <div className="inline-flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full border border-white/5">
+                <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full border border-[var(--border)]">
                    <div className={`size-2 rounded-full ${readiness.score === 100 ? 'bg-green-500' : 'bg-amber-500 animate-pulse'}`} />
-                   <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                   <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--muted)]">
                       Status: {readiness.score === 100 ? 'Market Ready' : 'In Preparation'}
                    </span>
                 </div>
@@ -147,22 +147,22 @@ export default function ReadinessDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-6">
-           <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 px-2">Completed Steps</h3>
+           <h3 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--muted)] px-2">Completed steps</h3>
            <div className="space-y-3">
               {[
                 { label: 'Mandatory Documents', done: readiness.documentsComplete },
                 { label: 'Material Information Form', done: readiness.materialComplete }
               ].filter(i => i.done).map(item => (
-                <div key={item.label} className="p-4 bg-zinc-900 border border-white/5 rounded-2xl flex items-center justify-between">
+                <div key={item.label} className="p-4 bg-white border border-[var(--border)] rounded-2xl flex items-center justify-between">
                    <div className="flex items-center gap-3">
-                      <span className="material-symbols-outlined text-[#00e5a0]">check_circle</span>
-                      <span className="text-sm font-bold text-white">{item.label}</span>
+                      <span className="material-symbols-outlined text-[#059669]">check_circle</span>
+                      <span className="text-sm font-semibold text-[var(--teal-900)]">{item.label}</span>
                    </div>
-                   <span className="text-[9px] font-black uppercase tracking-widest text-[#00e5a0] bg-[#00e5a0]/10 px-2 py-1 rounded">Verified</span>
+                   <span className="text-[9px] font-semibold uppercase tracking-widest text-[#059669] bg-[#d1fae5] px-2 py-1 rounded">Verified</span>
                 </div>
               ))}
               {!readiness.documentsComplete && !readiness.materialComplete && (
-                  <p className="text-zinc-600 italic text-sm px-2">No steps completed yet.</p>
+                  <p className="text-[var(--muted)] italic text-sm px-2">No steps completed yet.</p>
               )}
            </div>
         </div>
@@ -185,7 +185,7 @@ export default function ReadinessDashboard() {
                 </div>
               )) : (
                 <div className="p-8 text-center bg-zinc-900/50 border border-dashed border-white/5 rounded-3xl">
-                   <span className="material-symbols-outlined text-3xl text-[#00e5a0] mb-2">auto_awesome</span>
+                   <span className="material-symbols-outlined text-3xl text-[var(--teal-600)] mb-2">auto_awesome</span>
                    <p className="text-zinc-500 text-sm">Perfect Score! All actions completed.</p>
                 </div>
               )}

@@ -110,7 +110,7 @@ export default function SellerProfile() {
     }
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin size-8 border-2 border-[#00e5a0] border-t-transparent rounded-full" /></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin size-8 border-2 border-[var(--teal-600)] border-t-transparent rounded-full" /></div>;
 
   return (
     <div className="max-w-4xl mx-auto space-y-10 py-6 md:py-10">
@@ -144,7 +144,7 @@ export default function SellerProfile() {
                 name="full_name"
                 value={formData.full_name}
                 onChange={handleChange}
-                className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
+                className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all"
                 placeholder="John Doe"
               />
             </div>
@@ -166,7 +166,7 @@ export default function SellerProfile() {
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
+                className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all"
                 placeholder="07123 456789"
               />
             </div>
@@ -178,7 +178,7 @@ export default function SellerProfile() {
                     name="contact_preference"
                     value={formData.contact_preference}
                     onChange={handleChange}
-                    className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all appearance-none"
+                    className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all appearance-none"
                 >
                     <option value="email">Email</option>
                     <option value="phone">Phone Call</option>
@@ -224,7 +224,7 @@ export default function SellerProfile() {
                   name="home_address_line1"
                   value={formData.home_address_line1}
                   onChange={handleChange}
-                  className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
+                  className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all"
                   placeholder="123 Example Street"
                 />
               </div>
@@ -236,7 +236,7 @@ export default function SellerProfile() {
                   name="home_address_line2"
                   value={formData.home_address_line2}
                   onChange={handleChange}
-                  className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
+                  className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all"
                   placeholder="Apt 4B"
                 />
               </div>
@@ -249,7 +249,7 @@ export default function SellerProfile() {
                     name="home_address_town"
                     value={formData.home_address_town}
                     onChange={handleChange}
-                    className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
+                    className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all"
                     placeholder="London"
                   />
                 </div>
@@ -261,7 +261,7 @@ export default function SellerProfile() {
                     name="home_address_county"
                     value={formData.home_address_county}
                     onChange={handleChange}
-                    className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
+                    className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all"
                     placeholder="Greater London"
                   />
                 </div>
@@ -274,7 +274,7 @@ export default function SellerProfile() {
                   name="home_address_city"
                   value={formData.home_address_city}
                   onChange={handleChange}
-                  className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
+                  className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all"
                   placeholder="e.g. London"
                 />
               </div>
@@ -286,7 +286,7 @@ export default function SellerProfile() {
                   name="home_address_postcode"
                   value={formData.home_address_postcode}
                   onChange={handleChange}
-                  className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
+                  className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all"
                   placeholder="SW1A 1AA"
                 />
               </div>
@@ -298,7 +298,7 @@ export default function SellerProfile() {
                   <span className="material-symbols-outlined text-lg">verified_user</span>
                 </div>
                 <div>
-                  <p className="text-xs font-black uppercase tracking-wider text-[#00e5a0]">Security Note</p>
+                  <p className="text-xs font-black uppercase tracking-wider text-[var(--teal-600)]">Security Note</p>
                   <p className="text-[10px] text-zinc-500 leading-tight">Your data is encrypted and only shared with your appointed estate agent when you choose to go live.</p>
                 </div>
               </div>
@@ -312,7 +312,7 @@ export default function SellerProfile() {
           variant="primary" 
           onClick={handleSave} 
           disabled={saving}
-          className="w-full md:w-auto px-12 h-14 rounded-2xl text-black font-black font-heading text-lg shadow-xl shadow-[#00e5a0]/20 active:scale-95 transition-all"
+          className="w-full md:w-auto px-12 h-14 rounded-2xl text-black font-black font-heading text-lg active:scale-95 transition-all"
         >
           {saving ? 'Saving...' : 'Save & Continue'}
         </Button>

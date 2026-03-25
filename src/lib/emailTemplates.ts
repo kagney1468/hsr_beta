@@ -1,7 +1,7 @@
 export const getEmailTemplate = (content: string, agency?: { name: string, logo?: string }) => {
   const brandName = agency?.name || 'HomeSalesReady';
   const logoUrl = agency?.logo || 'https://vjpkwwhqbvivaxdnydbx.supabase.co/storage/v1/object/public/brand/hsr-logo-white.png'; // Fallback
-  const accentColor = '#00e5a0';
+  const accentColor = '#17afaf';
 
   return `
     <!DOCTYPE html>
@@ -10,8 +10,8 @@ export const getEmailTemplate = (content: string, agency?: { name: string, logo?
         <meta charset="utf-8">
         <style>
           body {
-            background-color: #0c0c0e;
-            color: #ffffff;
+            background-color: #ffffff;
+            color: #1a2e2f;
             font-family: 'DM Sans', Arial, sans-serif;
             margin: 0;
             padding: 0;
@@ -31,8 +31,8 @@ export const getEmailTemplate = (content: string, agency?: { name: string, logo?
             margin-bottom: 20px;
           }
           .card {
-            background-color: #161618;
-            border: 1px solid #27272a;
+            background-color: #ffffff;
+            border: 1.5px solid #ddeaeb;
             border-radius: 20px;
             padding: 40px;
             text-align: center;
@@ -41,18 +41,18 @@ export const getEmailTemplate = (content: string, agency?: { name: string, logo?
             font-size: 24px;
             font-weight: 800;
             margin-bottom: 16px;
-            color: #ffffff;
+            color: #0d4a4a;
           }
           .text {
-            color: #a1a1aa;
+            color: #5a7a7c;
             font-size: 16px;
             line-height: 1.6;
             margin-bottom: 32px;
           }
           .button {
             display: inline-block;
-            background-color: ${accentColor};
-            color: #000000;
+            background-color: #149494;
+            color: #ffffff;
             padding: 16px 32px;
             border-radius: 12px;
             text-decoration: none;
@@ -64,7 +64,7 @@ export const getEmailTemplate = (content: string, agency?: { name: string, logo?
           .footer {
             text-align: center;
             margin-top: 40px;
-            color: #52525b;
+            color: #5a7a7c;
             font-size: 12px;
           }
         </style>

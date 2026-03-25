@@ -144,17 +144,17 @@ export default function PublicPack() {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-black flex items-center justify-center">
-      <div className="animate-spin size-10 border-4 border-[#00e5a0] border-t-transparent rounded-full" />
+    <div className="min-h-screen bg-[var(--page)] flex items-center justify-center">
+      <div className="animate-spin size-10 border-4 border-[var(--teal-600)] border-t-transparent rounded-full" />
     </div>
   );
 
   if (property?.error || !property) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-6 text-zinc-500">
-        <Card className="p-12 text-center border-white/5 space-y-6">
+      <div className="min-h-screen bg-[var(--page)] flex items-center justify-center p-6 text-[var(--muted)]">
+        <Card className="p-12 text-center space-y-6">
           <span className="material-symbols-outlined text-6xl text-red-500/20">lock</span>
-          <h2 className="text-2xl font-black font-heading text-white">Access Denied</h2>
+          <h2 className="text-2xl font-black font-heading text-[var(--teal-900)]">Access denied</h2>
           <p className="max-w-xs mx-auto">{property?.error || 'This property pack link is invalid or has been disabled by the seller.'}</p>
         </Card>
       </div>
@@ -164,30 +164,30 @@ export default function PublicPack() {
   const agency = (property as any)?.agency;
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white selection:bg-[#00e5a0]/30 font-display">
+    <div className="min-h-screen bg-[var(--page)] text-[var(--text)] font-display">
       {/* ── STICKY HEADER ── */}
-      <header className="fixed top-0 inset-x-0 z-50 bg-black/60 backdrop-blur-xl border-b border-white/5 print:hidden">
+      <header className="fixed top-0 inset-x-0 z-50 bg-white/80 backdrop-blur-xl border-b border-[var(--border)] shadow-[0_2px_8px_rgba(13,74,74,0.04)] print:hidden">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-4">
              {agency?.logo_url ? (
                <img src={agency.logo_url} alt={agency.agency_name} className="h-8 w-auto" />
              ) : (
                <div className="flex items-center gap-3">
-                 <div className="size-10 rounded-xl bg-[#00e5a0] flex items-center justify-center text-black">
+                 <div className="size-10 rounded-xl bg-[var(--teal-600)] flex items-center justify-center text-white shadow-soft">
                    <span className="material-symbols-outlined font-black">real_estate_agent</span>
                  </div>
-                 <span className="font-heading font-black text-xl tracking-tight hidden sm:block">{agency?.agency_name || 'HomeSalesReady'}</span>
+                 <span className="font-heading font-black text-xl tracking-tight hidden sm:block text-[var(--teal-900)]">{agency?.agency_name || 'HomeSalesReady'}</span>
                </div>
              )}
           </div>
           
           <div className="flex items-center gap-3">
-            <div className="px-3 py-1.5 rounded-full bg-[#00e5a0]/10 border border-[#00e5a0]/20 flex items-center gap-2">
-              <span className="size-1.5 rounded-full bg-[#00e5a0] animate-pulse" />
-              <span className="text-[10px] font-black text-[#00e5a0] uppercase tracking-widest">Verified Pack</span>
+            <div className="px-3 py-1.5 rounded-full bg-[var(--teal-050)] border border-[var(--border)] flex items-center gap-2">
+              <span className="size-1.5 rounded-full bg-[var(--teal-500)] animate-pulse" />
+              <span className="text-[10px] font-semibold text-[var(--teal-900)] uppercase tracking-widest">Verified pack</span>
             </div>
             {isRegistered && (
-              <Button onClick={handlePrint} variant="outline" className="h-10 px-4 rounded-xl border-white/10 text-xs font-black uppercase tracking-widest hover:bg-white/5 transition-all flex items-center gap-2">
+              <Button onClick={handlePrint} variant="outline" className="h-10 px-4 rounded-xl text-xs font-semibold uppercase tracking-widest flex items-center gap-2">
                 Print / PDF <span className="material-symbols-outlined text-sm">print</span>
               </Button>
             )}
@@ -202,49 +202,49 @@ export default function PublicPack() {
             <div className="text-center space-y-4">
               <h1 className="text-4xl md:text-5xl font-black font-heading leading-tight tracking-tight">
                 Access the Property Pack for <br/>
-                <span className="text-[#00e5a0]">{property.address}</span>
+                <span className="text-[var(--teal-600)]">{property.address}</span>
               </h1>
-              <p className="text-zinc-500 text-lg max-w-xl mx-auto">
+              <p className="text-[var(--muted)] text-lg max-w-xl mx-auto">
                 In accordance with UK property regulations, please register your details to view full material information and download verified documents.
               </p>
             </div>
 
-            <Card className="p-10 md:p-12 border-white/5 bg-zinc-900/40 backdrop-blur-2xl rounded-[40px] shadow-2xl relative overflow-hidden">
-               <div className="absolute top-0 right-0 size-64 bg-[#00e5a0]/5 blur-[100px] pointer-events-none" />
+            <Card className="p-10 md:p-12 rounded-[28px] relative overflow-hidden">
+               <div className="absolute top-0 right-0 size-64 bg-[var(--teal-050)] blur-[100px] pointer-events-none" />
                <form onSubmit={handleRegister} className="space-y-8 relative z-10">
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                    <div className="space-y-3">
-                     <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] px-1">Full Name</label>
+                     <label className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-[0.2em] px-1">Full name</label>
                      <input 
                        required 
                        type="text" 
                        value={viewerForm.name}
                        onChange={e => setViewerForm({...viewerForm, name: e.target.value})}
-                       className="w-full h-14 bg-black/40 border border-white/10 rounded-2xl px-5 text-sm focus:border-[#00e5a0]/50 outline-none transition-all"
+                       className="w-full h-14 bg-white border border-[var(--border)] rounded-2xl px-5 text-sm focus:border-[var(--teal-500)] outline-none transition-colors"
                        placeholder="Enter your name"
                      />
                    </div>
                    <div className="space-y-3">
-                     <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] px-1">Email Address</label>
+                     <label className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-[0.2em] px-1">Email address</label>
                      <input 
                        required 
                        type="email" 
                        value={viewerForm.email}
                        onChange={e => setViewerForm({...viewerForm, email: e.target.value})}
-                       className="w-full h-14 bg-black/40 border border-white/10 rounded-2xl px-5 text-sm focus:border-[#00e5a0]/50 outline-none transition-all"
+                       className="w-full h-14 bg-white border border-[var(--border)] rounded-2xl px-5 text-sm focus:border-[var(--teal-500)] outline-none transition-colors"
                        placeholder="john@example.com"
                      />
                    </div>
                  </div>
 
                  <div className="space-y-3">
-                   <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] px-1">Phone Number</label>
+                   <label className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-[0.2em] px-1">Phone number</label>
                    <input 
                      required 
                      type="tel" 
                      value={viewerForm.phone}
                      onChange={e => setViewerForm({...viewerForm, phone: e.target.value})}
-                     className="w-full h-14 bg-black/40 border border-white/10 rounded-2xl px-5 text-sm focus:border-[#00e5a0]/50 outline-none transition-all"
+                     className="w-full h-14 bg-white border border-[var(--border)] rounded-2xl px-5 text-sm focus:border-[var(--teal-500)] outline-none transition-colors"
                      placeholder="e.g. 07123 456 789"
                    />
                  </div>
@@ -271,13 +271,13 @@ export default function PublicPack() {
 
                  {viewerForm.is_selling && (
                    <div className="space-y-3 animate-in fade-in slide-in-from-top-4 duration-500">
-                     <label className="text-[10px] font-black text-[#00e5a0] uppercase tracking-[0.2em] px-1">Where is your property located?</label>
+                    <label className="text-[10px] font-black text-[var(--teal-600)] uppercase tracking-[0.2em] px-1">Where is your property located?</label>
                      <input 
                        required={viewerForm.is_selling}
                        type="text" 
                        value={viewerForm.selling_location}
                        onChange={e => setViewerForm({...viewerForm, selling_location: e.target.value})}
-                       className="w-full h-14 bg-black/40 border border-[#00e5a0]/20 rounded-2xl px-5 text-sm focus:border-[#00e5a0]/50 outline-none transition-all"
+                      className="w-full h-14 bg-black/40 border border-[var(--teal-500)]/20 rounded-2xl px-5 text-sm focus:border-[var(--teal-500)] outline-none transition-all"
                        placeholder="Enter city or area"
                      />
                    </div>
@@ -286,7 +286,7 @@ export default function PublicPack() {
                  <Button 
                    type="submit" 
                    disabled={registering}
-                   className="w-full h-16 rounded-2xl bg-[#00e5a0] text-black font-black font-heading text-xl shadow-2xl shadow-[#00e5a0]/20 hover:scale-[1.02] active:scale-95 transition-all"
+                  className="w-full h-16 rounded-2xl bg-[var(--teal-600)] text-white font-black font-heading text-xl shadow-soft hover:bg-[var(--teal-900)] active:scale-95 transition-colors"
                  >
                    {registering ? 'Granting Access...' : 'Register & View Pack'}
                  </Button>
@@ -299,7 +299,7 @@ export default function PublicPack() {
             {/* HERO SECTION */}
             <div className="space-y-6">
               <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 text-[#00e5a0] text-[10px] font-black uppercase tracking-[0.3em] font-heading bg-[#00e5a0]/10 px-4 py-2 rounded-full border border-[#00e5a0]/20">
+                <div className="flex items-center gap-2 text-[var(--teal-600)] text-[10px] font-black uppercase tracking-[0.3em] font-heading bg-[var(--teal-050)] px-4 py-2 rounded-full border border-[var(--border)]">
                    <span className="material-symbols-outlined text-sm">verified</span>
                    Verified Information Pack
                 </div>
@@ -322,7 +322,7 @@ export default function PublicPack() {
                  { label: 'Council Tax', value: `Band ${property.council_tax_band}`, icon: 'receipt_long' },
                ].map(item => (
                  <Card key={item.label} className="p-6 bg-zinc-900/40 border-white/5 space-y-3 print:border-zinc-200">
-                   <span className="material-symbols-outlined text-[#00e5a0] text-2xl">{item.icon}</span>
+                   <span className="material-symbols-outlined text-[var(--teal-600)] text-2xl">{item.icon}</span>
                    <div>
                      <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">{item.label}</p>
                      <p className="font-bold text-white text-lg print:text-black">{item.value}</p>
@@ -341,7 +341,7 @@ export default function PublicPack() {
                <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                  <div className="space-y-8">
                    <div className="space-y-6">
-                     <h4 className="text-xs font-black text-[#00e5a0] uppercase tracking-[0.2em]">Utilities & Infrastructure</h4>
+                     <h4 className="text-xs font-black text-[var(--teal-600)] uppercase tracking-[0.2em]">Utilities & Infrastructure</h4>
                      <div className="space-y-4">
                        {[
                          { label: 'Essential Services', value: materialInfo?.utilities || 'Mains Water, Electric, Gas' },
@@ -356,7 +356,7 @@ export default function PublicPack() {
                    </div>
 
                    <div className="space-y-6">
-                     <h4 className="text-xs font-black text-[#00e5a0] uppercase tracking-[0.2em]">Environmental Risks</h4>
+                     <h4 className="text-xs font-black text-[var(--teal-600)] uppercase tracking-[0.2em]">Environmental Risks</h4>
                      <div className="space-y-4">
                        {[
                          { label: 'Flood risk & Coastal Erosion', value: materialInfo?.flooding_risk || 'No known risk' },
@@ -372,7 +372,7 @@ export default function PublicPack() {
 
                  <div className="space-y-8">
                     <div className="space-y-6">
-                      <h4 className="text-xs font-black text-[#00e5a0] uppercase tracking-[0.2em]">Legal & Planning</h4>
+                      <h4 className="text-xs font-black text-[var(--teal-600)] uppercase tracking-[0.2em]">Legal & Planning</h4>
                       <div className="space-y-4">
                         {[
                           { label: 'Building Safety', value: materialInfo?.building_safety || 'Standard Construction, no cladding issues' },
@@ -404,7 +404,7 @@ export default function PublicPack() {
                       className="p-6 bg-zinc-900 border border-white/5 rounded-3xl flex items-center justify-between hover:bg-zinc-800 transition-all group"
                     >
                       <div className="flex items-center gap-4">
-                        <div className="size-12 bg-black/40 rounded-2xl flex items-center justify-center text-[#00e5a0] group-hover:scale-110 transition-transform">
+                        <div className="size-12 bg-black/40 rounded-2xl flex items-center justify-center text-[var(--teal-600)] group-hover:scale-110 transition-transform">
                           <span className="material-symbols-outlined">description</span>
                         </div>
                         <div>
@@ -423,13 +423,13 @@ export default function PublicPack() {
             </div>
 
             {/* AGENCY CONTACT */}
-            <Card className="p-10 border-[#00e5a0]/20 bg-[#00e5a0]/5 rounded-[40px] flex flex-col md:flex-row items-center justify-between gap-8 print:hidden">
+            <Card className="p-10 border-[var(--border)] bg-[var(--teal-050)] rounded-[40px] flex flex-col md:flex-row items-center justify-between gap-8 print:hidden">
               <div className="space-y-2 text-center md:text-left">
-                <p className="text-[10px] font-black text-[#00e5a0] uppercase tracking-[0.2em]">Listing Estate Agent</p>
+                <p className="text-[10px] font-black text-[var(--teal-600)] uppercase tracking-[0.2em]">Listing Estate Agent</p>
                 <h3 className="text-2xl font-black font-heading tracking-tight">{agency?.agency_name || 'HomeSalesReady'}</h3>
                 <p className="text-sm text-zinc-400">Please contact the agent directly to request a viewing or make an offer.</p>
               </div>
-              <Button variant="primary" className="h-14 px-10 rounded-2xl text-black font-black font-heading shadow-xl shadow-[#00e5a0]/15">
+              <Button variant="primary" className="h-14 px-10 rounded-2xl font-black font-heading">
                 Request Viewing
               </Button>
             </Card>

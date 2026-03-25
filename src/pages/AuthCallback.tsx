@@ -50,16 +50,16 @@ export default function AuthCallback() {
 
   if (status === 'error') {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-6">
-        <div className="max-w-md w-full bg-zinc-900 border border-white/10 rounded-2xl p-10 text-center space-y-6">
-          <div className="size-16 bg-red-900/20 text-red-500 flex items-center justify-center rounded-2xl mx-auto">
+      <div className="min-h-screen bg-[var(--page)] flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-white border-[1.5px] border-[var(--border)] rounded-2xl p-10 text-center space-y-6 shadow-soft">
+          <div className="size-16 bg-[#fee2e2] text-[#dc2626] flex items-center justify-center rounded-2xl mx-auto border border-[#fecaca]">
             <span className="material-symbols-outlined text-3xl">error</span>
           </div>
-          <h1 className="text-2xl font-black font-heading text-white">Verification Failed</h1>
-          <p className="text-zinc-400 text-sm">{errorMsg}</p>
+          <h1 className="text-2xl font-black font-heading text-[var(--teal-900)]">Verification failed</h1>
+          <p className="text-[var(--muted)] text-sm">{errorMsg}</p>
           <button
             onClick={() => navigate('/login')}
-            className="w-full h-12 rounded-xl bg-[#00e5a0] text-black font-black font-heading hover:bg-[#00e5a0]/90 transition-all"
+            className="w-full h-12 rounded-xl bg-[var(--teal-600)] text-white font-bold font-heading hover:bg-[var(--teal-900)] transition-colors"
           >
             Go to Login
           </button>
@@ -69,14 +69,14 @@ export default function AuthCallback() {
   }
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-6">
+    <div className="min-h-screen bg-[var(--page)] flex items-center justify-center p-6">
       <div className="text-center space-y-6">
-        <div className="size-16 bg-[#00e5a0]/10 flex items-center justify-center rounded-2xl mx-auto">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00e5a0]" />
+        <div className="size-16 bg-[var(--teal-050)] border border-[var(--border)] flex items-center justify-center rounded-2xl mx-auto">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--teal-600)]" />
         </div>
         <div>
-          <h1 className="text-2xl font-black font-heading text-white">Verifying your account…</h1>
-          <p className="text-zinc-400 text-sm mt-2">You'll be redirected to your dashboard shortly.</p>
+          <h1 className="text-2xl font-black font-heading text-[var(--teal-900)]">Verifying your account…</h1>
+          <p className="text-[var(--muted)] text-sm mt-2">You’ll be redirected to your dashboard shortly.</p>
         </div>
       </div>
     </div>

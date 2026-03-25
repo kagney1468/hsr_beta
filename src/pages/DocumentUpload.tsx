@@ -216,10 +216,10 @@ export default function DocumentUpload() {
   if (noProperty) {
     return (
       <div className="p-10 text-center">
-        <Card className="p-12 border-white/5 bg-zinc-900 shadow-2xl">
+        <Card className="p-12">
           <span className="material-symbols-outlined text-4xl text-amber-500 mb-4">warning</span>
           <h2 className="text-2xl font-black font-heading mb-2">Property Profile Required</h2>
-          <p className="text-zinc-400 mb-6">Please complete the property details before uploading documents.</p>
+          <p className="text-[var(--muted)] mb-6">Please complete the property details before uploading documents.</p>
           <Button variant="primary" onClick={() => navigate('/seller/property')}>Go to Property Details</Button>
         </Card>
       </div>
@@ -229,12 +229,12 @@ export default function DocumentUpload() {
   return (
     <div className="max-w-4xl mx-auto p-6 md:p-10 space-y-10">
       <div className="flex flex-col gap-2">
-        <h1 className="text-4xl font-black font-heading text-white tracking-tight">Step 2: Property Documents</h1>
-        <p className="text-zinc-400">Upload all required certificates and legal documents for your verified pack.</p>
+        <h1 className="text-4xl font-black font-heading text-[var(--teal-900)] tracking-tight">Property documents</h1>
+        <p className="text-[var(--muted)]">Upload all required certificates and legal documents for your verified pack.</p>
       </div>
 
-      {successMessage && <div className="p-4 bg-green-900/20 border border-green-800 text-green-400 rounded-xl font-bold">{successMessage}</div>}
-      {error && <div className="p-4 bg-red-900/20 border border-red-800 text-red-400 rounded-xl font-bold">{error}</div>}
+      {successMessage && <div className="p-4 bg-[#d1fae5] border border-[#a7f3d0] text-[#065f46] rounded-xl font-semibold">{successMessage}</div>}
+      {error && <div className="p-4 bg-[#fee2e2] border border-[#fecaca] text-[#b91c1c] rounded-xl font-semibold">{error}</div>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {categories.filter(c => !c.condition || c.condition(property)).map(category => {
@@ -244,26 +244,26 @@ export default function DocumentUpload() {
           const progress = uploadProgress[category.id] || 0;
 
           return (
-            <Card key={category.id} className="p-6 border-white/5 bg-zinc-900 shadow-xl flex flex-col justify-between h-full group transition-all hover:border-white/10">
+            <Card key={category.id} className="p-6 flex flex-col justify-between h-full group transition-colors hover:bg-[var(--teal-050)]">
               <div className="space-y-4">
                 <div className="flex justify-between items-start gap-4">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-bold text-white">{category.id}</h3>
+                    <h3 className="text-lg font-semibold text-[var(--teal-900)]">{category.id}</h3>
                     <Tooltip content={category.tooltip}>
-                      <span className="material-symbols-outlined text-zinc-500 text-sm cursor-help hover:text-[#00e5a0] transition-colors">help</span>
+                      <span className="material-symbols-outlined text-[var(--muted)] text-sm cursor-help hover:text-[var(--teal-600)] transition-colors">help</span>
                     </Tooltip>
                   </div>
                   {hasDoc ? (
-                    <span className="bg-green-500/10 text-green-500 text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full flex items-center gap-1">
+                    <span className="bg-[#d1fae5] text-[#059669] border border-[#a7f3d0] text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-full flex items-center gap-1">
                       <span className="material-symbols-outlined text-xs">check_circle</span>
                       Uploaded
                     </span>
                   ) : category.required ? (
-                    <span className="bg-red-500/10 text-red-500 text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full flex items-center gap-1">
+                    <span className="bg-[#fee2e2] text-[#dc2626] border border-[#fecaca] text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-full flex items-center gap-1">
                       Action Required
                     </span>
                   ) : (
-                    <span className="bg-zinc-800 text-zinc-500 text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full flex items-center gap-1">
+                    <span className="bg-[var(--teal-050)] text-[var(--teal-900)] border border-[var(--border)] text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-full flex items-center gap-1">
                       Optional
                     </span>
                   )}
@@ -271,19 +271,19 @@ export default function DocumentUpload() {
 
                 <div className="space-y-3">
                   {catDocs.map(doc => (
-                    <div key={doc.id} className="p-3 bg-black/30 border border-white/5 rounded-xl flex items-center justify-between">
+                    <div key={doc.id} className="p-3 bg-white border border-[var(--border)] rounded-xl flex items-center justify-between">
                       <div className="flex items-center gap-3 truncate">
-                        <span className="material-symbols-outlined text-[#00e5a0]">description</span>
+                        <span className="material-symbols-outlined text-[var(--teal-600)]">description</span>
                         <div className="truncate">
-                          <p className="text-sm font-bold text-white truncate">{doc.name}</p>
-                          <p className="text-[10px] text-zinc-500 uppercase tracking-widest">{formatDate(doc.created_at)}</p>
+                          <p className="text-sm font-semibold text-[var(--teal-900)] truncate">{doc.name}</p>
+                          <p className="text-[10px] text-[var(--muted)] uppercase tracking-widest">{formatDate(doc.created_at)}</p>
                         </div>
                       </div>
                       <div className="flex gap-1 ml-4 shrink-0">
-                        <button onClick={(e) => { e.stopPropagation(); handleView(doc); }} className="size-8 flex items-center justify-center rounded-lg text-zinc-400 hover:bg-[#00e5a0]/10 hover:text-[#00e5a0] transition-colors">
+                        <button onClick={(e) => { e.stopPropagation(); handleView(doc); }} className="size-8 flex items-center justify-center rounded-lg text-[var(--muted)] hover:bg-[var(--teal-050)] hover:text-[var(--teal-600)] transition-colors">
                           <span className="material-symbols-outlined text-[18px]">visibility</span>
                         </button>
-                        <button onClick={(e) => { e.stopPropagation(); handleDelete(doc); }} className="size-8 flex items-center justify-center rounded-lg text-zinc-400 hover:bg-red-500/10 hover:text-red-500 transition-colors">
+                        <button onClick={(e) => { e.stopPropagation(); handleDelete(doc); }} className="size-8 flex items-center justify-center rounded-lg text-[var(--muted)] hover:bg-[#fee2e2] hover:text-[#dc2626] transition-colors">
                           <span className="material-symbols-outlined text-[18px]">delete</span>
                         </button>
                       </div>
@@ -292,15 +292,15 @@ export default function DocumentUpload() {
                 </div>
               </div>
 
-              <div className="mt-6 pt-6 border-t border-white/5 relative">
+              <div className="mt-6 pt-6 border-t border-[var(--border)] relative">
                 {isUploading ? (
                   <div className="space-y-2">
-                    <div className="flex justify-between text-xs text-zinc-400 font-bold uppercase tracking-widest">
+                    <div className="flex justify-between text-xs text-[var(--muted)] font-semibold uppercase tracking-widest">
                       <span>Uploading...</span>
                       <span>{progress}%</span>
                     </div>
-                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                      <div className="h-full bg-[#00e5a0] transition-all duration-300" style={{ width: `${progress}%` }} />
+                    <div className="h-2 w-full bg-[var(--teal-050)] border border-[var(--border)] rounded-full overflow-hidden">
+                      <div className="h-full bg-[var(--teal-600)] transition-all duration-300" style={{ width: `${progress}%` }} />
                     </div>
                   </div>
                 ) : (
@@ -315,7 +315,7 @@ export default function DocumentUpload() {
                     />
                     <label 
                       htmlFor={`file-${category.id}`}
-                      className="w-full flex items-center justify-center h-12 rounded-xl border border-dashed border-zinc-700 text-zinc-400 text-sm font-bold hover:border-[#00e5a0]/50 hover:text-[#00e5a0] hover:bg-[#00e5a0]/5 transition-all cursor-pointer"
+                      className="w-full flex items-center justify-center h-12 rounded-xl border border-dashed border-[var(--border)] text-[var(--muted)] text-sm font-semibold hover:border-[var(--teal-500)] hover:text-[var(--teal-600)] hover:bg-[var(--teal-050)] transition-colors cursor-pointer"
                     >
                       <span className="material-symbols-outlined mr-2">upload_file</span>
                       {hasDoc ? 'Upload Another File' : 'Browse Files'}
@@ -328,7 +328,7 @@ export default function DocumentUpload() {
         })}
       </div>
 
-      <div className="flex justify-between items-center pt-8 border-t border-white/5">
+      <div className="flex justify-between items-center pt-8 border-t border-[var(--border)]">
         <Button variant="ghost" onClick={() => navigate('/seller/property')}>Back to Property</Button>
         <Button variant="primary" onClick={() => navigate('/seller/declaration')}>Continue to Final Step</Button>
       </div>

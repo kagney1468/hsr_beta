@@ -51,7 +51,7 @@ export default function Certificate() {
     loadData();
   }, [user]);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin size-8 border-2 border-[#00e5a0] border-t-transparent rounded-full" /></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin size-8 border-2 border-[var(--teal-600)] border-t-transparent rounded-full" /></div>;
 
   const certId = user ? `HSR-${user.id.substring(0, 4).toUpperCase()}` : 'HSR-X';
   const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -59,42 +59,42 @@ export default function Certificate() {
   return (
     <div className="max-w-4xl mx-auto p-6 md:p-10 space-y-10">
       <div className="text-center space-y-2">
-        <h1 className="text-4xl font-black font-heading text-white tracking-tight">Market Ready Certificate</h1>
-        <p className="text-zinc-400">Proof of verified property information and legal preparation.</p>
+        <h1 className="text-4xl font-black font-heading text-[var(--teal-900)] tracking-tight">Market ready certificate</h1>
+        <p className="text-[var(--muted)]">Proof of verified property information and legal preparation.</p>
       </div>
 
-      <Card className="p-10 md:p-20 border-white/10 bg-zinc-900 shadow-2xl relative overflow-hidden text-center space-y-10 border-double border-4">
+      <Card className="p-10 md:p-20 relative overflow-hidden text-center space-y-10 border-double border-4 border-[var(--border)]">
         {/* Decorative elements */}
-        <div className="absolute top-0 left-0 w-full h-2 bg-[#00e5a0]" />
-        <div className="absolute bottom-0 left-0 w-full h-2 bg-[#00e5a0]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[600px] bg-[#00e5a0]/5 blur-[120px] rounded-full pointer-events-none" />
+        <div className="absolute top-0 left-0 w-full h-2 bg-[var(--teal-500)]" />
+        <div className="absolute bottom-0 left-0 w-full h-2 bg-[var(--teal-500)]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[600px] bg-[var(--teal-050)] blur-[120px] rounded-full pointer-events-none" />
 
         <div className="space-y-4 relative z-10">
-          <div className="size-20 bg-[#00e5a0]/10 text-[#00e5a0] flex items-center justify-center rounded-3xl mx-auto mb-6">
+          <div className="size-20 bg-[var(--teal-050)] text-[var(--teal-600)] border border-[var(--border)] flex items-center justify-center rounded-3xl mx-auto mb-6">
             <span className="material-symbols-outlined text-4xl">verified</span>
           </div>
-          <h2 className="text-5xl font-black font-heading text-white uppercase tracking-tighter">Certificate of Readiness</h2>
-          <p className="text-zinc-500 font-bold uppercase tracking-[0.3em] text-xs">Official Verification • HomeSalesReady UK</p>
+          <h2 className="text-5xl font-black font-heading text-[var(--teal-900)] uppercase tracking-tighter">Certificate of readiness</h2>
+          <p className="text-[var(--muted)] font-semibold uppercase tracking-[0.3em] text-xs">Official Verification • HomeSalesReady UK</p>
         </div>
 
         <div className="space-y-2 relative z-10">
-          <p className="text-zinc-400 italic">This is to certify that the property located at</p>
-          <h3 className="text-3xl font-black font-heading text-white">{property?.address || 'Property Address'}</h3>
-          <p className="text-xl text-zinc-300">{property?.postcode}</p>
+          <p className="text-[var(--muted)] italic">This is to certify that the property located at</p>
+          <h3 className="text-3xl font-black font-heading text-[var(--teal-900)]">{property?.address || 'Property Address'}</h3>
+          <p className="text-xl text-[var(--muted)]">{property?.postcode}</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-10 border-t border-white/10 relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-10 border-t border-[var(--border)] relative z-10">
           <div className="space-y-1">
-             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Issued to</p>
-             <p className="text-white font-bold">{sellerName}</p>
+             <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--muted)]">Issued to</p>
+             <p className="text-[var(--teal-900)] font-semibold">{sellerName}</p>
           </div>
           <div className="space-y-1">
-             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Date Issued</p>
-             <p className="text-white font-bold">{today}</p>
+             <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--muted)]">Date issued</p>
+             <p className="text-[var(--teal-900)] font-semibold">{today}</p>
           </div>
           <div className="space-y-1">
-             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Certificate ID</p>
-             <p className="text-white font-bold font-mono">{certId}</p>
+             <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--muted)]">Certificate ID</p>
+             <p className="text-[var(--teal-900)] font-semibold font-mono">{certId}</p>
           </div>
         </div>
 
@@ -103,17 +103,17 @@ export default function Certificate() {
              <div className="p-4 bg-white rounded-2xl shadow-xl">
                 <QRCode value={`${window.location.origin}/share/${shareToken}`} size={120} />
              </div>
-             <p className="text-xs text-zinc-500 max-w-xs mx-auto">Scan to verify the live material information and documents for this property.</p>
+             <p className="text-xs text-[var(--muted)] max-w-xs mx-auto">Scan to verify the live material information and documents for this property.</p>
           </div>
         )}
       </Card>
 
       <div className="flex flex-col md:flex-row justify-center gap-4">
-         <Button variant="ghost" className="h-14 px-8 rounded-2xl border-white/10 text-white" onClick={() => window.print()}>
+         <Button variant="outline" className="h-14 px-8 rounded-2xl" onClick={() => window.print()}>
             <span className="material-symbols-outlined mr-2">download</span>
             Download PDF
          </Button>
-         <Button variant="primary" className="h-14 px-12 rounded-2xl text-black font-black font-heading" onClick={() => {
+         <Button variant="primary" className="h-14 px-12 rounded-2xl font-heading font-bold" onClick={() => {
             if(shareToken) window.open(`/share/${shareToken}`, '_blank');
          }}>
             <span className="material-symbols-outlined mr-2">share</span>

@@ -11,11 +11,11 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ status, label, icon, className = '' }: StatusBadgeProps) {
   const styles = {
-    success: 'bg-accent/10 text-accent border-accent/20',
-    warning: 'bg-amber-custom/10 text-amber-custom border-amber-custom/20',
-    error: 'bg-red-50 text-red-600 border-red-100',
-    info: 'bg-blue-50 text-blue-600 border-blue-100',
-    pending: 'bg-orange-50 text-orange-600 border-orange-100',
+    success: 'bg-[#d1fae5] text-[#059669] border-[#d1fae5]',
+    warning: 'bg-[#fef3c7] text-[#d97706] border-[#fef3c7]',
+    error: 'bg-[#fee2e2] text-[#dc2626] border-[#fee2e2]',
+    info: 'bg-[var(--teal-050)] text-[var(--teal-900)] border-[var(--teal-050)]',
+    pending: 'bg-[var(--teal-050)] text-[var(--teal-600)] border-[var(--teal-050)]',
   };
 
   const defaultIcons = {
@@ -29,7 +29,7 @@ export function StatusBadge({ status, label, icon, className = '' }: StatusBadge
   const displayIcon = icon || defaultIcons[status];
 
   return (
-    <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold uppercase tracking-widest ${styles[status]} ${className}`}>
+    <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-semibold tracking-wide ${styles[status]} ${className}`}>
       <span className="material-symbols-outlined text-[14px]">{displayIcon}</span>
       {label}
     </div>

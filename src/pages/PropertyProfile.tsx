@@ -277,7 +277,7 @@ export default function PropertyProfile() {
       )}
 
       <div className="space-y-12">
-        <Card className="p-8 border-l-4 border-l-[#00e5a0]/50 border-white/5 bg-zinc-900 shadow-2xl space-y-8 text-white">
+        <Card className="p-8 border-l-4 border-l-[var(--teal-500)]/50 space-y-8 text-white">
           <div className="flex items-center gap-2 mb-6">
             <h2 className="text-xl font-bold font-heading">Property Address</h2>
           </div>
@@ -310,7 +310,7 @@ export default function PropertyProfile() {
                   name="address_line1"
                   value={formData.address_line1}
                   onChange={handleChange}
-                  className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
+                  className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all"
                 />
               </div>
 
@@ -321,7 +321,7 @@ export default function PropertyProfile() {
                   name="address_line2"
                   value={formData.address_line2}
                   onChange={handleChange}
-                  className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
+                  className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all"
                 />
               </div>
               
@@ -333,7 +333,7 @@ export default function PropertyProfile() {
                     name="address_town"
                     value={formData.address_town}
                     onChange={handleChange}
-                    className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
+                    className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all"
                   />
                 </div>
                 
@@ -344,7 +344,7 @@ export default function PropertyProfile() {
                     name="address_county"
                     value={formData.address_county}
                     onChange={handleChange}
-                    className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
+                    className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all"
                   />
                 </div>
               </div>
@@ -356,7 +356,7 @@ export default function PropertyProfile() {
                   name="postcode"
                   value={formData.postcode}
                   onChange={handleChange}
-                  className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[#00e5a0]/50 outline-none transition-all"
+                  className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all"
                 />
               </div>
             </div>

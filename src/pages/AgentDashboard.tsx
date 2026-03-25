@@ -117,7 +117,7 @@ export default function AgentDashboard() {
 
   const kpis = [
     { label: 'Active Properties', value: activeProperties, icon: 'home_work' },
-    { label: 'Packs Complete', value: packsComplete, icon: 'verified', color: 'text-[#00e5a0]' },
+    { label: 'Packs Complete', value: packsComplete, icon: 'verified', color: 'text-[var(--teal-600)]' },
     { label: 'Awaiting Seller Action', value: awaitingSellerAction, icon: 'error_outline', color: 'text-red-500' },
     { label: 'Average Pack Completion', value: `${avgCompletion}%`, icon: 'donut_large', color: 'text-amber-500' },
   ];
@@ -132,7 +132,7 @@ export default function AgentDashboard() {
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-6">
-        <div className="animate-spin size-10 border-4 border-[#00e5a0] border-t-transparent rounded-full" />
+        <div className="animate-spin size-10 border-4 border-[var(--teal-600)] border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -145,13 +145,13 @@ export default function AgentDashboard() {
           <h1 className="text-3xl font-black font-heading tracking-tight">Property Pipeline</h1>
           <p className="text-zinc-500 mt-1 flex items-center gap-2">
             Overview of all active instructions
-            {isRefreshing && <span className="size-1.5 rounded-full bg-[#00e5a0] animate-pulse" />}
+            {isRefreshing && <span className="size-1.5 rounded-full bg-[var(--teal-500)] animate-pulse" />}
           </p>
         </div>
         <Button 
           variant="primary" 
           onClick={() => setShowAddPropertyModal(true)}
-          className="h-12 px-6 rounded-xl bg-[#00e5a0] text-black font-black font-heading flex items-center gap-2 shadow-lg shadow-[#00e5a0]/15"
+          className="h-12 px-6 rounded-xl font-black font-heading flex items-center gap-2"
         >
           <span className="material-symbols-outlined text-[20px]">add_circle</span>
           Add Property
@@ -201,7 +201,7 @@ export default function AgentDashboard() {
                     <tr key={prop.id} className="hover:bg-white/[0.02] transition-colors group">
                       <td className="px-6 py-6">
                         <Link to={`/agent/property/${prop.id}`} className="block">
-                          <div className="font-bold text-white group-hover:text-[#00e5a0] transition-colors">{prop.address}</div>
+                          <div className="font-bold text-white group-hover:text-[var(--teal-600)] transition-colors">{prop.address}</div>
                           <div className="text-[11px] text-zinc-500 mt-1 uppercase tracking-wider">{prop.postcode}</div>
                         </Link>
                       </td>
@@ -213,7 +213,7 @@ export default function AgentDashboard() {
                            <div className="h-1.5 w-full bg-black/60 rounded-full overflow-hidden">
                              <div 
                                className={`h-full rounded-full transition-all duration-700 ${
-                                 prop.status === 'Pack Complete' ? 'bg-[#00e5a0]' : 
+                                 prop.status === 'Pack Complete' ? 'bg-[var(--teal-600)]' : 
                                  prop.status === 'In Progress' ? 'bg-amber-500' : 'bg-red-500'
                                }`}
                                style={{ width: `${prop.score}%` }} 
@@ -224,12 +224,12 @@ export default function AgentDashboard() {
                       </td>
                       <td className="px-6 py-6">
                         <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
-                          prop.status === 'Pack Complete' ? 'bg-[#00e5a0]/10 text-[#00e5a0] border-[#00e5a0]/20' : 
+                          prop.status === 'Pack Complete' ? 'bg-[var(--teal-050)] text-[var(--teal-600)] border-[var(--teal-050)]' : 
                           prop.status === 'In Progress' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 
                           'bg-red-500/10 text-red-500 border-red-500/20'
                         }`}>
                           <span className={`size-1.5 rounded-full ${
-                             prop.status === 'Pack Complete' ? 'bg-[#00e5a0]' : 
+                             prop.status === 'Pack Complete' ? 'bg-[var(--teal-600)]' : 
                              prop.status === 'In Progress' ? 'bg-amber-500' : 'bg-red-500'
                           }`} />
                           {prop.status}
@@ -271,7 +271,7 @@ export default function AgentDashboard() {
                   type="text" 
                   value={newProperty.address}
                   onChange={e => setNewProperty({...newProperty, address: e.target.value})}
-                  className="w-full h-14 bg-black/40 border border-white/10 rounded-2xl px-5 text-sm focus:border-[#00e5a0]/50 outline-none transition-all"
+                  className="w-full h-14 bg-black/40 border border-white/10 rounded-2xl px-5 text-sm focus:border-[var(--teal-500)] outline-none transition-all"
                   placeholder="e.g. 12 Maple Gardens"
                 />
               </div>
@@ -283,7 +283,7 @@ export default function AgentDashboard() {
                     type="text" 
                     value={newProperty.postcode}
                     onChange={e => setNewProperty({...newProperty, postcode: e.target.value})}
-                    className="w-full h-14 bg-black/40 border border-white/10 rounded-2xl px-5 text-sm focus:border-[#00e5a0]/50 outline-none transition-all"
+                    className="w-full h-14 bg-black/40 border border-white/10 rounded-2xl px-5 text-sm focus:border-[var(--teal-500)] outline-none transition-all"
                     placeholder="E.g. SW1 1AA"
                   />
                 </div>
@@ -294,7 +294,7 @@ export default function AgentDashboard() {
                     type="email" 
                     value={newProperty.seller_email}
                     onChange={e => setNewProperty({...newProperty, seller_email: e.target.value})}
-                    className="w-full h-14 bg-black/40 border border-white/10 rounded-2xl px-5 text-sm focus:border-[#00e5a0]/50 outline-none transition-all"
+                    className="w-full h-14 bg-black/40 border border-white/10 rounded-2xl px-5 text-sm focus:border-[var(--teal-500)] outline-none transition-all"
                     placeholder="seller@example.com"
                   />
                 </div>
@@ -303,7 +303,7 @@ export default function AgentDashboard() {
               <Button 
                 type="submit" 
                 variant="primary" 
-                className="w-full h-16 rounded-2xl bg-[#00e5a0] text-black font-black font-heading text-lg shadow-xl shadow-[#00e5a0]/15 mt-4"
+                className="w-full h-16 rounded-2xl font-black font-heading text-lg mt-4"
               >
                 Create Instruction & Invite Seller
               </Button>

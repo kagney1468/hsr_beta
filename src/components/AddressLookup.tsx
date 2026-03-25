@@ -51,7 +51,7 @@ export function AddressLookup({ postcode, onPostcodeChange, onAddressSelect, dis
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row gap-4">
         <input 
-          className="flex-1 h-16 px-6 rounded-2xl border border-white/10 bg-black/40 text-white focus:border-[#00e5a0]/50 outline-none transition-all text-xl font-black tracking-widest uppercase placeholder:text-zinc-800"
+          className="flex-1 h-16 px-6 rounded-2xl border border-[var(--border)] bg-white text-[var(--teal-900)] focus:border-[var(--teal-500)] outline-none transition-colors text-xl font-semibold tracking-widest uppercase placeholder:text-[var(--muted)]"
           placeholder="E.G. SW1A 1AA"
           value={postcode}
           onChange={(e) => onPostcodeChange(e.target.value.toUpperCase())}
@@ -61,7 +61,7 @@ export function AddressLookup({ postcode, onPostcodeChange, onAddressSelect, dis
           variant="primary" 
           onClick={handleLookup}
           disabled={loading || disabled}
-          className="h-16 px-8 rounded-2xl whitespace-nowrap text-black font-black"
+          className="h-16 px-8 rounded-2xl whitespace-nowrap font-semibold"
         >
           {loading ? 'Finding...' : 'Find Address'}
         </Button>
@@ -70,11 +70,11 @@ export function AddressLookup({ postcode, onPostcodeChange, onAddressSelect, dis
 
       {options.length > 0 && (
         <div className="space-y-3 animate-in fade-in slide-in-from-top-4 duration-500">
-          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#00e5a0] flex items-center">
+          <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--teal-900)] flex items-center">
             Select Your Address
           </label>
           <select 
-            className="w-full h-16 px-6 rounded-2xl border border-[#00e5a0]/30 bg-[#00e5a0]/5 text-white focus:border-[#00e5a0] outline-none transition-all cursor-pointer"
+            className="w-full h-16 px-6 rounded-2xl border border-[var(--border)] bg-white text-[var(--text)] focus:border-[var(--teal-500)] outline-none transition-colors cursor-pointer"
             onChange={(e) => {
               const selectedIndex = parseInt(e.target.value);
               const addr = options[selectedIndex];

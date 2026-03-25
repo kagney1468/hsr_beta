@@ -127,7 +127,7 @@ export default function AgentPropertyDetail() {
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-6">
-        <div className="animate-spin size-10 border-4 border-[#00e5a0] border-t-transparent rounded-full" />
+        <div className="animate-spin size-10 border-4 border-[var(--teal-600)] border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -159,7 +159,7 @@ export default function AgentPropertyDetail() {
         </div>
         <div className="flex items-center gap-3">
            <Button variant="outline" className="h-12 px-6 rounded-xl border-white/10 text-zinc-400 font-bold">Edit Details</Button>
-           <Button variant="primary" className="h-12 px-6 rounded-xl bg-[#00e5a0] text-black font-black font-heading shadow-xl shadow-[#00e5a0]/10">Download Pack</Button>
+           <Button variant="primary" className="h-12 px-6 rounded-xl font-black font-heading">Download Pack</Button>
         </div>
       </div>
 
@@ -170,10 +170,10 @@ export default function AgentPropertyDetail() {
             {/* Stats Overview */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { label: 'Pack Progress', value: `${readiness.score}%`, color: readiness.score === 100 ? 'text-[#00e5a0]' : 'text-amber-500' },
+                { label: 'Pack Progress', value: `${readiness.score}%`, color: readiness.score === 100 ? 'text-[var(--teal-600)]' : 'text-amber-500' },
                 { label: 'Documents', value: documents.length, color: 'text-white' },
                 { label: 'Total Views', value: viewers.length, color: 'text-blue-400' },
-                { label: 'Priority Leads', value: viewers.filter(v => v.is_selling).length, color: 'text-[#00e5a0]' },
+                { label: 'Priority Leads', value: viewers.filter(v => v.is_selling).length, color: 'text-[var(--teal-600)]' },
               ].map(stat => (
                 <Card key={stat.label} className="p-5 bg-zinc-900/40 border-white/5 space-y-1">
                   <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">{stat.label}</p>
@@ -213,8 +213,8 @@ export default function AgentPropertyDetail() {
                          </td>
                          <td className="px-6 py-4">
                             {viewer.is_selling ? (
-                              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-[#00e5a0]/10 text-[#00e5a0] text-[10px] font-black uppercase tracking-widest border border-[#00e5a0]/20">
-                                <span className="size-1 rounded-full bg-[#00e5a0] animate-pulse" />
+                              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-[var(--teal-050)] text-[var(--teal-600)] text-[10px] font-black uppercase tracking-widest border border-[var(--border)]">
+                                <span className="size-1 rounded-full bg-[var(--teal-500)] animate-pulse" />
                                 Selling in {viewer.selling_location}
                               </div>
                             ) : (
@@ -240,7 +240,7 @@ export default function AgentPropertyDetail() {
                 ].map(item => (
                   <div key={item.label} className="p-4 rounded-2xl bg-black/40 border border-white/5 flex items-center justify-between">
                     <span className="font-bold text-sm tracking-tight text-zinc-300">{item.label}</span>
-                    <span className={`material-symbols-outlined ${item.done ? 'text-[#00e5a0]' : 'text-zinc-800'}`}>
+                    <span className={`material-symbols-outlined ${item.done ? 'text-[var(--teal-600)]' : 'text-zinc-800'}`}>
                       {item.done ? 'check_circle' : 'pending'}
                     </span>
                   </div>
@@ -278,10 +278,10 @@ export default function AgentPropertyDetail() {
           {/* Sidebar */}
           <div className="space-y-8">
             {/* Share Card */}
-            <Card className="p-8 border-[#00e5a0]/20 bg-[#00e5a0]/5 overflow-hidden relative">
-              <div className="absolute top-0 right-0 size-32 bg-[#00e5a0]/10 blur-[60px] pointer-events-none" />
+            <Card className="p-8 border-[var(--border)] bg-[var(--teal-050)] overflow-hidden relative">
+              <div className="absolute top-0 right-0 size-32 bg-[var(--teal-050)] blur-[60px] pointer-events-none" />
               <div className="relative z-10 space-y-6">
-                <div className="inline-flex items-center gap-2 text-[#00e5a0] text-[10px] font-black uppercase tracking-[0.2em]">
+                <div className="inline-flex items-center gap-2 text-[var(--teal-900)] text-[10px] font-black uppercase tracking-[0.2em]">
                   <span className="material-symbols-outlined text-sm">qr_code_2</span>
                   Property QR Gate
                 </div>
@@ -299,11 +299,11 @@ export default function AgentPropertyDetail() {
                           navigator.clipboard.writeText(`${window.location.origin}/share/${shareToken}`);
                           alert('Public link copied!');
                         }}
-                        className="w-full h-14 rounded-2xl bg-[#00e5a0] text-black font-black font-heading text-sm shadow-lg shadow-[#00e5a0]/20"
+                        className="w-full h-14 rounded-2xl font-black font-heading text-sm"
                       >
                          Copy Public Link
                       </Button>
-                      <Link to={`/share/${shareToken}`} target="_blank" className="block w-full text-center py-2 text-[10px] font-black text-zinc-500 uppercase tracking-widest hover:text-[#00e5a0] transition-colors">
+                      <Link to={`/share/${shareToken}`} target="_blank" className="block w-full text-center py-2 text-[10px] font-black text-zinc-500 uppercase tracking-widest hover:text-[var(--teal-600)] transition-colors">
                         Preview as Viewer
                       </Link>
                     </div>

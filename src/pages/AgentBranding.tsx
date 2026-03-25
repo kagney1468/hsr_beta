@@ -10,7 +10,7 @@ interface AgencySettings {
   custom_domain: string;
 }
 
-const DEFAULT_COLOUR = '#00e5a0';
+const DEFAULT_COLOUR = '#17afaf';
 
 export default function AgentBranding() {
   const { user } = useAuth();
@@ -289,7 +289,7 @@ export default function AgentBranding() {
                 </div>
                 {/* Swatch row */}
                 <div className="flex gap-2">
-                  {['#00e5a0', '#0066ff', '#ff4545', '#ffaa00', '#a855f7', '#ec4899'].map(c => (
+                  {['#17afaf', '#0d4a4a', '#10b981', '#f59e0b', '#ef4444', '#0066ff'].map(c => (
                     <button
                       key={c}
                       onClick={() => setSettings(s => ({ ...s, brand_colour: c }))}

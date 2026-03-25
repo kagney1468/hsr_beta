@@ -34,8 +34,8 @@ export default function Help() {
   return (
     <div className="max-w-3xl mx-auto p-6 md:p-10 space-y-10">
       <div className="text-center space-y-2">
-        <h1 className="text-4xl font-black font-heading text-white tracking-tight">Help & FAQ</h1>
-        <p className="text-zinc-400">Find answers to common questions about your property pack.</p>
+        <h1 className="text-4xl font-black font-heading text-[var(--teal-900)] tracking-tight">Help & FAQ</h1>
+        <p className="text-[var(--muted)]">Find answers to common questions about your property pack.</p>
       </div>
 
       <div className="space-y-4">
@@ -44,14 +44,14 @@ export default function Help() {
           return (
             <Card 
               key={index} 
-              className={`p-0 border-white/5 bg-zinc-900 overflow-hidden transition-all duration-300 ${isOpen ? 'ring-1 ring-[#00e5a0]/30 shadow-xl shadow-[#00e5a0]/5' : ''}`}
+              className={`p-0 overflow-hidden transition-all duration-300 ${isOpen ? 'ring-1 ring-[var(--teal-050)] shadow-soft' : ''}`}
             >
               <button
-                className="w-full flex items-center justify-between p-6 text-left focus:outline-none hover:bg-white/[0.02] transition-colors"
+                className="w-full flex items-center justify-between p-6 text-left focus:outline-none hover:bg-[var(--teal-050)] transition-colors"
                 onClick={() => setOpenIndex(isOpen ? null : index)}
               >
-                <span className="font-bold text-white text-base pr-4">{faq.question}</span>
-                <span className={`material-symbols-outlined text-[#00e5a0] transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}>
+                <span className="font-semibold text-[var(--teal-900)] text-base pr-4">{faq.question}</span>
+                <span className={`material-symbols-outlined text-[var(--teal-600)] transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}>
                   expand_more
                 </span>
               </button>
@@ -59,7 +59,7 @@ export default function Help() {
               <div 
                 className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-96' : 'max-h-0'}`}
               >
-                <div className="px-6 pb-6 text-zinc-400 text-sm leading-relaxed">
+                <div className="px-6 pb-6 text-[var(--muted)] text-sm leading-relaxed">
                   {faq.answer}
                 </div>
               </div>
@@ -68,17 +68,17 @@ export default function Help() {
         })}
       </div>
 
-      <Card className="p-8 border-white/5 bg-zinc-900 text-center space-y-4 shadow-2xl">
-        <div className="size-12 bg-[#00e5a0]/10 text-[#00e5a0] flex items-center justify-center rounded-2xl mx-auto">
+      <Card className="p-8 text-center space-y-4">
+        <div className="size-12 bg-[var(--teal-050)] text-[var(--teal-600)] border border-[var(--border)] flex items-center justify-center rounded-2xl mx-auto">
            <span className="material-symbols-outlined">mail</span>
         </div>
         <div className="space-y-1">
-          <h3 className="text-lg font-bold text-white">Still need help?</h3>
-          <p className="text-zinc-500 text-sm">Our support team is available Mon-Fri, 9am - 5pm.</p>
+          <h3 className="text-lg font-bold text-[var(--teal-900)]">Still need help?</h3>
+          <p className="text-[var(--muted)] text-sm">Our support team is available Mon–Fri, 9am – 5pm.</p>
         </div>
         <a 
           href="mailto:support@homesalesready.com"
-          className="inline-block px-8 py-3 bg-[#00e5a0] text-black font-black font-heading rounded-xl shadow-lg shadow-[#00e5a0]/20 hover:scale-[1.02] transition-all"
+          className="inline-block px-8 py-3 bg-[var(--teal-600)] text-white font-bold font-heading rounded-xl hover:bg-[var(--teal-900)] transition-colors"
         >
           Contact Support
         </a>
