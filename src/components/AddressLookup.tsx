@@ -74,8 +74,8 @@ export function AddressLookup({ postcode, onPostcodeChange, onAddressSelect, dis
   return (
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row gap-4">
-        <input 
-          className="flex-1 h-16 px-6 rounded-2xl border border-[var(--border)] bg-white text-[var(--teal-900)] focus:border-[var(--teal-500)] outline-none transition-colors text-xl font-semibold tracking-widest uppercase placeholder:text-[var(--muted)]"
+        <input
+          className="flex-1 min-w-0 uppercase tracking-widest font-semibold"
           placeholder="E.G. SW1A 1AA"
           value={postcode}
           onChange={(e) => onPostcodeChange(e.target.value.toUpperCase())}
@@ -97,8 +97,8 @@ export function AddressLookup({ postcode, onPostcodeChange, onAddressSelect, dis
           <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--teal-900)] flex items-center">
             Select Your Address
           </label>
-          <select 
-            className="w-full h-16 px-6 rounded-2xl border border-[var(--border)] bg-white text-[var(--text)] focus:border-[var(--teal-500)] outline-none transition-colors cursor-pointer"
+          <select
+            className="w-full cursor-pointer"
             onChange={(e) => {
               const selectedIndex = parseInt(e.target.value, 10);
               const addr = options[selectedIndex] as {

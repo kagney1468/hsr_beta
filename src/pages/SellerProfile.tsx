@@ -115,191 +115,122 @@ export default function SellerProfile() {
   return (
     <div className="max-w-4xl mx-auto space-y-10 py-6 md:py-10">
       <div className="flex flex-col gap-2 px-4 md:px-0">
-        <h1 className="text-4xl font-black font-heading text-white tracking-tight">Seller Profile</h1>
-        <p className="text-zinc-400">Complete your personal details to begin your property sale.</p>
+        <h1 className="text-4xl font-black font-heading text-[var(--teal-900)] tracking-tight">Seller Profile</h1>
+        <p className="text-[var(--muted)]">Complete your personal details to begin your property sale.</p>
       </div>
 
       {message && (
         <div className={`mx-4 md:mx-0 p-4 rounded-2xl border font-bold animate-in fade-in slide-in-from-top-2 duration-300 ${
-          message.type === 'success' 
-            ? 'bg-green-900/20 border-green-800 text-green-400' 
-            : 'bg-red-900/20 border-red-800 text-red-400'
+          message.type === 'success'
+            ? 'bg-[#d1fae5] border-[#a7f3d0] text-[#065f46]'
+            : 'bg-[#fee2e2] border-[#fecaca] text-[#b91c1c]'
         }`}>
           {message.text}
         </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-4 md:px-0">
-        <Card className="p-8 border-white/5 bg-zinc-900 space-y-8 shadow-2xl">
+        <Card className="p-8 space-y-8">
           <div className="space-y-1">
-            <h3 className="text-xl font-bold font-heading text-white">Personal Information</h3>
-            <p className="text-xs text-zinc-500">Your core contact details.</p>
+            <h3 className="text-xl font-bold font-heading text-[var(--teal-900)]">Personal Information</h3>
+            <p className="text-xs text-[var(--muted)]">Your core contact details.</p>
           </div>
 
           <div className="space-y-6">
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Full Name</label>
-              <input 
-                type="text" 
-                name="full_name"
-                value={formData.full_name}
-                onChange={handleChange}
-                className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all"
-                placeholder="John Doe"
-              />
+              <label className="text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Full Name</label>
+              <input type="text" name="full_name" value={formData.full_name} onChange={handleChange} className="w-full" placeholder="John Doe" />
             </div>
-            
+
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Email Address (Read-only)</label>
-              <input 
-                type="email" 
-                value={user?.email || ''}
-                readOnly
-                className="w-full h-12 px-4 rounded-xl border border-white/5 bg-white/5 text-zinc-500 cursor-not-allowed"
-              />
+              <label className="text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Email Address (Read-only)</label>
+              <input type="email" value={user?.email || ''} readOnly className="w-full" />
             </div>
-            
+
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Phone Number</label>
-              <input 
-                type="tel" 
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all"
-                placeholder="07123 456789"
-              />
+              <label className="text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Phone Number</label>
+              <input type="tel" name="phone" value={formData.phone} onChange={handleChange} className="w-full" placeholder="07123 456789" />
             </div>
-            
+
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">How should we contact you?</label>
-              <div className="relative">
-                <select 
-                    name="contact_preference"
-                    value={formData.contact_preference}
-                    onChange={handleChange}
-                    className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all appearance-none"
-                >
-                    <option value="email">Email</option>
-                    <option value="phone">Phone Call</option>
-                    <option value="sms">SMS Text</option>
-                </select>
-                <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none">unfold_more</span>
-              </div>
+              <label className="text-xs font-bold uppercase tracking-widest text-[var(--muted)]">How should we contact you?</label>
+              <select name="contact_preference" value={formData.contact_preference} onChange={handleChange} className="w-full">
+                <option value="email">Email</option>
+                <option value="phone">Phone Call</option>
+                <option value="sms">SMS Text</option>
+              </select>
             </div>
           </div>
         </Card>
 
-        <Card className="p-8 border-white/5 bg-zinc-900 space-y-8 shadow-2xl">
+        <Card className="p-8 space-y-8">
           <div className="space-y-1">
-            <h3 className="text-xl font-bold font-heading text-white">Home Address</h3>
-            <p className="text-xs text-zinc-500">Where you currently reside.</p>
+            <h3 className="text-xl font-bold font-heading text-[var(--teal-900)]">Home Address</h3>
+            <p className="text-xs text-[var(--muted)]">Where you currently reside.</p>
           </div>
 
           <div className="space-y-6">
             <div className="space-y-6">
-              <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Postcode Search</label>
-              <AddressLookup 
-                postcode={formData.home_address_postcode} 
-                onPostcodeChange={(val) => setFormData({...formData, home_address_postcode: val})} 
+              <label className="text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Postcode Search</label>
+              <AddressLookup
+                postcode={formData.home_address_postcode}
+                onPostcodeChange={(val) => setFormData({ ...formData, home_address_postcode: val })}
                 onAddressSelect={(addr) => {
-                  setFormData(prev => ({
+                  setFormData((prev) => ({
                     ...prev,
                     home_address_line1: addr.line1,
                     home_address_line2: addr.line2,
                     home_address_town: addr.town,
                     home_address_county: addr.county,
-                    home_address_city: addr.town, // Fill city automatically from town for now
-                    home_address_postcode: addr.postcode
+                    home_address_city: addr.town,
+                    home_address_postcode: addr.postcode,
                   }));
-                }} 
+                }}
               />
             </div>
 
-            <div className="pt-4 space-y-4 border-t border-white/5">
+            <div className="pt-4 space-y-4 border-t border-[var(--border)]">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Address Line 1</label>
-                <input 
-                  type="text" 
-                  name="home_address_line1"
-                  value={formData.home_address_line1}
-                  onChange={handleChange}
-                  className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all"
-                  placeholder="123 Example Street"
-                />
+                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Address Line 1</label>
+                <input type="text" name="home_address_line1" value={formData.home_address_line1} onChange={handleChange} className="w-full" placeholder="123 Example Street" />
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Address Line 2 (Optional)</label>
-                <input 
-                  type="text" 
-                  name="home_address_line2"
-                  value={formData.home_address_line2}
-                  onChange={handleChange}
-                  className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all"
-                  placeholder="Apt 4B"
-                />
+                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Address Line 2 (Optional)</label>
+                <input type="text" name="home_address_line2" value={formData.home_address_line2} onChange={handleChange} className="w-full" placeholder="Apt 4B" />
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Town / City</label>
-                  <input 
-                    type="text" 
-                    name="home_address_town"
-                    value={formData.home_address_town}
-                    onChange={handleChange}
-                    className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all"
-                    placeholder="London"
-                  />
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Town / City</label>
+                  <input type="text" name="home_address_town" value={formData.home_address_town} onChange={handleChange} className="w-full" placeholder="London" />
                 </div>
-                
+
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">County</label>
-                  <input 
-                    type="text" 
-                    name="home_address_county"
-                    value={formData.home_address_county}
-                    onChange={handleChange}
-                    className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all"
-                    placeholder="Greater London"
-                  />
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">County</label>
+                  <input type="text" name="home_address_county" value={formData.home_address_county} onChange={handleChange} className="w-full" placeholder="Greater London" />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">City</label>
-                <input 
-                  type="text" 
-                  name="home_address_city"
-                  value={formData.home_address_city}
-                  onChange={handleChange}
-                  className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all"
-                  placeholder="e.g. London"
-                />
+                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">City</label>
+                <input type="text" name="home_address_city" value={formData.home_address_city} onChange={handleChange} className="w-full" placeholder="e.g. London" />
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Postcode</label>
-                <input 
-                  type="text" 
-                  name="home_address_postcode"
-                  value={formData.home_address_postcode}
-                  onChange={handleChange}
-                  className="w-full h-12 px-4 rounded-xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all"
-                  placeholder="SW1A 1AA"
-                />
+                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Postcode</label>
+                <input type="text" name="home_address_postcode" value={formData.home_address_postcode} onChange={handleChange} className="w-full" placeholder="SW1A 1AA" />
               </div>
             </div>
 
             <div className="pt-4">
-              <div className="p-6 bg-white/[0.03] border border-white/5 rounded-2xl flex items-center gap-4">
-                <div className="size-10 bg-white/5 rounded-xl flex items-center justify-center text-zinc-500">
+              <div className="p-6 bg-[var(--teal-050)] border border-[var(--border)] rounded-2xl flex items-center gap-4">
+                <div className="size-10 bg-white rounded-xl border border-[var(--border)] flex items-center justify-center text-[var(--teal-600)]">
                   <span className="material-symbols-outlined text-lg">verified_user</span>
                 </div>
                 <div>
                   <p className="text-xs font-black uppercase tracking-wider text-[var(--teal-600)]">Security Note</p>
-                  <p className="text-[10px] text-zinc-500 leading-tight">Your data is encrypted and only shared with your appointed estate agent when you choose to go live.</p>
+                  <p className="text-[10px] text-[var(--muted)] leading-tight">Your data is encrypted and only shared with your appointed estate agent when you choose to go live.</p>
                 </div>
               </div>
             </div>
@@ -308,12 +239,7 @@ export default function SellerProfile() {
       </div>
 
       <div className="flex justify-end pt-4 px-4 md:px-0 pb-12">
-        <Button 
-          variant="primary" 
-          onClick={handleSave} 
-          disabled={saving}
-          className="w-full md:w-auto px-12 h-14 rounded-2xl text-black font-black font-heading text-lg active:scale-95 transition-all"
-        >
+        <Button variant="primary" onClick={handleSave} disabled={saving} className="w-full md:w-auto px-12 h-14 rounded-2xl font-black font-heading text-lg active:scale-95 transition-all">
           {saving ? 'Saving...' : 'Save & Continue'}
         </Button>
       </div>

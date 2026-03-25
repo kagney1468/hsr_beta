@@ -73,3 +73,124 @@ h1, h2, h3, h4, h5 {
   border-radius: 14px;
   box-shadow: var(--shadow-soft);
 }
+
+/* -------------------------------------------------------------------------- */
+/* Global form controls — teal light theme (default for all app forms)        */
+/* -------------------------------------------------------------------------- */
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]):not([type="range"]):not([type="color"]),
+textarea,
+select {
+  font-family: "DM Sans", sans-serif !important;
+  font-size: 0.95rem !important;
+  line-height: 1.5 !important;
+  color: #1a2e2f !important;
+  background-color: #ffffff !important;
+  border: 1.5px solid #ddeaeb !important;
+  border-radius: 8px !important;
+  padding: 12px 16px !important;
+  outline: none !important;
+  box-sizing: border-box !important;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]):not([type="range"]):not([type="color"])::placeholder,
+textarea::placeholder {
+  color: #5a7a7c !important;
+  opacity: 1 !important;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]):not([type="range"]):not([type="color"]):focus:not(:disabled),
+textarea:focus:not(:disabled),
+select:focus:not(:disabled) {
+  border-color: #17afaf !important;
+  box-shadow: 0 0 0 3px rgba(23, 175, 175, 0.12) !important;
+  outline: none !important;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):disabled,
+textarea:disabled,
+select:disabled,
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"])[readonly],
+textarea[readonly] {
+  background-color: #f8fafb !important;
+  border: 1.5px solid #ddeaeb !important;
+  color: #5a7a7c !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+}
+
+input:not([type="checkbox"]):not([type="radio"])[readonly]:focus,
+textarea[readonly]:focus {
+  border-color: #ddeaeb !important;
+  box-shadow: none !important;
+}
+
+select:not([multiple]) {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background-color: #ffffff !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 8l5 5 5-5' stroke='%2317afaf' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 12px center !important;
+  padding-right: 44px !important;
+  cursor: pointer !important;
+}
+
+select[multiple] {
+  background-image: none !important;
+  padding-right: 16px !important;
+}
+
+select option {
+  background-color: #ffffff;
+  color: #1a2e2f;
+}
+
+textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+input[type="color"] {
+  padding: 4px !important;
+  min-height: 2.75rem;
+  cursor: pointer !important;
+}
+
+/* Native checkboxes/radios without custom sizing — accent only */
+input[type="checkbox"]:not([class*="size-"]):not(.hsr-checkbox-custom),
+input[type="radio"]:not([class*="size-"]) {
+  width: 1.125rem;
+  height: 1.125rem;
+  min-height: 0;
+  padding: 0;
+  border-radius: 4px;
+  accent-color: #17afaf;
+  cursor: pointer;
+}
+
+input[type="radio"]:not([class*="size-"]) {
+  border-radius: 9999px;
+}
+
+/* Form card shell (optional utility) */
+.hsr-form-card {
+  background: #ffffff;
+  border: 1.5px solid #ddeaeb;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(13, 74, 74, 0.04);
+}
+
+/* Read-only field inside a bordered toolbar (no double border) */
+input.hsr-input-merge[readonly] {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  color: #1a2e2f !important;
+  cursor: text !important;
+}

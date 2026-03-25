@@ -148,7 +148,7 @@ export default function AgentBranding() {
       {/* Header */}
       <div className="px-6 md:px-9 pt-7 pb-6 border-b border-[var(--border)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-black text-white font-heading">Branding</h2>
+          <h2 className="text-2xl font-black text-[var(--teal-900)] font-heading">Branding</h2>
           <p className="text-sm text-[var(--muted)] mt-0.5">Customise your agency's look and white-label settings.</p>
         </div>
         <button
@@ -184,9 +184,9 @@ export default function AgentBranding() {
           <div className="space-y-6">
 
             {/* Agency Name */}
-            <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 space-y-4">
+            <div className="bg-white border border-[var(--border)] rounded-2xl p-6 space-y-4 shadow-soft">
               <div>
-                <h3 className="font-heading font-bold text-white text-base mb-0.5">Agency Details</h3>
+                <h3 className="font-heading font-bold text-[var(--teal-900)] text-base mb-0.5">Agency Details</h3>
                 <p className="text-xs text-[var(--muted)]">Your agency identity shown across all seller portals.</p>
               </div>
               <div>
@@ -196,19 +196,19 @@ export default function AgentBranding() {
                   value={settings.name}
                   onChange={e => setSettings(s => ({ ...s, name: e.target.value }))}
                   placeholder="e.g. Hargreaves & Co"
-                  className="w-full bg-[var(--deep)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-white placeholder:text-[var(--muted)]/50 focus:outline-none focus:border-[var(--accent)]/50 focus:ring-1 focus:ring-[var(--accent)]/30 transition-colors"
+                  className="w-full"
                 />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-[var(--muted)] uppercase tracking-wider mb-2">Custom Domain</label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)] text-sm">https://</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)] text-sm z-10">https://</span>
                   <input
                     type="text"
                     value={settings.custom_domain}
                     onChange={e => setSettings(s => ({ ...s, custom_domain: e.target.value }))}
                     placeholder="portal.youragency.com"
-                    className="w-full bg-[var(--deep)] border border-[var(--border)] rounded-xl pl-16 pr-4 py-3 text-sm text-white placeholder:text-[var(--muted)]/50 focus:outline-none focus:border-[var(--accent)]/50 focus:ring-1 focus:ring-[var(--accent)]/30 transition-colors"
+                    className="w-full pl-[4.25rem]"
                   />
                 </div>
                 <p className="text-[11px] text-[var(--muted)] mt-1.5">Point your domain's CNAME to <span className="text-[var(--accent)] font-mono">portal.homesalesready.com</span></p>
@@ -216,9 +216,9 @@ export default function AgentBranding() {
             </div>
 
             {/* Logo Upload */}
-            <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 space-y-4">
+            <div className="bg-white border border-[var(--border)] rounded-2xl p-6 space-y-4 shadow-soft">
               <div>
-                <h3 className="font-heading font-bold text-white text-base mb-0.5">Agency Logo</h3>
+                <h3 className="font-heading font-bold text-[var(--teal-900)] text-base mb-0.5">Agency Logo</h3>
                 <p className="text-xs text-[var(--muted)]">Displayed in the seller portal header and emails. PNG or SVG recommended.</p>
               </div>
 
@@ -247,11 +247,11 @@ export default function AgentBranding() {
                   </div>
                 ) : (
                   <>
-                    <div className="size-12 rounded-xl bg-[var(--deep)] border border-[var(--border)] flex items-center justify-center text-[var(--muted)]">
+                    <div className="size-12 rounded-xl bg-[var(--teal-050)] border border-[var(--border)] flex items-center justify-center text-[var(--muted)]">
                       <span className="material-symbols-outlined text-2xl">upload_file</span>
                     </div>
                     <div className="text-center">
-                      <p className="text-sm font-medium text-white">Drop your logo here</p>
+                      <p className="text-sm font-medium text-[var(--teal-900)]">Drop your logo here</p>
                       <p className="text-xs text-[var(--muted)] mt-0.5">or click to browse — PNG, SVG, JPG up to 5MB</p>
                     </div>
                   </>
@@ -260,9 +260,9 @@ export default function AgentBranding() {
             </div>
 
             {/* Brand Colour */}
-            <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 space-y-4">
+            <div className="bg-white border border-[var(--border)] rounded-2xl p-6 space-y-4 shadow-soft">
               <div>
-                <h3 className="font-heading font-bold text-white text-base mb-0.5">Brand Colour</h3>
+                <h3 className="font-heading font-bold text-[var(--teal-900)] text-base mb-0.5">Brand Colour</h3>
                 <p className="text-xs text-[var(--muted)]">Used for buttons, accents, and progress indicators in the seller portal.</p>
               </div>
               <div className="flex items-center gap-4">
@@ -283,7 +283,7 @@ export default function AgentBranding() {
                       if (/^#[0-9a-fA-F]{0,6}$/.test(v)) setSettings(s => ({ ...s, brand_colour: v }));
                     }}
                     maxLength={7}
-                    className="w-full bg-[var(--deep)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-white font-mono focus:outline-none focus:border-[var(--accent)]/50 focus:ring-1 focus:ring-[var(--accent)]/30 transition-colors"
+                    className="w-full font-mono"
                   />
                   <p className="text-[11px] text-[var(--muted)] pl-1">Enter a hex colour value</p>
                 </div>
@@ -307,12 +307,12 @@ export default function AgentBranding() {
           {/* ── RIGHT: Live Preview ── */}
           <div className="xl:sticky xl:top-8 space-y-4 self-start">
             <div>
-              <h3 className="font-heading font-bold text-white text-base mb-0.5">Live Preview</h3>
+              <h3 className="font-heading font-bold text-[var(--teal-900)] text-base mb-0.5">Live Preview</h3>
               <p className="text-xs text-[var(--muted)]">Updates as you type.</p>
             </div>
 
             {/* Sidebar Preview */}
-            <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-hidden shadow-xl">
+            <div className="bg-white border border-[var(--border)] rounded-2xl overflow-hidden shadow-soft">
               <div className="px-4 py-3 border-b border-[var(--border)] flex items-center gap-2">
                 <div className="size-2.5 rounded-full bg-[var(--red)]/60"></div>
                 <div className="size-2.5 rounded-full bg-[var(--amber)]/60"></div>
@@ -321,7 +321,7 @@ export default function AgentBranding() {
               </div>
               <div className="flex">
                 {/* Mini sidebar */}
-                <div className="w-[160px] bg-[var(--deep)] border-r border-[var(--border)] p-3 flex flex-col gap-1">
+                <div className="w-[160px] bg-[var(--page)] border-r border-[var(--border)] p-3 flex flex-col gap-1">
                   {/* Brand block */}
                   <div
                     className="rounded-lg p-2.5 mb-2 text-center"
@@ -334,7 +334,7 @@ export default function AgentBranding() {
                         <span className="material-symbols-outlined text-base" style={{ color: brandColour }}>real_estate_agent</span>
                       </div>
                     )}
-                    <div className="text-[10px] font-black font-heading text-white leading-tight truncate">
+                    <div className="text-[10px] font-black font-heading text-[var(--teal-900)] leading-tight truncate">
                       {settings.name || 'Your Agency'}
                     </div>
                     <div className="text-[8px] mt-0.5" style={{ color: brandColour }}>Estate Agent Portal</div>
@@ -361,22 +361,22 @@ export default function AgentBranding() {
                       { label: 'Active', value: '8' },
                       { label: 'Complete', value: '3' },
                     ].map(k => (
-                      <div key={k.label} className="bg-[var(--deep)] border border-[var(--border)] rounded-lg p-2">
+                      <div key={k.label} className="bg-[var(--teal-050)] border border-[var(--border)] rounded-lg p-2">
                         <div className="text-[8px] text-[var(--muted)]">{k.label}</div>
-                        <div className="font-heading font-black text-lg text-white leading-none mt-0.5">{k.value}</div>
+                        <div className="font-heading font-black text-lg text-[var(--teal-900)] leading-none mt-0.5">{k.value}</div>
                       </div>
                     ))}
                   </div>
 
                   {/* Fake table rows */}
-                  <div className="bg-[var(--deep)] border border-[var(--border)] rounded-lg overflow-hidden">
+                  <div className="bg-[var(--page)] border border-[var(--border)] rounded-lg overflow-hidden">
                     {[
                       { addr: '14 Maple Close', pct: 60 },
                       { addr: '7 Victoria Rd', pct: 100 },
                       { addr: '32 Clifton Down', pct: 20 },
                     ].map(r => (
                       <div key={r.addr} className="flex items-center gap-2 px-2.5 py-2 border-b border-[var(--border)] last:border-b-0">
-                        <div className="flex-1 text-[9px] text-white truncate">{r.addr}</div>
+                        <div className="flex-1 text-[9px] text-[var(--text)] truncate">{r.addr}</div>
                         <div className="flex items-center gap-1 w-14">
                           <div className="flex-1 h-1 bg-white/10 rounded-full overflow-hidden">
                             <div className="h-full rounded-full" style={{ width: `${r.pct}%`, backgroundColor: r.pct === 100 ? brandColour : r.pct >= 50 ? 'var(--amber)' : 'var(--red)' }}></div>
@@ -401,13 +401,13 @@ export default function AgentBranding() {
             </div>
 
             {/* Colour swatch preview */}
-            <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 flex items-center gap-4">
+            <div className="bg-white border border-[var(--border)] rounded-xl p-4 flex items-center gap-4 shadow-soft">
               <div className="size-12 rounded-xl flex-shrink-0 shadow-lg" style={{ backgroundColor: brandColour, boxShadow: `0 8px 24px ${brandColour}40` }}></div>
               <div>
-                <div className="text-sm font-bold text-white">{brandColour.toUpperCase()}</div>
+                <div className="text-sm font-bold text-[var(--teal-900)]">{brandColour.toUpperCase()}</div>
                 <div className="text-xs text-[var(--muted)] mt-0.5">Active brand colour</div>
               </div>
-              <div className="ml-auto text-xs text-[var(--muted)] font-mono px-2 py-1 bg-[var(--deep)] rounded-lg border border-[var(--border)]">
+              <div className="ml-auto text-xs text-[var(--muted)] font-mono px-2 py-1 bg-[var(--teal-050)] rounded-lg border border-[var(--border)]">
                 {settings.name || 'Your Agency'}
               </div>
             </div>

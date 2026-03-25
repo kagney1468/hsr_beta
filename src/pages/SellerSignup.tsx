@@ -95,38 +95,17 @@ export default function SellerSignup() {
           <form onSubmit={handleSignup} className="space-y-4">
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)]">Full name</label>
-              <input 
-                type="text" 
-                name="fullName"
-                required
-                value={formData.fullName}
-                onChange={handleChange}
-                className="w-full h-12 px-4 rounded-xl border border-[var(--border)] bg-white text-[var(--text)] focus:border-[var(--teal-500)] outline-none transition-colors"
-                placeholder="John Doe"
-              />
+              <input type="text" name="fullName" required value={formData.fullName} onChange={handleChange} className="w-full" placeholder="John Doe" />
             </div>
 
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)]">Phone number</label>
-              <input 
-                type="tel" 
-                name="phone"
-                required
-                value={formData.phone}
-                onChange={handleChange}
-                className="w-full h-12 px-4 rounded-xl border border-[var(--border)] bg-white text-[var(--text)] focus:border-[var(--teal-500)] outline-none transition-colors"
-                placeholder="07123 456789"
-              />
+              <input type="tel" name="phone" required value={formData.phone} onChange={handleChange} className="w-full" placeholder="07123 456789" />
             </div>
 
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)]">Contact preference</label>
-              <select
-                name="contactPreference"
-                value={formData.contactPreference}
-                onChange={handleChange}
-                className="w-full h-12 px-4 rounded-xl border border-[var(--border)] bg-white text-[var(--text)] focus:border-[var(--teal-500)] outline-none transition-colors"
-              >
+              <select name="contactPreference" value={formData.contactPreference} onChange={handleChange} className="w-full">
                 <option value="email">Email</option>
                 <option value="phone">Phone</option>
                 <option value="sms">SMS</option>
@@ -135,27 +114,12 @@ export default function SellerSignup() {
 
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)]">Email address</label>
-              <input 
-                type="email" 
-                name="email"
-                required
-                value={formData.email}
-                onChange={handleChange}
-                className="w-full h-12 px-4 rounded-xl border border-[var(--border)] bg-white text-[var(--text)] focus:border-[var(--teal-500)] outline-none transition-colors"
-                placeholder="john@example.com"
-              />
+              <input type="email" name="email" required value={formData.email} onChange={handleChange} className="w-full" placeholder="john@example.com" />
             </div>
 
             <div className="pt-2 border-t border-[var(--border)] space-y-2">
               <label className="text-xs font-semibold uppercase tracking-widest text-[var(--teal-900)]">Were you referred by an estate agent?</label>
-              <input 
-                type="text" 
-                name="referredBy"
-                value={formData.referredBy}
-                onChange={handleChange}
-                className="w-full h-12 px-4 rounded-xl border border-[var(--border)] bg-white text-[var(--text)] focus:border-[var(--teal-500)] outline-none transition-colors"
-                placeholder="Enter agency name"
-              />
+              <input type="text" name="referredBy" value={formData.referredBy} onChange={handleChange} className="w-full" placeholder="Enter agency name" />
               <p className="text-[10px] text-[var(--muted)] italic">This will automatically link your account to your agent.</p>
             </div>
 

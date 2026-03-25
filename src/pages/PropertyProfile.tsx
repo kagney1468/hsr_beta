@@ -266,7 +266,7 @@ export default function PropertyProfile() {
   return (
     <div className="max-w-4xl mx-auto p-6 md:p-10">
       <div className="mb-10">
-        <h1 className="text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Material Information</h1>
+        <h1 className="text-3xl font-black text-[var(--teal-900)] tracking-tight">Material Information</h1>
         <p className="text-slate-500 mt-2">Required by National Trading Standards to ensure your listing is compliant.</p>
       </div>
       
@@ -277,7 +277,7 @@ export default function PropertyProfile() {
       )}
 
       <div className="space-y-12">
-        <Card className="p-8 border-l-4 border-l-[var(--teal-500)]/50 space-y-8 bg-white border border-slate-200 text-slate-900">
+        <Card className="p-8 border-l-4 border-l-[var(--teal-500)]/50 space-y-8 text-[var(--text)]">
           <div className="flex items-center gap-2 mb-6">
             <h2 className="text-xl font-bold font-heading text-slate-900">Property Address</h2>
           </div>
@@ -302,62 +302,32 @@ export default function PropertyProfile() {
               />
             </div>
 
-            <div className="pt-4 space-y-4 border-t border-slate-200">
+            <div className="pt-4 space-y-4 border-t border-[var(--border)]">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Address Line 1</label>
-                <input 
-                  type="text" 
-                  name="address_line1"
-                  value={formData.address_line1}
-                  onChange={handleChange}
-                  className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-[var(--teal-500)] focus:ring-2 focus:ring-[var(--teal-500)]/20 outline-none transition-all"
-                />
+                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Address Line 1</label>
+                <input type="text" name="address_line1" value={formData.address_line1} onChange={handleChange} className="w-full" />
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Address Line 2</label>
-                <input 
-                  type="text" 
-                  name="address_line2"
-                  value={formData.address_line2}
-                  onChange={handleChange}
-                  className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-[var(--teal-500)] focus:ring-2 focus:ring-[var(--teal-500)]/20 outline-none transition-all"
-                />
+                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Address Line 2</label>
+                <input type="text" name="address_line2" value={formData.address_line2} onChange={handleChange} className="w-full" />
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Town / City</label>
-                  <input 
-                    type="text" 
-                    name="address_town"
-                    value={formData.address_town}
-                    onChange={handleChange}
-                    className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-[var(--teal-500)] focus:ring-2 focus:ring-[var(--teal-500)]/20 outline-none transition-all"
-                  />
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Town / City</label>
+                  <input type="text" name="address_town" value={formData.address_town} onChange={handleChange} className="w-full" />
                 </div>
                 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-600">County</label>
-                  <input 
-                    type="text" 
-                    name="address_county"
-                    value={formData.address_county}
-                    onChange={handleChange}
-                    className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-[var(--teal-500)] focus:ring-2 focus:ring-[var(--teal-500)]/20 outline-none transition-all"
-                  />
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">County</label>
+                  <input type="text" name="address_county" value={formData.address_county} onChange={handleChange} className="w-full" />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Postcode</label>
-                <input 
-                  type="text" 
-                  name="postcode"
-                  value={formData.postcode}
-                  onChange={handleChange}
-                  className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-[var(--teal-500)] focus:ring-2 focus:ring-[var(--teal-500)]/20 outline-none transition-all"
-                />
+                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Postcode</label>
+                <input type="text" name="postcode" value={formData.postcode} onChange={handleChange} className="w-full" />
               </div>
             </div>
 
@@ -388,8 +358,7 @@ export default function PropertyProfile() {
                     <p className="text-sm text-orange-900/90">Select the correct EPC for your property from the list below:</p>
                   </div>
                 </div>
-                <select 
-                  className="w-full h-12 px-4 rounded-xl border border-orange-200 bg-white text-slate-900 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none"
+                <select className="w-full"
                   onChange={(e) => {
                     const selectedData = epcOptions.find((o, idx) => idx.toString() === e.target.value);
                     if (selectedData) {
@@ -437,7 +406,7 @@ export default function PropertyProfile() {
                   <span className="material-symbols-outlined text-slate-400 text-xs">help</span>
                 </Tooltip>
               </label>
-              <input name="asking_price" value={formData.asking_price} onChange={handleChange} className="w-full h-11 px-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-zinc-950 focus:ring-2 focus:ring-primary/20 outline-none transition-all" placeholder="£" />
+              <input name="asking_price" value={formData.asking_price} onChange={handleChange} className="w-full" placeholder="£" />
             </div>
             
             <div className="space-y-2">
@@ -447,7 +416,7 @@ export default function PropertyProfile() {
                   <span className="material-symbols-outlined text-slate-400 text-xs">help</span>
                 </Tooltip>
               </label>
-              <select name="tenure" value={formData.tenure} onChange={handleChange} className="w-full h-11 px-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-zinc-950 outline-none">
+              <select name="tenure" value={formData.tenure} onChange={handleChange} className="w-full">
                 <option value="Freehold">Freehold</option>
                 <option value="Leasehold">Leasehold</option>
                 <option value="Commonhold">Commonhold</option>
@@ -470,7 +439,7 @@ export default function PropertyProfile() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <label className="text-sm font-semibold">Heating System</label>
-              <select name="heating" value={formData.heating} onChange={handleChange} className="w-full h-11 px-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-zinc-950 outline-none">
+              <select name="heating" value={formData.heating} onChange={handleChange} className="w-full">
                 <option value="Gas Central Heating">Gas Central Heating</option>
                 <option value="Electric Heating">Electric Heating</option>
                 <option value="Oil Heating">Oil Heating</option>
@@ -480,7 +449,7 @@ export default function PropertyProfile() {
             
             <div className="space-y-2">
               <label className="text-sm font-semibold">Drainage</label>
-              <select name="drainage" value={formData.drainage} onChange={handleChange} className="w-full h-11 px-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-zinc-950 outline-none">
+              <select name="drainage" value={formData.drainage} onChange={handleChange} className="w-full">
                 <option value="Mains Sewerage">Mains Sewerage</option>
                 <option value="Septic Tank">Septic Tank</option>
                 <option value="Cesspit">Cesspit</option>
@@ -489,7 +458,7 @@ export default function PropertyProfile() {
 
             <div className="space-y-2">
               <label className="text-sm font-semibold">Electricity Supply</label>
-              <select name="electricity_supply" value={formData.electricity_supply} onChange={handleChange} className="w-full h-11 px-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-zinc-950 outline-none">
+              <select name="electricity_supply" value={formData.electricity_supply} onChange={handleChange} className="w-full">
                 <option value="Mains">Mains</option>
                 <option value="Off-grid / Generator">Off-grid / Generator</option>
                 <option value="Solar with Battery">Solar with Battery</option>
@@ -498,7 +467,7 @@ export default function PropertyProfile() {
 
             <div className="space-y-2">
               <label className="text-sm font-semibold">Broadband</label>
-              <select name="broadband_speed" value={formData.broadband_speed} onChange={handleChange} className="w-full h-11 px-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-zinc-950 outline-none">
+              <select name="broadband_speed" value={formData.broadband_speed} onChange={handleChange} className="w-full">
                 <option value="Standard">Standard (Up to 24Mbps)</option>
                 <option value="Superfast">Superfast (Up to 80Mbps)</option>
                 <option value="Ultrafast">Ultrafast (100Mbps+)</option>
@@ -525,7 +494,7 @@ export default function PropertyProfile() {
                   <span className="material-symbols-outlined text-slate-400 text-xs">help</span>
                 </Tooltip>
               </label>
-              <select name="flood_risk" value={formData.flood_risk} onChange={handleChange} className="w-full h-11 px-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-zinc-950 outline-none">
+              <select name="flood_risk" value={formData.flood_risk} onChange={handleChange} className="w-full">
                 <option value="Very Low">Very Low</option>
                 <option value="Low">Low</option>
                 <option value="Medium">Medium</option>
@@ -535,12 +504,12 @@ export default function PropertyProfile() {
 
             <div className="space-y-2">
               <label className="text-sm font-semibold">Rights and Easements</label>
-              <textarea name="rights_easements" value={formData.rights_easements} onChange={handleChange} className="w-full p-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-zinc-950 min-h-[100px] outline-none" placeholder="Are there any public rights of way across the land?" />
+              <textarea name="rights_easements" value={formData.rights_easements} onChange={handleChange} className="w-full min-h-[100px]" placeholder="Are there any public rights of way across the land?" />
             </div>
 
             <div className="space-y-2">
               <label className="text-sm font-semibold">Planning Permissions</label>
-              <textarea name="planning_permissions" value={formData.planning_permissions} onChange={handleChange} className="w-full p-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-zinc-950 min-h-[100px] outline-none" placeholder="Detail any relevant planning permissions or restrictions..." />
+              <textarea name="planning_permissions" value={formData.planning_permissions} onChange={handleChange} className="w-full min-h-[100px]" placeholder="Detail any relevant planning permissions or restrictions..." />
             </div>
           </div>
         </Card>

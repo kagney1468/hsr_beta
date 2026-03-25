@@ -351,7 +351,7 @@ export default function PublicPack() {
                       type="text"
                       value={viewerForm.name}
                       onChange={(e) => setViewerForm({ ...viewerForm, name: e.target.value })}
-                      className="w-full h-14 bg-white border border-[var(--border)] rounded-2xl px-5 text-sm text-[var(--text)] focus:border-[var(--teal-500)] outline-none transition-colors"
+                      className="w-full"
                       placeholder="Your full name"
                     />
                   </div>
@@ -362,7 +362,7 @@ export default function PublicPack() {
                       type="email"
                       value={viewerForm.email}
                       onChange={(e) => setViewerForm({ ...viewerForm, email: e.target.value })}
-                      className="w-full h-14 bg-white border border-[var(--border)] rounded-2xl px-5 text-sm text-[var(--text)] focus:border-[var(--teal-500)] outline-none transition-colors"
+                      className="w-full"
                       placeholder="you@example.com"
                     />
                   </div>
@@ -375,7 +375,7 @@ export default function PublicPack() {
                     type="tel"
                     value={viewerForm.phone}
                     onChange={(e) => setViewerForm({ ...viewerForm, phone: e.target.value })}
-                    className="w-full h-14 bg-white border border-[var(--border)] rounded-2xl px-5 text-sm text-[var(--text)] focus:border-[var(--teal-500)] outline-none transition-colors"
+                    className="w-full"
                     placeholder="e.g. 07123 456 789"
                   />
                 </div>
@@ -412,7 +412,7 @@ export default function PublicPack() {
                       type="text"
                       value={viewerForm.selling_location}
                       onChange={(e) => setViewerForm({ ...viewerForm, selling_location: e.target.value })}
-                      className="w-full h-14 bg-white border border-[var(--border)] rounded-2xl px-5 text-sm focus:border-[var(--teal-500)] outline-none"
+                      className="w-full"
                       placeholder="Town or area"
                     />
                   </div>

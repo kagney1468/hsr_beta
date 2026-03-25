@@ -93,54 +93,22 @@ export default function AgentSignup() {
           <form onSubmit={handleSignup} className="space-y-4">
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)]">Agency name</label>
-              <input 
-                type="text" 
-                name="agencyName"
-                required
-                value={formData.agencyName}
-                onChange={handleChange}
-                className="w-full h-12 px-4 rounded-xl border border-[var(--border)] bg-white text-[var(--text)] focus:border-[var(--teal-500)] outline-none transition-colors"
-                placeholder="Elite Properties"
-              />
+              <input type="text" name="agencyName" required value={formData.agencyName} onChange={handleChange} className="w-full" placeholder="Elite Properties" />
             </div>
 
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)]">Full name</label>
-              <input 
-                type="text" 
-                name="fullName"
-                required
-                value={formData.fullName}
-                onChange={handleChange}
-                className="w-full h-12 px-4 rounded-xl border border-[var(--border)] bg-white text-[var(--text)] focus:border-[var(--teal-500)] outline-none transition-colors"
-                placeholder="Jane Smith"
-              />
+              <input type="text" name="fullName" required value={formData.fullName} onChange={handleChange} className="w-full" placeholder="Jane Smith" />
             </div>
 
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)]">Phone number</label>
-              <input 
-                type="tel" 
-                name="phone"
-                required
-                value={formData.phone}
-                onChange={handleChange}
-                className="w-full h-12 px-4 rounded-xl border border-[var(--border)] bg-white text-[var(--text)] focus:border-[var(--teal-500)] outline-none transition-colors"
-                placeholder="07123 456789"
-              />
+              <input type="tel" name="phone" required value={formData.phone} onChange={handleChange} className="w-full" placeholder="07123 456789" />
             </div>
 
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)]">Email address</label>
-              <input 
-                type="email" 
-                name="email"
-                required
-                value={formData.email}
-                onChange={handleChange}
-                className="w-full h-12 px-4 rounded-xl border border-[var(--border)] bg-white text-[var(--text)] focus:border-[var(--teal-500)] outline-none transition-colors"
-                placeholder="jane@agency.com"
-              />
+              <input type="email" name="email" required value={formData.email} onChange={handleChange} className="w-full" placeholder="jane@agency.com" />
             </div>
 
             <Button 

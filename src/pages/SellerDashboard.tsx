@@ -342,7 +342,7 @@ export default function SellerDashboard() {
               <input
                 readOnly
                 value={shareUrl || 'Generate a link with Copy below'}
-                className="flex-1 min-w-0 px-4 py-3 text-sm text-[var(--text)] bg-transparent outline-none"
+                className="hsr-input-merge flex-1 min-w-0"
               />
               <button
                 type="button"

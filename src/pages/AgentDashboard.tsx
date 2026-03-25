@@ -254,47 +254,51 @@ export default function AgentDashboard() {
 
       {/* ── ADD PROPERTY MODAL ── */}
       {showAddPropertyModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
-          <Card className="w-full max-w-lg p-10 border-white/10 bg-[#0a0d14] shadow-3xl space-y-8 animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-md">
+          <Card className="w-full max-w-lg p-10 space-y-8 animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between">
-              <h3 className="text-2xl font-black font-heading tracking-tight">Add New Instruction</h3>
-              <button onClick={() => setShowAddPropertyModal(false)} className="size-10 flex items-center justify-center rounded-full hover:bg-white/5 text-zinc-500 hover:text-white transition-colors">
+              <h3 className="text-2xl font-black font-heading tracking-tight text-[var(--teal-900)]">Add New Instruction</h3>
+              <button
+                type="button"
+                onClick={() => setShowAddPropertyModal(false)}
+                className="size-10 flex items-center justify-center rounded-full hover:bg-[var(--teal-050)] text-[var(--muted)] hover:text-[var(--teal-900)] transition-colors"
+              >
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
             
             <form onSubmit={handleAddProperty} className="space-y-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">Property Address</label>
-                <input 
+                <label className="text-[10px] font-black text-[var(--muted)] uppercase tracking-widest px-1">Property Address</label>
+                <input
                   required
-                  type="text" 
+                  type="text"
                   value={newProperty.address}
                   onChange={e => setNewProperty({...newProperty, address: e.target.value})}
-                  className="w-full h-14 bg-black/40 border border-white/10 rounded-2xl px-5 text-sm focus:border-[var(--teal-500)] outline-none transition-all"
+                  className="w-full"
                   placeholder="e.g. 12 Maple Gardens"
                 />
               </div>
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">Postcode</label>
-                  <input 
+                  <label className="text-[10px] font-black text-[var(--muted)] uppercase tracking-widest px-1">Postcode</label>
+                  <input
                     required
-                    type="text" 
+                    type="text"
                     value={newProperty.postcode}
                     onChange={e => setNewProperty({...newProperty, postcode: e.target.value})}
-                    className="w-full h-14 bg-black/40 border border-white/10 rounded-2xl px-5 text-sm focus:border-[var(--teal-500)] outline-none transition-all"
+                    className="w-full"
                     placeholder="E.g. SW1 1AA"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">Seller Email</label>
-                  <input 
+                  <label className="text-[10px] font-black text-[var(--muted)] uppercase tracking-widest px-1">Seller Email</label>
+                  <input
                     required
-                    type="email" 
+                    type="email"
                     value={newProperty.seller_email}
                     onChange={e => setNewProperty({...newProperty, seller_email: e.target.value})}
-                    className="w-full h-14 bg-black/40 border border-white/10 rounded-2xl px-5 text-sm focus:border-[var(--teal-500)] outline-none transition-all"
+                    className="w-full"
                     placeholder="seller@example.com"
                   />
                 </div>

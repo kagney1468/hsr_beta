@@ -184,33 +184,33 @@ export default function SellerOnboarding() {
           onClick={() => setOpen(!open)}
           onMouseEnter={() => setOpen(true)}
           onMouseLeave={() => setOpen(false)}
-          className="size-5 rounded-full bg-white/10 flex items-center justify-center text-zinc-400 hover:text-[var(--teal-600)] hover:bg-[var(--teal-050)] transition-all"
+          className="size-5 rounded-full border border-[var(--border)] bg-[var(--teal-050)] flex items-center justify-center text-[var(--muted)] hover:text-[var(--teal-600)] transition-all"
         >
           <span className="material-symbols-outlined text-[14px]">question_mark</span>
         </button>
         {open && (
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 p-4 bg-zinc-800/95 backdrop-blur-md text-white text-[11px] leading-relaxed rounded-2xl opacity-100 transition-all z-50 border border-white/10 shadow-2xl animate-in zoom-in-95 fade-in duration-200">
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 p-4 bg-white text-[var(--text)] text-[11px] leading-relaxed rounded-2xl opacity-100 transition-all z-50 border border-[var(--border)] shadow-soft animate-in zoom-in-95 fade-in duration-200">
             <div className="font-bold text-[var(--teal-600)] mb-1">Why this matters</div>
             {text}
-            <div className="mt-2 text-[10px] text-zinc-500 italic">This speeds up your legal process by reducing solicitor inquiries later.</div>
-            <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-zinc-800/95" />
+            <div className="mt-2 text-[10px] text-[var(--muted)] italic">This speeds up your legal process by reducing solicitor inquiries later.</div>
+            <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-white" />
           </div>
         )}
       </div>
     );
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-black"><div className="animate-spin size-10 border-4 border-[var(--teal-600)] border-t-transparent rounded-full" /></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-[var(--page)]"><div className="animate-spin size-10 border-4 border-[var(--teal-600)] border-t-transparent rounded-full" /></div>;
 
   return (
-    <div className="min-h-screen bg-black text-white p-6 md:p-10 font-sans">
+    <div className="min-h-screen bg-[var(--page)] text-[var(--text)] p-6 md:p-10 font-display">
       <div className="max-w-3xl mx-auto space-y-10">
         {/* Progress Header */}
         <div className="space-y-6">
           <div className="flex justify-between items-end">
             <div>
               <p className="text-[var(--teal-600)] font-black uppercase tracking-[0.2em] text-[10px] mb-2">Step {currentStep} of 4</p>
-              <h1 className="text-4xl md:text-6xl font-black font-heading tracking-tight leading-none">
+              <h1 className="text-4xl md:text-6xl font-black font-heading text-[var(--teal-900)] tracking-tight leading-none">
                 {currentStep === 1 && "The Address"}
                 {currentStep === 2 && "Core Details"}
                 {currentStep === 3 && "Material Info"}
@@ -218,15 +218,15 @@ export default function SellerOnboarding() {
               </h1>
             </div>
             <div className="text-right hidden md:block">
-              <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mb-1">Onboarding Progress</p>
+              <p className="text-[var(--muted)] text-[10px] font-black uppercase tracking-widest mb-1">Onboarding Progress</p>
               <div className="flex items-center gap-3">
-                <span className="text-3xl font-black font-heading text-white">{currentStep * 25}%</span>
+                <span className="text-3xl font-black font-heading text-[var(--teal-900)]">{currentStep * 25}%</span>
                 <div className="size-3 rounded-full bg-[var(--teal-500)] animate-pulse shadow-[0_0_10px_var(--teal-500)]" />
               </div>
             </div>
           </div>
           
-          <div className="h-2.5 w-full bg-zinc-900 rounded-full overflow-hidden border border-white/5 p-0.5">
+          <div className="h-2.5 w-full bg-[var(--teal-050)] rounded-full overflow-hidden border border-[var(--border)] p-0.5">
             <div 
               className="h-full bg-gradient-to-r from-[var(--teal-500)] to-[var(--teal-600)] transition-all duration-1000 ease-in-out rounded-full"
               style={{ width: `${currentStep * 25}%` }}
@@ -234,8 +234,7 @@ export default function SellerOnboarding() {
           </div>
         </div>
 
-        <Card className="p-8 md:p-12 border-white/5 bg-zinc-900/40 backdrop-blur-2xl shadow-2xl space-y-10 relative overflow-hidden group/card rounded-[40px]">
-          {/* Subtle background glow */}
+        <Card className="p-8 md:p-12 space-y-10 relative overflow-hidden group/card rounded-[28px]">
           <div className="absolute -top-40 -right-40 size-96 bg-[var(--teal-050)] blur-[120px] rounded-full pointer-events-none transition-colors duration-1000" />
           
           {/* Step Content */}
@@ -243,7 +242,7 @@ export default function SellerOnboarding() {
             {currentStep === 1 && (
               <div className="space-y-8">
                 <div className="space-y-6">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 flex items-center">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--muted)] flex items-center">
                     Postcode Search
                     <HelpTooltip text="A valid postcode allows us to fetch exact property addresses from the Royal Mail database." />
                   </label>
@@ -263,65 +262,65 @@ export default function SellerOnboarding() {
                   />
                 </div>
 
-                <div className="pt-4 space-y-4 border-t border-white/5 animate-in fade-in duration-500">
+                <div className="pt-4 space-y-4 border-t border-[var(--border)] animate-in fade-in duration-500">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--teal-600)]">Address Line 1</label>
-                    <input 
-                      type="text" 
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Address Line 1</label>
+                    <input
+                      type="text"
                       name="address_line1"
                       value={formData.address_line1}
-                      onChange={(e) => setFormData({...formData, address_line1: e.target.value})}
-                      className="w-full h-14 px-6 rounded-2xl border border-white/10 bg-black/40 text-white focus:border-[var(--teal-500)] outline-none transition-all text-lg font-bold placeholder:text-zinc-800"
+                      onChange={(e) => setFormData({ ...formData, address_line1: e.target.value })}
+                      className="w-full font-semibold"
                       placeholder="123 Example Street"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Address Line 2 (Optional)</label>
-                    <input 
-                      type="text" 
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Address Line 2 (Optional)</label>
+                    <input
+                      type="text"
                       name="address_line2"
                       value={formData.address_line2}
-                      onChange={(e) => setFormData({...formData, address_line2: e.target.value})}
-                      className="w-full h-14 px-6 rounded-2xl border border-white/10 bg-black/40 text-white focus:border-[var(--teal-500)] outline-none transition-all text-lg font-bold placeholder:text-zinc-800"
+                      onChange={(e) => setFormData({ ...formData, address_line2: e.target.value })}
+                      className="w-full font-semibold"
                       placeholder="Apt 4B"
                     />
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--teal-600)]">Town / City</label>
-                      <input 
-                        type="text" 
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Town / City</label>
+                      <input
+                        type="text"
                         name="address_town"
                         value={formData.address_town}
-                        onChange={(e) => setFormData({...formData, address_town: e.target.value})}
-                        className="w-full h-14 px-6 rounded-2xl border border-white/10 bg-black/40 text-white focus:border-[var(--teal-500)] outline-none transition-all text-lg font-bold placeholder:text-zinc-800"
+                        onChange={(e) => setFormData({ ...formData, address_town: e.target.value })}
+                        className="w-full font-semibold"
                         placeholder="London"
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">County</label>
-                      <input 
-                        type="text" 
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">County</label>
+                      <input
+                        type="text"
                         name="address_county"
                         value={formData.address_county}
-                        onChange={(e) => setFormData({...formData, address_county: e.target.value})}
-                        className="w-full h-14 px-6 rounded-2xl border border-white/10 bg-black/40 text-white focus:border-[var(--teal-500)] outline-none transition-all text-lg font-bold placeholder:text-zinc-800"
+                        onChange={(e) => setFormData({ ...formData, address_county: e.target.value })}
+                        className="w-full font-semibold"
                         placeholder="Greater London"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--teal-600)]">Postcode</label>
-                    <input 
-                      type="text" 
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Postcode</label>
+                    <input
+                      type="text"
                       name="postcode"
                       value={formData.postcode}
-                      onChange={(e) => setFormData({...formData, postcode: e.target.value})}
-                      className="w-full h-14 px-6 rounded-2xl border border-white/10 bg-black/40 text-white focus:border-[var(--teal-500)] outline-none transition-all text-lg font-bold tracking-widest uppercase placeholder:text-zinc-800"
+                      onChange={(e) => setFormData({ ...formData, postcode: e.target.value })}
+                      className="w-full font-semibold uppercase tracking-widest"
                       placeholder="SW1A 1AA"
                     />
                   </div>
@@ -332,12 +331,12 @@ export default function SellerOnboarding() {
             {currentStep === 2 && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-widest text-zinc-500 flex items-center">
+                  <label className="text-xs font-black uppercase tracking-widest text-[var(--muted)] flex items-center">
                     Property Type
                     <HelpTooltip text="This helps buyers understand the structural nature of the building (e.g., detached, terrace)." />
                   </label>
-                  <select 
-                    className="w-full h-14 px-4 rounded-2xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all appearance-none"
+                  <select
+                    className="w-full"
                     value={formData.property_type}
                     onChange={(e) => setFormData({...formData, property_type: e.target.value})}
                   >
@@ -349,12 +348,12 @@ export default function SellerOnboarding() {
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-widest text-zinc-500 flex items-center">
+                  <label className="text-xs font-black uppercase tracking-widest text-[var(--muted)] flex items-center">
                     Tenure
                     <HelpTooltip text="Freehold means you own the land. Leasehold involves a landlord and annual ground rent/service charges." />
                   </label>
-                  <select 
-                    className="w-full h-14 px-4 rounded-2xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all appearance-none"
+                  <select
+                    className="w-full"
                     value={formData.tenure}
                     onChange={(e) => setFormData({...formData, tenure: e.target.value})}
                   >
@@ -364,24 +363,24 @@ export default function SellerOnboarding() {
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-widest text-zinc-500 flex items-center">
+                  <label className="text-xs font-black uppercase tracking-widest text-[var(--muted)] flex items-center">
                     Bedrooms
                     <HelpTooltip text="The number of bedrooms is a key valuation factor and must match the legal description." />
                   </label>
-                  <input 
+                  <input
                     type="number"
-                    className="w-full h-14 px-4 rounded-2xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all"
+                    className="w-full"
                     value={formData.bedrooms}
-                    onChange={(e) => setFormData({...formData, bedrooms: parseInt(e.target.value)})}
+                    onChange={(e) => setFormData({...formData, bedrooms: parseInt(e.target.value, 10)})}
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-widest text-zinc-500 flex items-center">
+                  <label className="text-xs font-black uppercase tracking-widest text-[var(--muted)] flex items-center">
                     Council Tax Band
                     <HelpTooltip text="Mandatory disclosure. Buyers need to know their ongoing monthly costs." />
                   </label>
-                  <select 
-                    className="w-full h-14 px-4 rounded-2xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all appearance-none"
+                  <select
+                    className="w-full"
                     value={formData.council_tax_band}
                     onChange={(e) => setFormData({...formData, council_tax_band: e.target.value})}
                   >
@@ -394,8 +393,8 @@ export default function SellerOnboarding() {
             {currentStep === 3 && (
               <div className="space-y-8 max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                   <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/5 space-y-3">
-                      <label className="text-xs font-bold text-[var(--teal-600)] flex items-center">
+                   <div className="p-5 rounded-2xl bg-[var(--teal-050)] border border-[var(--border)] space-y-3">
+                      <label className="text-xs font-bold text-[var(--teal-900)] flex items-center">
                         Utilities
                         <HelpTooltip text="Confirming mains connections for gas, water, and electric is essential for the TA6 legal form." />
                       </label>
@@ -409,21 +408,21 @@ export default function SellerOnboarding() {
                                 ...formData, 
                                 utilities: { ...formData.utilities, [util]: e.target.checked }
                               })}
-                              className="size-5 rounded border-white/10 bg-black"
+                              className="size-5 rounded border border-[var(--border)]"
                             />
-                            <span className="text-xs capitalize font-medium">{util}</span>
+                            <span className="text-xs capitalize font-medium text-[var(--text)]">{util}</span>
                           </label>
                         ))}
                       </div>
                    </div>
                    
-                   <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/5 space-y-3">
-                      <label className="text-xs font-bold text-[var(--teal-600)] flex items-center">
+                   <div className="p-5 rounded-2xl bg-[var(--teal-050)] border border-[var(--border)] space-y-3">
+                      <label className="text-xs font-bold text-[var(--teal-900)] flex items-center">
                         Parking
                         <HelpTooltip text="Parking availability significantly impacts property value and buyer interest." />
                       </label>
-                      <select 
-                        className="w-full bg-transparent border-none outline-none text-sm text-white"
+                      <select
+                        className="w-full"
                         value={formData.parking}
                         onChange={(e) => setFormData({...formData, parking: e.target.value})}
                       >
@@ -445,12 +444,12 @@ export default function SellerOnboarding() {
                   { id: 'building_reg_works', label: 'Works req. Building Regs', help: 'Solictors will need certificates for any electrical, gas, or structural work done.' }
                 ].map(field => (
                   <div key={field.id} className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-widest text-zinc-500 flex items-center">
+                    <label className="text-xs font-black uppercase tracking-widest text-[var(--muted)] flex items-center">
                       {field.label}
                       <HelpTooltip text={field.help} />
                     </label>
-                    <input 
-                      className="w-full h-14 px-4 rounded-2xl border border-white/10 bg-black/50 text-white focus:border-[var(--teal-500)] outline-none transition-all"
+                    <input
+                      className="w-full"
                       placeholder="e.g. None known / Detail here..."
                       value={(formData as any)[field.id]}
                       onChange={(e) => setFormData({...formData, [field.id]: e.target.value})}
@@ -470,26 +469,26 @@ export default function SellerOnboarding() {
                     { title: 'Warranties/Guarantees', icon: 'award_star', required: false },
                     { title: 'Leasehold Pack', icon: 'folder_open', required: formData.tenure !== 'Freehold' }
                   ].map((doc) => (
-                    <div key={doc.title} className="p-6 rounded-3xl border border-white/5 bg-white/[0.02] flex items-center justify-between group hover:border-[var(--teal-500)]/20 transition-all cursor-pointer">
+                    <div key={doc.title} className="p-6 rounded-3xl border border-[var(--border)] bg-white flex items-center justify-between group hover:border-[var(--teal-500)]/40 transition-all cursor-pointer shadow-soft">
                       <div className="flex items-center gap-4">
-                        <div className="size-12 rounded-2xl bg-zinc-800 flex items-center justify-center text-[var(--teal-600)]">
+                        <div className="size-12 rounded-2xl bg-[var(--teal-050)] border border-[var(--border)] flex items-center justify-center text-[var(--teal-600)]">
                           <span className="material-symbols-outlined">{doc.icon}</span>
                         </div>
                         <div>
-                          <p className="text-sm font-bold">{doc.title}</p>
-                          <p className="text-[10px] text-zinc-500 font-medium">
+                          <p className="text-sm font-bold text-[var(--teal-900)]">{doc.title}</p>
+                          <p className="text-[10px] text-[var(--muted)] font-medium">
                             {doc.required ? 'MANDATORY' : 'OPTIONAL'}
                           </p>
                         </div>
                       </div>
-                      <span className="material-symbols-outlined text-zinc-600 group-hover:text-[var(--teal-600)] transition-colors">upload_file</span>
+                      <span className="material-symbols-outlined text-[var(--muted)] group-hover:text-[var(--teal-600)] transition-colors">upload_file</span>
                     </div>
                   ))}
                 </div>
                 
-                <div className="p-6 rounded-3xl border-2 border-dashed border-white/10 bg-black/20 text-center space-y-4">
-                   <span className="material-symbols-outlined text-4xl text-zinc-700">cloud_upload</span>
-                   <p className="text-zinc-500 text-sm">Drag and drop your property documents here</p>
+                <div className="p-6 rounded-3xl border-2 border-dashed border-[var(--border)] bg-[var(--teal-050)] text-center space-y-4">
+                   <span className="material-symbols-outlined text-4xl text-[var(--muted)]">cloud_upload</span>
+                   <p className="text-[var(--muted)] text-sm">Drag and drop your property documents here</p>
                    <Button variant="outline" className="text-xs">Browse files</Button>
                 </div>
               </div>
@@ -497,12 +496,12 @@ export default function SellerOnboarding() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-4 pt-8 border-t border-white/5">
+          <div className="flex gap-4 pt-8 border-t border-[var(--border)]">
             {currentStep > 1 && (
               <Button 
                 variant="outline" 
                 onClick={prevStep}
-                className="flex-1 h-14 rounded-2xl text-zinc-400 font-bold border-white/5 hover:bg-white/5"
+                className="flex-1 h-14 rounded-2xl font-bold border-[var(--border)]"
               >
                 Back
               </Button>
@@ -511,7 +510,7 @@ export default function SellerOnboarding() {
               variant="primary" 
               onClick={nextStep}
               disabled={saving}
-              className="flex-[2] h-14 rounded-2xl text-black font-black font-heading text-lg"
+              className="flex-[2] h-14 rounded-2xl font-black font-heading text-lg"
             >
               {saving ? 'Saving...' : currentStep === 4 ? 'Complete Onboarding' : 'Save and Continue'}
             </Button>
@@ -519,7 +518,7 @@ export default function SellerOnboarding() {
         </Card>
 
         {/* Floating help notice */}
-        <div className="flex items-center justify-center gap-2 text-zinc-600">
+        <div className="flex items-center justify-center gap-2 text-[var(--muted)]">
            <span className="material-symbols-outlined text-sm">lock</span>
            <p className="text-[10px] font-black uppercase tracking-widest text-center">
              Your information is encrypted and only shared with verified buyers & solicitors.
@@ -532,15 +531,15 @@ export default function SellerOnboarding() {
           width: 4px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(255,255,255,0.02);
+          background: var(--teal-050);
           border-radius: 10px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(0, 229, 160, 0.2);
+          background: rgba(23, 175, 175, 0.35);
           border-radius: 10px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(0, 229, 160, 0.4);
+          background: rgba(23, 175, 175, 0.55);
         }
       `}</style>
     </div>
