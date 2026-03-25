@@ -25,20 +25,30 @@ export function getAuthRedirectUrl(): string {
  * After magic-link login, ensure public.users exists and (for agents) an agencies row
  * is linked via users.agency_id. Handles rows pre-created by DB triggers.
  */
+function normalizeAppRole(value: unknown): 'seller' | 'agent' | null {
+  const s = typeof value === 'string' ? value.trim().toLowerCase() : '';
+  if (s === 'agent') return 'agent';
+  if (s === 'seller') return 'seller';
+  return null;
+}
+
 export async function ensureUserProfile(user: User): Promise<'seller' | 'agent'> {
   const meta = user.user_metadata || {};
-  const metaRole = meta.role === 'agent' ? 'agent' : meta.role === 'seller' ? 'seller' : null;
+  const metaRole = normalizeAppRole(meta.role);
 
-  const { data: existing } = await supabase
+  const { data: existing, error: existingErr } = await supabase
     .from('users')
     .select('*')
     .eq('auth_user_id', user.id)
     .maybeSingle();
 
+  if (existingErr) {
+    console.error('ensureUserProfile: users select failed', existingErr);
+  }
+
+  const dbRole = normalizeAppRole(existing?.role);
   const effectiveRole: 'seller' | 'agent' =
-    metaRole ||
-    (existing?.role === 'agent' ? 'agent' : existing?.role === 'seller' ? 'seller' : null) ||
-    'seller';
+    metaRole || dbRole || 'seller';
 
   if (!existing) {
     if (effectiveRole === 'agent') {
@@ -86,14 +96,14 @@ export async function ensureUserProfile(user: User): Promise<'seller' | 'agent'>
   if (meta.contact_preference && !existing.contact_preference) {
     updates.contact_preference = meta.contact_preference;
   }
-  if (metaRole && existing.role !== metaRole) updates.role = metaRole;
+  if (metaRole && normalizeAppRole(existing.role) !== metaRole) updates.role = metaRole;
   if (metaRole && !existing.user_type) updates.user_type = metaRole;
 
   if (Object.keys(updates).length > 0) {
     await supabase.from('users').update(updates).eq('id', existing.id);
   }
 
-  const isAgent = effectiveRole === 'agent' || existing.role === 'agent';
+  const isAgent = effectiveRole === 'agent' || dbRole === 'agent';
   if (isAgent) {
     const { data: agency } = await supabase
       .from('agencies')

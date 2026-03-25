@@ -45,7 +45,16 @@ export default function Login() {
         return;
       }
 
-      if (data.role === 'seller') {
+      const appRole = String(data.role ?? '')
+        .trim()
+        .toLowerCase();
+
+      if (appRole === 'agent') {
+        navigate('/agent/dashboard');
+        return;
+      }
+
+      if (appRole === 'seller') {
         const { data: prop, error: propError } = await supabase
           .from('properties')
           .select('id')
@@ -58,9 +67,10 @@ export default function Login() {
         } else {
           navigate('/seller/dashboard');
         }
-      } else if (data.role === 'agent') {
-        navigate('/agent/dashboard');
+        return;
       }
+
+      navigate('/seller/onboarding');
     } catch (err: unknown) {
       console.error('Error fetching role:', err);
       setError(err instanceof Error ? err.message : 'Failed to determine user role. Please try again.');
@@ -82,6 +92,10 @@ export default function Login() {
           emailRedirectTo: redirectTo,
           /** Must allow new Auth users here or "login" never creates an account / sends first-time mail. */
           shouldCreateUser: true,
+          /** Match Agent/Seller signup so AuthCallback + ensureUserProfile see the correct role. */
+          data: {
+            role: role === 'agent' ? 'agent' : 'seller',
+          },
         },
       });
 
