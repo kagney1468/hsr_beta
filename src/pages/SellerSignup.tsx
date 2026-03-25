@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { getAuthRedirectUrl } from '../lib/ensureUserProfile';
+import { formatAuthError } from '../lib/authErrors';
 
 export default function SellerSignup() {
   const [formData, setFormData] = useState({
@@ -32,6 +33,7 @@ export default function SellerSignup() {
         email: formData.email,
         options: {
           emailRedirectTo: getAuthRedirectUrl(),
+          shouldCreateUser: true,
           data: {
             full_name: formData.fullName,
             phone: formData.phone,
@@ -46,7 +48,7 @@ export default function SellerSignup() {
       setSuccess(true);
     } catch (err: unknown) {
       console.error('Signup error:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred during signup.');
+      setError(formatAuthError(err));
     } finally {
       setLoading(false);
     }

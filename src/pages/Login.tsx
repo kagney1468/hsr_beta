@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { getAuthRedirectUrl } from '../lib/ensureUserProfile';
+import { formatAuthError } from '../lib/authErrors';
 
 export default function Login() {
   const [role, setRole] = useState<'seller' | 'agent' | null>(null);
@@ -79,7 +80,8 @@ export default function Login() {
         email,
         options: {
           emailRedirectTo: redirectTo,
-          shouldCreateUser: false,
+          /** Must allow new Auth users here or "login" never creates an account / sends first-time mail. */
+          shouldCreateUser: true,
         },
       });
 
@@ -89,12 +91,8 @@ export default function Login() {
           setError(
             `Auth redirect blocked. In Supabase → Authentication → URL Configuration, add this exact URL to Redirect URLs: ${redirectTo}`
           );
-        } else if (/sign up|not found|does not exist|no user|disabled/i.test(m)) {
-          setError(
-            'No account found for this email. Use Sign up if you have not registered yet — login only sends links to existing accounts.'
-          );
         } else {
-          setError(m || 'Could not send login link.');
+          setError(formatAuthError(otpError));
         }
         return;
       }

@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { getAuthRedirectUrl } from '../lib/ensureUserProfile';
+import { formatAuthError } from '../lib/authErrors';
 
 export default function AgentSignup() {
   const [formData, setFormData] = useState({
@@ -31,6 +32,7 @@ export default function AgentSignup() {
         email: formData.email,
         options: {
           emailRedirectTo: getAuthRedirectUrl(),
+          shouldCreateUser: true,
           data: {
             full_name: formData.fullName,
             agency_name: formData.agencyName,
@@ -44,7 +46,7 @@ export default function AgentSignup() {
       setSuccess(true);
     } catch (err: unknown) {
       console.error('Signup error:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred during signup.');
+      setError(formatAuthError(err));
     } finally {
       setLoading(false);
     }
