@@ -13,14 +13,18 @@ export default function SellerDashboard() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<{
     property: any;
+    share: any;
     materialInfo: any;
     documents: any[];
     viewers: any[];
+    viewerCount: number;
   }>({
     property: null,
+    share: null,
     materialInfo: null,
     documents: [],
-    viewers: []
+    viewers: [],
+    viewerCount: 0
   });
 
   const [stats, setStats] = useState({
@@ -63,21 +67,37 @@ export default function SellerDashboard() {
           .select('*')
           .eq('property_id', property.id);
 
-        // 4. Fetch Viewers
+        // 4. Fetch current share record
+        const { data: share } = await supabase
+          .from('shares')
+          .select('*')
+          .eq('property_id', property.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        // 5. Fetch Viewers
         const { data: viewers } = await supabase
           .from('pack_viewers')
           .select('*')
           .eq('property_id', property.id)
           .order('viewed_at', { ascending: false });
 
+        const { count: viewerCount } = await supabase
+          .from('pack_viewers')
+          .select('*', { count: 'exact', head: true })
+          .eq('property_id', property.id);
+
         setData({
           property,
+          share,
           materialInfo,
           documents: documents || [],
-          viewers: viewers || []
+          viewers: viewers || [],
+          viewerCount: viewerCount || 0
         });
 
-        // 5. Calculate Progress (Real-time DB sync check)
+        // 6. Calculate Progress (Real-time DB sync check)
         const currentPercentage = await updatePackCompletion(property.id);
         
         // Let's determine basic section statuses based on data present for quick visual reference
@@ -129,24 +149,55 @@ export default function SellerDashboard() {
 
   const [copying, setCopying] = useState(false);
 
+  const ensureShareLink = async () => {
+    if (!data.property) return null;
+    if (data.share) return data.share;
+
+    const newToken = crypto.randomUUID();
+    const { data: created, error } = await supabase
+      .from('shares')
+      .insert({
+        property_id: data.property.id,
+        token: newToken,
+        active: true,
+        created_at: new Date().toISOString(),
+      })
+      .select('*')
+      .single();
+
+    if (error) throw error;
+    setData(prev => ({ ...prev, share: created }));
+    return created;
+  };
+
   const handleCopyLink = () => {
-    const link = `${window.location.origin}/pack/${data.property.shareable_link_token}`;
-    navigator.clipboard.writeText(link);
-    setCopying(true);
-    setTimeout(() => setCopying(false), 2000);
+    (async () => {
+      try {
+        const share = await ensureShareLink();
+        if (!share?.token) return;
+        const link = `https://homesalesready.com/pack/${share.token}`;
+        await navigator.clipboard.writeText(link);
+        setCopying(true);
+        setTimeout(() => setCopying(false), 2000);
+      } catch (err) {
+        console.error('Error copying share link:', err);
+      }
+    })();
   };
 
   const toggleLinkStatus = async () => {
-    const newStatus = !data.property.is_link_active;
+    const share = await ensureShareLink();
+    if (!share) return;
+    const newStatus = !share.active;
     const { error } = await supabase
-      .from('properties')
-      .update({ is_link_active: newStatus })
-      .eq('id', data.property.id);
+      .from('shares')
+      .update({ active: newStatus })
+      .eq('id', share.id);
 
     if (!error) {
       setData(prev => ({
         ...prev,
-        property: { ...prev.property, is_link_active: newStatus }
+        share: { ...prev.share, active: newStatus }
       }));
     }
   };
@@ -179,12 +230,15 @@ export default function SellerDashboard() {
         <div className="space-y-2">
           <div className="flex items-center gap-3">
             <span className={`px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-[0.2em] border ${
-              data.property.is_link_active ? 'bg-[var(--teal-050)] text-[var(--teal-900)] border-[var(--border)]' : 'bg-[#fee2e2] text-[#dc2626] border-[#fecaca]'
+              data.share?.active ? 'bg-[var(--teal-050)] text-[var(--teal-900)] border-[var(--border)]' : 'bg-[#fee2e2] text-[#dc2626] border-[#fecaca]'
             }`}>
-              {data.property.is_link_active ? 'Link Active' : 'Link Disabled'}
+              {data.share?.active ? 'Link Active' : 'Link Disabled'}
             </span>
             <span className="text-[var(--muted)] text-[10px] font-semibold uppercase tracking-widest">
-              Unique ID: {data.property.shareable_link_token.slice(0, 8)}...
+              Token: {data.share?.token ? `${data.share.token.slice(0, 8)}...` : 'Not generated'}
+            </span>
+            <span className="text-[var(--muted)] text-[10px] font-semibold uppercase tracking-widest">
+              Views: {data.viewerCount}
             </span>
           </div>
           <h1 className="text-4xl md:text-6xl font-black font-heading tracking-tight leading-none">
@@ -198,7 +252,7 @@ export default function SellerDashboard() {
               onClick={toggleLinkStatus}
               className="text-[10px] font-semibold uppercase text-[var(--muted)] hover:text-[var(--teal-900)] transition-colors underline decoration-[var(--border)] underline-offset-4"
             >
-              {data.property.is_link_active ? 'Disable Link' : 'Enable Link'}
+              {data.share?.active ? 'Disable Link' : 'Enable Link'}
             </button>
           </div>
         </div>
@@ -206,7 +260,7 @@ export default function SellerDashboard() {
           <Button 
             variant="outline"
             onClick={handleCopyLink}
-            disabled={!data.property.is_link_active}
+            disabled={data.share ? !data.share.active : false}
             className="h-16 px-8 rounded-2xl flex items-center gap-3 font-heading text-lg"
           >
             {copying ? 'Link Copied!' : 'Copy Share Link'}
@@ -216,9 +270,9 @@ export default function SellerDashboard() {
             <div>
               <Button 
                 variant="primary" 
-                disabled={stats.percentage < 70 || !data.property.is_link_active}
+                disabled={stats.percentage < 70 || (data.share ? !data.share.active : false)}
                 className={`h-16 px-10 rounded-2xl flex items-center gap-4 font-heading text-lg transition-all ${
-                  stats.percentage < 70 || !data.property.is_link_active 
+                  stats.percentage < 70 || (data.share ? !data.share.active : false)
                   ? 'opacity-50 cursor-not-allowed' 
                   : 'hover:brightness-95 active:translate-y-[0.5px]'
                 }`}

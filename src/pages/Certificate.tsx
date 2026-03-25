@@ -40,7 +40,14 @@ export default function Certificate() {
         if (!propData) { setErrorMsg("Property profile not found."); setLoading(false); return; }
 
         setProperty(propData);
-        setShareToken(propData.shareable_link_token);
+        const { data: shareData } = await supabase
+          .from('shares')
+          .select('token')
+          .eq('property_id', propData.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        setShareToken(shareData?.token || null);
       } catch (error) {
         console.error('Error loading certificate data:', error);
       } finally {
@@ -101,7 +108,7 @@ export default function Certificate() {
         {shareToken && (
           <div className="pt-10 flex flex-col items-center gap-6 relative z-10">
              <div className="p-4 bg-white rounded-2xl shadow-xl">
-                <QRCode value={`${window.location.origin}/share/${shareToken}`} size={120} />
+                <QRCode value={`${window.location.origin}/pack/${shareToken}`} size={120} />
              </div>
              <p className="text-xs text-[var(--muted)] max-w-xs mx-auto">Scan to verify the live material information and documents for this property.</p>
           </div>
@@ -114,7 +121,7 @@ export default function Certificate() {
             Download PDF
          </Button>
          <Button variant="primary" className="h-14 px-12 rounded-2xl font-heading font-bold" onClick={() => {
-            if(shareToken) window.open(`/share/${shareToken}`, '_blank');
+            if(shareToken) window.open(`/pack/${shareToken}`, '_blank');
          }}>
             <span className="material-symbols-outlined mr-2">share</span>
             Share Pack Link

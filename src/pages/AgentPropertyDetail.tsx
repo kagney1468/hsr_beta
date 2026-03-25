@@ -75,10 +75,15 @@ export default function AgentPropertyDetail() {
         if (declError && declError.code !== 'PGRST116') throw declError;
         setDeclaration(declData);
 
-        // Fetch Share Token (Using property.shareable_link_token directly from properties table if available)
-        if (propData.shareable_link_token) {
-          setShareToken(propData.shareable_link_token);
-        }
+        // Fetch Share Token from shares table
+        const { data: shareData } = await supabase
+          .from('shares')
+          .select('token')
+          .eq('property_id', propData.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (shareData?.token) setShareToken(shareData.token);
 
         // Calculate Readiness
         let score = 0;
@@ -290,20 +295,20 @@ export default function AgentPropertyDetail() {
                 {shareToken ? (
                   <>
                     <div className="bg-white p-4 rounded-3xl flex justify-center shadow-2xl">
-                       <QRCode value={`${window.location.origin}/share/${shareToken}`} size={160} />
+                       <QRCode value={`${window.location.origin}/pack/${shareToken}`} size={160} />
                     </div>
                     <div className="space-y-2">
                       <Button 
                         variant="primary" 
                         onClick={() => {
-                          navigator.clipboard.writeText(`${window.location.origin}/share/${shareToken}`);
+                          navigator.clipboard.writeText(`${window.location.origin}/pack/${shareToken}`);
                           alert('Public link copied!');
                         }}
                         className="w-full h-14 rounded-2xl font-black font-heading text-sm"
                       >
                          Copy Public Link
                       </Button>
-                      <Link to={`/share/${shareToken}`} target="_blank" className="block w-full text-center py-2 text-[10px] font-black text-zinc-500 uppercase tracking-widest hover:text-[var(--teal-600)] transition-colors">
+                      <Link to={`/pack/${shareToken}`} target="_blank" className="block w-full text-center py-2 text-[10px] font-black text-zinc-500 uppercase tracking-widest hover:text-[var(--teal-600)] transition-colors">
                         Preview as Viewer
                       </Link>
                     </div>

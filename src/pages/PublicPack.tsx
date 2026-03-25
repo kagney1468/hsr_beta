@@ -27,15 +27,24 @@ export default function PublicPack() {
       if (!token) return;
       
       try {
-        // 1. Fetch Property by Token
+        // 1. Resolve active share token to property_id
+        const { data: share, error: shareError } = await supabase
+          .from('shares')
+          .select('*')
+          .eq('token', token)
+          .eq('active', true)
+          .maybeSingle();
+
+        if (shareError || !share) throw new Error('Property pack not found or link has been disabled.');
+
+        // 2. Fetch Property by share.property_id
         const { data: prop, error: propError } = await supabase
           .from('properties')
           .select('*')
-          .eq('shareable_link_token', token)
-          .eq('is_link_active', true)
+          .eq('id', share.property_id)
           .maybeSingle();
 
-        if (propError || !prop) throw new Error('Property pack not found or link has been disabled.');
+        if (propError || !prop) throw new Error('Property pack could not be loaded.');
 
         setProperty(prop);
 
@@ -58,7 +67,7 @@ export default function PublicPack() {
 
         setProperty((prev: any) => ({ ...(prev || {}), sellerProfile, agency: agencyData }));
 
-        // 2. Fetch Material Info & Docs (Only accessible after registration usually, 
+        // 3. Fetch Material Info & Docs (Only accessible after registration usually, 
         // but for this view we fetch them now and hide behind the state)
         const { data: matInfo } = await supabase
           .from('material_information')
