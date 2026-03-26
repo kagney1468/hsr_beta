@@ -196,28 +196,50 @@ export default function PropertyProfile() {
     
     try {
       const publicUserId = await getPublicUserIdByAuthUserId(user.id);
-      // 1. Update/Insert Property
-      const { data: property, error: propError } = await supabase
-        .from('properties')
-        .upsert({
-          seller_user_id: publicUserId,
-          address_line1: formData.address_line1,
-          address_line2: formData.address_line2,
-          address_town: formData.address_town,
-          address_county: formData.address_county,
-          address_city: formData.address_town,
-          address_postcode: formData.postcode,
-          property_type: formData.property_type,
-          bedrooms: formData.bedrooms,
-          bathrooms: formData.bathrooms,
-          tenure: formData.tenure,
-          council_tax_band: formData.council_tax_band,
-          description: formData.building_changes || null,
-        }, { onConflict: 'seller_user_id' })
-        .select()
-        .single();
+      const propertyPayload = {
+        seller_user_id: publicUserId,
+        address_line1: formData.address_line1,
+        address_line2: formData.address_line2,
+        address_town: formData.address_town,
+        address_county: formData.address_county,
+        address_city: formData.address_town,
+        address_postcode: formData.postcode,
+        property_type: formData.property_type,
+        bedrooms: formData.bedrooms,
+        bathrooms: formData.bathrooms,
+        tenure: formData.tenure,
+        council_tax_band: formData.council_tax_band,
+        description: formData.building_changes || null,
+      };
 
-      if (propError) throw propError;
+      // 1. Update existing property or insert a new one for this seller
+      const { data: existingProperty, error: existingPropertyError } = await supabase
+        .from('properties')
+        .select('id')
+        .eq('seller_user_id', publicUserId)
+        .limit(1)
+        .maybeSingle();
+      if (existingPropertyError) throw existingPropertyError;
+
+      let property: { id: string } | null = null;
+      if (existingProperty?.id) {
+        const { data: updatedProperty, error: updateError } = await supabase
+          .from('properties')
+          .update(propertyPayload)
+          .eq('id', existingProperty.id)
+          .select('id')
+          .single();
+        if (updateError) throw updateError;
+        property = updatedProperty;
+      } else {
+        const { data: insertedProperty, error: insertError } = await supabase
+          .from('properties')
+          .insert(propertyPayload)
+          .select('id')
+          .single();
+        if (insertError) throw insertError;
+        property = insertedProperty;
+      }
 
       // 2. Update/Insert Material Information
       const { error: miError } = await supabase
