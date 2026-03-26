@@ -4,7 +4,6 @@ import { Button } from '../components/ui/Button';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { AddressLookup } from '../components/AddressLookup';
 
 export default function SellerProfile() {
   const { user } = useAuth();
@@ -169,58 +168,36 @@ export default function SellerProfile() {
             <p className="text-xs text-[var(--muted)]">Where you currently reside.</p>
           </div>
 
-          <div className="space-y-6">
-            <div className="space-y-6">
-              <label className="text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Postcode Search</label>
-              <AddressLookup
-                postcode={formData.home_address_postcode}
-                onPostcodeChange={(val) => setFormData({ ...formData, home_address_postcode: val })}
-                onAddressSelect={(addr) => {
-                  setFormData((prev) => ({
-                    ...prev,
-                    home_address_line1: addr.line1,
-                    home_address_line2: addr.line2,
-                    home_address_town: addr.town,
-                    home_address_county: addr.county,
-                    home_address_city: addr.town,
-                    home_address_postcode: addr.postcode,
-                  }));
-                }}
-              />
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Address Line 1</label>
+              <input type="text" name="home_address_line1" value={formData.home_address_line1} onChange={handleChange} className="w-full" placeholder="123 Example Street" />
             </div>
 
-            <div className="pt-4 space-y-4 border-t border-[var(--border)]">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Address Line 2 (Optional)</label>
+              <input type="text" name="home_address_line2" value={formData.home_address_line2} onChange={handleChange} className="w-full" placeholder="Apt 4B" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Address Line 1</label>
-                <input type="text" name="home_address_line1" value={formData.home_address_line1} onChange={handleChange} className="w-full" placeholder="123 Example Street" />
+                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Town</label>
+                <input type="text" name="home_address_town" value={formData.home_address_town} onChange={handleChange} className="w-full" placeholder="London" />
               </div>
-
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Address Line 2 (Optional)</label>
-                <input type="text" name="home_address_line2" value={formData.home_address_line2} onChange={handleChange} className="w-full" placeholder="Apt 4B" />
+                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">County (Optional)</label>
+                <input type="text" name="home_address_county" value={formData.home_address_county} onChange={handleChange} className="w-full" placeholder="Greater London" />
               </div>
+            </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Town / City</label>
-                  <input type="text" name="home_address_town" value={formData.home_address_town} onChange={handleChange} className="w-full" placeholder="London" />
-                </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">City (Optional)</label>
+              <input type="text" name="home_address_city" value={formData.home_address_city} onChange={handleChange} className="w-full" placeholder="e.g. London" />
+            </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">County</label>
-                  <input type="text" name="home_address_county" value={formData.home_address_county} onChange={handleChange} className="w-full" placeholder="Greater London" />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">City</label>
-                <input type="text" name="home_address_city" value={formData.home_address_city} onChange={handleChange} className="w-full" placeholder="e.g. London" />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Postcode</label>
-                <input type="text" name="home_address_postcode" value={formData.home_address_postcode} onChange={handleChange} className="w-full" placeholder="SW1A 1AA" />
-              </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Postcode</label>
+              <input type="text" name="home_address_postcode" value={formData.home_address_postcode} onChange={handleChange} className="w-full uppercase tracking-widest font-semibold" placeholder="SW1A 1AA" />
             </div>
 
             <div className="pt-4">

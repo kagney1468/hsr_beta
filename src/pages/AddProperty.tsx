@@ -4,8 +4,9 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { AddressLookup } from '../components/AddressLookup';
 import { getPublicUserIdByAuthUserId } from '../lib/publicUser';
+
+const UK_POSTCODE_REGEX = /^[A-Z]{1,2}[0-9][0-9A-Z]?\s?[0-9][A-Z]{2}$/i;
 
 const PROPERTY_TYPES = [
   'Detached House',
@@ -32,12 +33,14 @@ export default function AddProperty() {
   const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [postcodeError, setPostcodeError] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     address_line1: '',
     address_line2: '',
     address_town: '',
     address_county: '',
+    address_city: '',
     address_postcode: '',
     property_type: '',
     tenure: '',
@@ -45,32 +48,24 @@ export default function AddProperty() {
     bathrooms: '',
   });
 
-  const [addressConfirmed, setAddressConfirmed] = useState(false);
-
-  const handleAddressSelect = (addr: {
-    line1: string;
-    line2: string;
-    town: string;
-    county: string;
-    postcode: string;
-  }) => {
-    setForm(prev => ({
-      ...prev,
-      address_line1: addr.line1,
-      address_line2: addr.line2,
-      address_town: addr.town,
-      address_county: addr.county,
-      address_postcode: addr.postcode,
-    }));
-    setAddressConfirmed(true);
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+    if (name === 'address_postcode') setPostcodeError(null);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  const validatePostcode = (postcode: string): boolean => {
+    if (!UK_POSTCODE_REGEX.test(postcode.trim())) {
+      setPostcodeError('Please enter a valid UK postcode e.g. SW1A 1AA');
+      return false;
+    }
+    setPostcodeError(null);
+    return true;
   };
 
   const isValid =
     form.address_line1.trim() &&
+    form.address_town.trim() &&
     form.address_postcode.trim() &&
     form.property_type &&
     form.tenure &&
@@ -79,6 +74,7 @@ export default function AddProperty() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !isValid) return;
+    if (!validatePostcode(form.address_postcode)) return;
 
     setSaving(true);
     setError(null);
@@ -86,7 +82,6 @@ export default function AddProperty() {
     try {
       const publicUserId = await getPublicUserIdByAuthUserId(user.id);
 
-      // Check no property already exists for this seller
       const { data: existing } = await supabase
         .from('properties')
         .select('id')
@@ -94,7 +89,6 @@ export default function AddProperty() {
         .maybeSingle();
 
       if (existing) {
-        // Already has a property — go straight to dashboard
         navigate('/seller/dashboard');
         return;
       }
@@ -105,7 +99,7 @@ export default function AddProperty() {
         address_line2: form.address_line2.trim() || null,
         address_town: form.address_town.trim() || null,
         address_county: form.address_county.trim() || null,
-        address_city: form.address_town.trim() || null,
+        address_city: form.address_city.trim() || null,
         address_postcode: form.address_postcode.trim().toUpperCase(),
         property_type: form.property_type,
         tenure: form.tenure,
@@ -150,16 +144,14 @@ export default function AddProperty() {
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-widest text-[var(--teal-500)]">Step 1 of 5</p>
             <h1 className="text-4xl font-black font-heading text-[var(--teal-900)] tracking-tight">Add your property</h1>
-            <p className="text-[var(--muted)] leading-relaxed">
-              Tell us about the property <strong>you are selling</strong> — not where you currently live.
-            </p>
+            <p className="text-[var(--muted)] leading-relaxed">Enter the address of the property you are selling.</p>
           </div>
 
-          {/* Important callout */}
-          <div className="flex items-start gap-3 p-4 rounded-xl bg-[var(--teal-050)] border border-[var(--border)]">
-            <span className="material-symbols-outlined text-[var(--teal-600)] shrink-0 mt-0.5">info</span>
-            <p className="text-sm text-[var(--teal-900)] leading-relaxed">
-              <strong>This is the property for sale.</strong> If you are currently living somewhere else, enter the address of the home you are selling here.
+          {/* Amber note */}
+          <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200">
+            <span className="material-symbols-outlined text-amber-600 shrink-0 mt-0.5">info</span>
+            <p className="text-sm text-amber-900 leading-relaxed">
+              <strong>This is the property you are selling</strong> — it may be different from where you currently live.
             </p>
           </div>
 
@@ -172,76 +164,82 @@ export default function AddProperty() {
             )}
 
             {/* Address */}
-            <Card className="p-6 md:p-8 space-y-6">
+            <Card className="p-6 md:p-8 space-y-5">
               <h2 className="font-black font-heading text-[var(--teal-900)] text-xl">Property address</h2>
 
-              <AddressLookup
-                postcode={form.address_postcode}
-                onPostcodeChange={(val) => setForm(prev => ({ ...prev, address_postcode: val }))}
-                onAddressSelect={handleAddressSelect}
-              />
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Address Line 1 *</label>
+                <input
+                  name="address_line1"
+                  required
+                  value={form.address_line1}
+                  onChange={handleChange}
+                  className="w-full"
+                  placeholder="e.g. 12 Maple Gardens"
+                />
+              </div>
 
-              {addressConfirmed && (
-                <div className="space-y-4 pt-2 border-t border-[var(--border)] animate-in fade-in duration-300">
-                  <p className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)]">Confirm or edit the address below</p>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Address Line 2 (Optional)</label>
+                <input
+                  name="address_line2"
+                  value={form.address_line2}
+                  onChange={handleChange}
+                  className="w-full"
+                  placeholder="Flat, apartment, building name"
+                />
+              </div>
 
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Address line 1 *</label>
-                    <input
-                      name="address_line1"
-                      required
-                      value={form.address_line1}
-                      onChange={handleChange}
-                      className="w-full"
-                      placeholder="e.g. 12 Maple Gardens"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Address line 2</label>
-                    <input
-                      name="address_line2"
-                      value={form.address_line2}
-                      onChange={handleChange}
-                      className="w-full"
-                      placeholder="Flat, apartment, building name (optional)"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Town / City</label>
-                      <input name="address_town" value={form.address_town} onChange={handleChange} className="w-full" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">County</label>
-                      <input name="address_county" value={form.address_county} onChange={handleChange} className="w-full" />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Postcode *</label>
-                    <input
-                      name="address_postcode"
-                      required
-                      value={form.address_postcode}
-                      onChange={handleChange}
-                      className="w-full uppercase tracking-widest font-semibold"
-                    />
-                  </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Town *</label>
+                  <input
+                    name="address_town"
+                    required
+                    value={form.address_town}
+                    onChange={handleChange}
+                    className="w-full"
+                    placeholder="e.g. Bristol"
+                  />
                 </div>
-              )}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">County (Optional)</label>
+                  <input
+                    name="address_county"
+                    value={form.address_county}
+                    onChange={handleChange}
+                    className="w-full"
+                    placeholder="e.g. Somerset"
+                  />
+                </div>
+              </div>
 
-              {/* Manual entry fallback */}
-              {!addressConfirmed && (
-                <button
-                  type="button"
-                  onClick={() => setAddressConfirmed(true)}
-                  className="text-xs text-[var(--teal-600)] font-semibold hover:underline"
-                >
-                  Enter address manually instead
-                </button>
-              )}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">City (Optional)</label>
+                <input
+                  name="address_city"
+                  value={form.address_city}
+                  onChange={handleChange}
+                  className="w-full"
+                  placeholder="e.g. Bristol"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Postcode *</label>
+                <input
+                  name="address_postcode"
+                  required
+                  value={form.address_postcode}
+                  onChange={handleChange}
+                  onBlur={() => form.address_postcode && validatePostcode(form.address_postcode)}
+                  className={`w-full uppercase tracking-widest font-semibold ${postcodeError ? 'border-red-400 focus:border-red-500' : ''}`}
+                  placeholder="e.g. SW1A 1AA"
+                />
+                {postcodeError && (
+                  <p className="text-red-500 text-xs font-semibold">{postcodeError}</p>
+                )}
+              </div>
             </Card>
 
             {/* Property details */}

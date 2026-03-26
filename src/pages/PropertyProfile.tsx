@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { getPublicUserIdByAuthUserId } from '../lib/publicUser';
 import { useAuth } from '../contexts/AuthContext';
-import { AddressLookup } from '../components/AddressLookup';
 import { Tooltip } from '../components/ui/Tooltip';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -284,67 +283,70 @@ export default function PropertyProfile() {
       )}
 
       <div className="space-y-12">
-        <Card className="p-8 border-l-4 border-l-[var(--teal-500)]/50 space-y-8 text-[var(--text)]">
-          <div className="flex items-center gap-2 mb-6">
+        <Card className="p-8 border-l-4 border-l-[var(--teal-500)]/50 space-y-6 text-[var(--text)]">
+          <div>
             <h2 className="text-xl font-bold font-heading text-slate-900">Property Address</h2>
+            <p className="text-xs text-[var(--muted)] mt-1">Enter the address of the property you are selling.</p>
           </div>
-          
-          <div className="space-y-6">
-            <div className="space-y-6">
-              <label className="text-xs font-bold uppercase tracking-widest text-slate-600">Postcode Search</label>
-              <AddressLookup 
-                postcode={formData.postcode} 
-                onPostcodeChange={(val) => setFormData({...formData, postcode: val})} 
-                onAddressSelect={(addr) => {
-                  setFormData(prev => ({
-                    ...prev,
-                    address_line1: addr.line1,
-                    address_line2: addr.line2,
-                    address_town: addr.town,
-                    address_county: addr.county,
-                    postcode: addr.postcode
-                  }));
-                  handleEpcLookup(addr.postcode, addr.line1);
-                }} 
-              />
+
+          <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-50 border border-amber-200">
+            <span className="material-symbols-outlined text-amber-600 shrink-0 mt-0.5 text-sm">info</span>
+            <p className="text-xs text-amber-900 leading-relaxed">
+              <strong>This is the property you are selling</strong> — it may be different from where you currently live.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Address Line 1</label>
+              <input type="text" name="address_line1" value={formData.address_line1} onChange={handleChange} className="w-full" placeholder="e.g. 12 Maple Gardens" />
             </div>
 
-            <div className="pt-4 space-y-4 border-t border-[var(--border)]">
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Address Line 1</label>
-                <input type="text" name="address_line1" value={formData.address_line1} onChange={handleChange} className="w-full" />
-              </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Address Line 2 (Optional)</label>
+              <input type="text" name="address_line2" value={formData.address_line2} onChange={handleChange} className="w-full" placeholder="Flat, apartment, building name" />
+            </div>
 
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Address Line 2</label>
-                <input type="text" name="address_line2" value={formData.address_line2} onChange={handleChange} className="w-full" />
+                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Town</label>
+                <input type="text" name="address_town" value={formData.address_town} onChange={handleChange} className="w-full" placeholder="e.g. Bristol" />
               </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Town / City</label>
-                  <input type="text" name="address_town" value={formData.address_town} onChange={handleChange} className="w-full" />
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">County</label>
-                  <input type="text" name="address_county" value={formData.address_county} onChange={handleChange} className="w-full" />
-                </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">County (Optional)</label>
+                <input type="text" name="address_county" value={formData.address_county} onChange={handleChange} className="w-full" placeholder="e.g. Somerset" />
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Postcode</label>
-                <input type="text" name="postcode" value={formData.postcode} onChange={handleChange} className="w-full" />
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Postcode</label>
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  name="postcode"
+                  value={formData.postcode}
+                  onChange={handleChange}
+                  className="w-full uppercase tracking-widest font-semibold"
+                  placeholder="e.g. SW1A 1AA"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleEpcLookup(formData.postcode, formData.address_line1)}
+                  disabled={epcLoading || !formData.postcode || !formData.address_line1}
+                  className="shrink-0 px-4 py-2 rounded-xl bg-[var(--teal-050)] border border-[var(--border)] text-[var(--teal-900)] text-xs font-bold hover:bg-[var(--teal-100)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                >
+                  {epcLoading ? 'Looking up…' : 'Auto-fetch EPC'}
+                </button>
               </div>
             </div>
 
             {epcLoading && (
               <div className="p-4 bg-[var(--teal-050)] border border-[var(--border)] rounded-xl flex items-center gap-3 text-[var(--teal-900)] animate-pulse">
-                <span className="material-symbols-outlined spin text-[var(--teal-600)]">autorenew</span>
+                <span className="material-symbols-outlined text-[var(--teal-600)]">autorenew</span>
                 <span className="text-sm font-bold">Looking up Energy Performance Certificate (EPC)...</span>
               </div>
             )}
-            
+
             {epcStatus === 'found' && (
               <div className="bg-green-50 border border-green-200 p-4 rounded-xl flex items-start gap-4 animate-in fade-in duration-500">
                 <span className="material-symbols-outlined text-green-700 bg-green-100 p-1.5 rounded-full text-lg">check</span>
@@ -355,23 +357,20 @@ export default function PropertyProfile() {
                 </div>
               </div>
             )}
-            
+
             {epcStatus === 'multiple' && epcOptions.length > 0 && (
               <div className="bg-orange-50 border border-orange-200 p-4 rounded-xl animate-in fade-in duration-500 space-y-3">
                 <div className="flex gap-4">
                   <span className="material-symbols-outlined text-orange-700">dynamic_form</span>
                   <div>
                     <h4 className="text-orange-800 font-bold uppercase tracking-widest text-xs mb-1">Multiple EPCs Found</h4>
-                    <p className="text-sm text-orange-900/90">Select the correct EPC for your property from the list below:</p>
+                    <p className="text-sm text-orange-900/90">Select the correct EPC for your property:</p>
                   </div>
                 </div>
                 <select className="w-full"
                   onChange={(e) => {
                     const selectedData = epcOptions.find((o, idx) => idx.toString() === e.target.value);
-                    if (selectedData) {
-                      applyEpcDetails(selectedData);
-                      setEpcStatus('found');
-                    }
+                    if (selectedData) { applyEpcDetails(selectedData); setEpcStatus('found'); }
                   }}
                   defaultValue=""
                 >
@@ -388,7 +387,7 @@ export default function PropertyProfile() {
                 <span className="material-symbols-outlined text-amber-700 mt-1">info</span>
                 <div>
                   <h4 className="text-amber-800 font-bold uppercase tracking-widest text-xs mb-1">EPC Required</h4>
-                  <p className="text-sm text-amber-900/85">No EPC found for this address. You may need to commission one before marketing your property. EPCs are now required at the point of marketing.</p>
+                  <p className="text-sm text-amber-900/85">No EPC found for this address. You may need to commission one before marketing your property.</p>
                 </div>
               </div>
             )}
