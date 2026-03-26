@@ -64,10 +64,11 @@ export default function PropertyProfile() {
       if (!user) return;
       
       try {
+        const publicUserId = await getPublicUserIdByAuthUserId(user.id);
         const { data, error } = await supabase
           .from('properties')
           .select('*, material_information(*)')
-          .eq('seller_user_id', user.id)
+          .eq('seller_user_id', publicUserId)
           .single();
 
         if (error && error.code !== 'PGRST116') {
@@ -79,9 +80,9 @@ export default function PropertyProfile() {
           setFormData({
             address_line1: data.address_line1 || '',
             address_line2: data.address_line2 || '',
-            address_town: data.city || '',
-            address_county: '',
-            postcode: data.postcode || '',
+            address_town: data.address_town || data.address_city || '',
+            address_county: data.address_county || '',
+            postcode: data.address_postcode || '',
             property_type: data.property_type || 'Detached House',
             bedrooms: data.bedrooms || 3,
             bathrooms: data.bathrooms || 2,
@@ -89,19 +90,14 @@ export default function PropertyProfile() {
             epc_expiry: mi?.epc_expiry || '',
             construction_age_band: mi?.construction_age_band || '',
             
-            asking_price: data.asking_price || '',
             tenure: data.tenure || 'Freehold',
             council_tax_band: data.council_tax_band || 'A',
             
-            heating: data.heating || 'Gas Central Heating',
-            drainage: data.drainage || 'Mains Sewerage',
             water_supply: mi?.water_supply || 'Mains',
             electricity_supply: mi?.electricity_supply || 'Mains',
             broadband_speed: mi?.broadband_speed || 'Superfast',
             mobile_signal: mi?.mobile_signal || 'Good',
-            parking: data.parking || 'Driveway',
             
-            building_changes: data.building_changes || '',
             restrictions: mi?.restrictions || '',
             rights_easements: mi?.rights_easements || '',
             flood_risk: mi?.flood_risk || 'Low',
@@ -207,19 +203,16 @@ export default function PropertyProfile() {
           seller_user_id: publicUserId,
           address_line1: formData.address_line1,
           address_line2: formData.address_line2,
-          city: formData.address_town,
-          postcode: formData.postcode,
+          address_town: formData.address_town,
+          address_county: formData.address_county,
+          address_city: formData.address_town,
+          address_postcode: formData.postcode,
           property_type: formData.property_type,
           bedrooms: formData.bedrooms,
           bathrooms: formData.bathrooms,
-          asking_price: formData.asking_price,
           tenure: formData.tenure,
           council_tax_band: formData.council_tax_band,
-          heating: formData.heating,
-          drainage: formData.drainage,
-          parking: formData.parking,
-          building_changes: formData.building_changes,
-          updated_at: new Date().toISOString(),
+          description: formData.building_changes || null,
         }, { onConflict: 'seller_user_id' })
         .select()
         .single();

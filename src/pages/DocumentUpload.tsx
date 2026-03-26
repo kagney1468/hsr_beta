@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { SIGNED_DOCUMENT_URL_TTL_SECONDS } from '../lib/storageSignedUrl';
+import { getPublicUserIdByAuthUserId } from '../lib/publicUser';
 import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -92,10 +93,11 @@ export default function DocumentUpload() {
       if (!user) return;
       setLoading(true);
       try {
+        const publicUserId = await getPublicUserIdByAuthUserId(user.id);
         const { data: propData, error: propError } = await supabase
           .from('properties')
           .select('*')
-          .eq('seller_user_id', user.id)
+          .eq('seller_user_id', publicUserId)
           .single();
 
         if (propError || !propData) {

@@ -48,10 +48,11 @@ export default function SellerOnboarding() {
       if (!user) return;
       
       try {
+        const publicUserId = await getPublicUserIdByAuthUserId(user.id);
         const { data: prop, error } = await supabase
           .from('properties')
           .select('*')
-          .eq('seller_user_id', user.id)
+          .eq('seller_user_id', publicUserId)
           .maybeSingle();
 
         if (prop) {
@@ -60,9 +61,9 @@ export default function SellerOnboarding() {
             ...prev,
             address_line1: prop.address_line1 || '',
             address_line2: prop.address_line2 || '',
-            address_town: prop.city || '',
-            address_county: '',
-            postcode: prop.postcode || '',
+            address_town: prop.address_town || prop.address_city || '',
+            address_county: prop.address_county || '',
+            postcode: prop.address_postcode || '',
             property_type: prop.property_type || 'Detached',
             tenure: prop.tenure || 'Freehold',
             bedrooms: prop.bedrooms || 3,
@@ -111,11 +112,12 @@ export default function SellerOnboarding() {
       if (step === 1 || step === 2) {
         const payload = {
           seller_user_id: publicUserId,
-          address: [formData.address_line1, formData.address_line2, formData.address_town, formData.address_county, formData.postcode].filter(Boolean).join(', '),
           address_line1: formData.address_line1,
           address_line2: formData.address_line2,
-          city: formData.address_town,
-          postcode: formData.postcode,
+          address_town: formData.address_town,
+          address_county: formData.address_county,
+          address_city: formData.address_town,
+          address_postcode: formData.postcode,
           property_type: formData.property_type,
           tenure: formData.tenure,
           bedrooms: formData.bedrooms,

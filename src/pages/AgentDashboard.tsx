@@ -10,8 +10,8 @@ export default function AgentDashboard() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showAddPropertyModal, setShowAddPropertyModal] = useState(false);
   const [newProperty, setNewProperty] = useState({
-    address: '',
-    postcode: '',
+    address_line1: '',
+    address_postcode: '',
     seller_email: ''
   });
 
@@ -48,18 +48,18 @@ export default function AgentDashboard() {
         .select('*');
       if (propsError) throw propsError;
 
-      // 1b. Fetch seller profiles using seller_user_id = auth_user_id
+      // 1b. Fetch seller profiles using seller_user_id = public.users.id
       const sellerIds = Array.from(
         new Set(((propsData as any[]) || []).map(p => p.seller_user_id).filter(Boolean))
       ) as string[];
 
-      const sellersByAuthId = new Map<string, any>();
+      const sellersById = new Map<string, any>();
       if (sellerIds.length > 0) {
         const { data: sellers } = await supabase
           .from('users')
-          .select('auth_user_id, full_name, phone, email')
-          .in('auth_user_id', sellerIds);
-        (sellers || []).forEach((s: any) => sellersByAuthId.set(s.auth_user_id, s));
+          .select('id, full_name, phone, email')
+          .in('id', sellerIds);
+        (sellers || []).forEach((s: any) => sellersById.set(s.id, s));
       }
 
       // 2. Get all documents and declarations for progress calc
@@ -74,11 +74,11 @@ export default function AgentDashboard() {
       const enrichedProperties = (propsData as any[])?.map(prop => {
         const propDocs = (docsData as any[])?.filter(d => d.property_id === prop.id) || [];
         const propDecl = (declData as any[])?.find(d => d.property_id === prop.id);
-        const seller = sellersByAuthId.get(prop.seller_user_id);
+        const seller = sellersById.get(prop.seller_user_id);
 
         // Progress Scoring (Detailed for the progress bar)
         let score = 0;
-        if (prop.address && prop.property_type) score += 20; // Basic Info
+        if (prop.address_line1 && prop.property_type) score += 20; // Basic Info
         if (propDocs.length >= 1) score += 20;
         if (propDocs.some(d => d.document_type === 'title_deeds')) score += 20;
         if (propDocs.length >= 4) score += 20; // 4+ docs
@@ -126,7 +126,7 @@ export default function AgentDashboard() {
     e.preventDefault();
     alert('Mock: Creating property and sending invite to ' + newProperty.seller_email);
     setShowAddPropertyModal(false);
-    setNewProperty({ address: '', postcode: '', seller_email: '' });
+    setNewProperty({ address_line1: '', address_postcode: '', seller_email: '' });
   };
 
   if (loading) {
@@ -201,8 +201,8 @@ export default function AgentDashboard() {
                     <tr key={prop.id} className="hover:bg-[var(--teal-050)]/50 transition-colors group">
                       <td className="px-6 py-6">
                         <Link to={`/agent/property/${prop.id}`} className="block">
-                          <div className="font-bold text-[var(--teal-900)] group-hover:text-[var(--teal-600)] transition-colors">{prop.address}</div>
-                          <div className="text-[11px] text-[var(--muted)] mt-1 uppercase tracking-wider">{prop.postcode}</div>
+                          <div className="font-bold text-[var(--teal-900)] group-hover:text-[var(--teal-600)] transition-colors">{prop.address_line1}</div>
+                          <div className="text-[11px] text-[var(--muted)] mt-1 uppercase tracking-wider">{prop.address_postcode}</div>
                         </Link>
                       </td>
                       <td className="px-6 py-6 text-sm text-[var(--text)] font-medium">
@@ -273,8 +273,8 @@ export default function AgentDashboard() {
                 <input
                   required
                   type="text"
-                  value={newProperty.address}
-                  onChange={e => setNewProperty({...newProperty, address: e.target.value})}
+                    value={newProperty.address_line1}
+                    onChange={e => setNewProperty({...newProperty, address_line1: e.target.value})}
                   className="w-full"
                   placeholder="e.g. 12 Maple Gardens"
                 />
@@ -285,8 +285,8 @@ export default function AgentDashboard() {
                   <input
                     required
                     type="text"
-                    value={newProperty.postcode}
-                    onChange={e => setNewProperty({...newProperty, postcode: e.target.value})}
+                    value={newProperty.address_postcode}
+                    onChange={e => setNewProperty({...newProperty, address_postcode: e.target.value})}
                     className="w-full"
                     placeholder="E.g. SW1 1AA"
                   />

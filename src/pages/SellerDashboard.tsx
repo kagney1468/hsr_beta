@@ -7,6 +7,7 @@ import { Button } from '../components/ui/Button';
 import { Tooltip } from '../components/ui/Tooltip';
 import { updatePackCompletion } from '../lib/completion';
 import { getPackShareUrl } from '../lib/siteUrl';
+import { getPublicUserIdByAuthUserId } from '../lib/publicUser';
 
 export default function SellerDashboard() {
   const { user } = useAuth();
@@ -50,10 +51,11 @@ export default function SellerDashboard() {
       if (!silent) setLoading(true);
 
       try {
+        const publicUserId = await getPublicUserIdByAuthUserId(user.id);
         const { data: property, error: propError } = await supabase
           .from('properties')
           .select('*')
-          .eq('seller_user_id', user.id)
+          .eq('seller_user_id', publicUserId)
           .maybeSingle();
 
         if (propError) throw propError;
@@ -95,7 +97,7 @@ export default function SellerDashboard() {
         const currentPercentage = await updatePackCompletion(property.id);
         const propertyWithPct = { ...property, pack_completion_percentage: currentPercentage };
 
-        const pStatus = property.property_type && property.address ? 'complete' : 'urgent';
+        const pStatus = property.property_type && property.address_line1 && property.address_postcode ? 'complete' : 'urgent';
         const mStatus = materialInfo && materialInfo.water_supply ? 'complete' : 'urgent';
 
         let mandatoryCount = 1;
@@ -326,10 +328,10 @@ export default function SellerDashboard() {
             </button>
           </div>
           <h1 className="text-4xl md:text-6xl font-black font-heading tracking-tight leading-none">
-            {data.property.address}
+            {data.property.address_line1}
           </h1>
           <p className="text-lg text-[var(--muted)] font-medium tracking-tight">
-            {data.property.postcode} • Ready for market
+            {data.property.address_postcode} • Ready for market
           </p>
         </div>
 

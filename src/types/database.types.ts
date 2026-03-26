@@ -103,80 +103,77 @@ export type Database = {
         Row: {
           id: string
           seller_user_id: string | null
-          user_id: string | null
-          address: string | null
+          agency_id: string | null
           address_line1: string | null
           address_line2: string | null
-          city: string | null
-          postcode: string | null
+          address_town: string | null
+          address_county: string | null
+          address_city: string | null
+          address_postcode: string | null
           property_type: string | null
           tenure: string | null
           bedrooms: number | null
           bathrooms: number | null
           council_tax_band: string | null
           epc_rating: string | null
-          asking_price: string | null
-          heating: string | null
-          drainage: string | null
-          parking: string | null
-          building_changes: string | null
+          year_built: number | null
+          square_footage: number | null
+          description: string | null
+          status: string | null
           is_link_active: boolean
           shareable_link_token: string | null
           pack_completion_percentage: number | null
           created_at: string
-          updated_at: string
         }
         Insert: {
           id?: string
           seller_user_id?: string | null
-          user_id?: string | null
-          address?: string | null
+          agency_id?: string | null
           address_line1?: string | null
           address_line2?: string | null
-          city?: string | null
-          postcode?: string | null
+          address_town?: string | null
+          address_county?: string | null
+          address_city?: string | null
+          address_postcode?: string | null
           property_type?: string | null
           tenure?: string | null
           bedrooms?: number | null
           bathrooms?: number | null
           council_tax_band?: string | null
           epc_rating?: string | null
-          asking_price?: string | null
-          heating?: string | null
-          drainage?: string | null
-          parking?: string | null
-          building_changes?: string | null
+          year_built?: number | null
+          square_footage?: number | null
+          description?: string | null
+          status?: string | null
           is_link_active?: boolean
           shareable_link_token?: string | null
           pack_completion_percentage?: number | null
           created_at?: string
-          updated_at?: string
         }
         Update: {
           id?: string
           seller_user_id?: string | null
-          user_id?: string | null
-          address?: string | null
+          agency_id?: string | null
           address_line1?: string | null
           address_line2?: string | null
-          city?: string | null
-          postcode?: string | null
+          address_town?: string | null
+          address_county?: string | null
+          address_city?: string | null
+          address_postcode?: string | null
           property_type?: string | null
           tenure?: string | null
           bedrooms?: number | null
           bathrooms?: number | null
           council_tax_band?: string | null
           epc_rating?: string | null
-          asking_price?: string | null
-          heating?: string | null
-          drainage?: string | null
-          parking?: string | null
-          building_changes?: string | null
+          year_built?: number | null
+          square_footage?: number | null
+          description?: string | null
+          status?: string | null
           is_link_active?: boolean
           shareable_link_token?: string | null
           pack_completion_percentage?: number | null
           created_at?: string
-          updated_at?: string
         }
         Relationships: []
       }
