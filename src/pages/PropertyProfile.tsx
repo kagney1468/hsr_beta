@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { getPublicUserIdByAuthUserId } from '../lib/publicUser';
 import { useAuth } from '../contexts/AuthContext';
 import { AddressLookup } from '../components/AddressLookup';
 import { Tooltip } from '../components/ui/Tooltip';
@@ -198,11 +199,12 @@ export default function PropertyProfile() {
     setMessage(null);
     
     try {
+      const publicUserId = await getPublicUserIdByAuthUserId(user.id);
       // 1. Update/Insert Property
       const { data: property, error: propError } = await supabase
         .from('properties')
         .upsert({
-          seller_user_id: user.id,
+          seller_user_id: publicUserId,
           address_line1: formData.address_line1,
           address_line2: formData.address_line2,
           city: formData.address_town,

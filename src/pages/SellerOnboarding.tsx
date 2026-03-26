@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { getPublicUserIdByAuthUserId } from '../lib/publicUser';
 import { AddressLookup } from '../components/AddressLookup';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -105,10 +106,11 @@ export default function SellerOnboarding() {
     
     try {
       let currentPropId = propertyId;
+      const publicUserId = await getPublicUserIdByAuthUserId(user.id);
 
       if (step === 1 || step === 2) {
         const payload = {
-          seller_user_id: user.id,
+          seller_user_id: publicUserId,
           address: [formData.address_line1, formData.address_line2, formData.address_town, formData.address_county, formData.postcode].filter(Boolean).join(', '),
           address_line1: formData.address_line1,
           address_line2: formData.address_line2,
