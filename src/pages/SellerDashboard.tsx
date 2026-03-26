@@ -187,10 +187,10 @@ export default function SellerDashboard() {
   }, [data.property?.id, loadDashboardData]);
 
   const getContinuePath = () => {
-    if (stats.sections.property.status !== 'complete') return '/seller/onboarding';
+    if (stats.sections.property.status !== 'complete') return '/seller/property';
     if (stats.sections.material.status !== 'complete') return '/seller/property';
     if (stats.sections.documents.status !== 'complete') return '/seller/documents';
-    return '/seller/dashboard';
+    return '/seller/declaration';
   };
 
   const [copying, setCopying] = useState(false);
@@ -280,8 +280,8 @@ export default function SellerDashboard() {
           <p className="text-[var(--muted)]">
             You haven't added your property details yet. Complete your onboarding to build your property pack.
           </p>
-          <Button variant="primary" onClick={() => navigate('/seller/onboarding')}>
-            Start onboarding
+          <Button variant="primary" onClick={() => navigate('/add-property')}>
+            Add your property
           </Button>
         </div>
       </div>
@@ -492,7 +492,7 @@ export default function SellerDashboard() {
                 onClick={() =>
                   navigate(
                     section.id === 'property'
-                      ? '/seller/onboarding'
+                      ? '/seller/property'
                       : section.id === 'material'
                         ? '/seller/property'
                         : '/seller/documents'

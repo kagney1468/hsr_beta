@@ -37,7 +37,7 @@ export default function FinalDeclaration() {
         const { data: propData, error: propError } = await supabase
           .from('properties')
           .select('id')
-          .eq('seller_user_id', user.id)
+          .eq('seller_user_id', userData.id)
           .maybeSingle();
 
         if (propError || !propData) {
@@ -88,9 +88,10 @@ export default function FinalDeclaration() {
         .eq('property_id', propertyId)
         .single();
 
+      const { data: userRow } = await supabase.from('users').select('id').eq('auth_user_id', user.id).maybeSingle();
       const payload = {
         property_id: propertyId,
-        seller_user_id: user.id,
+        seller_user_id: userRow?.id || null,
         confirms_accuracy: confirmsAccuracy,
         confirms_ai_review: confirmsLegalRight, // Reusing field for legal right confirm
         signed_at: new Date().toISOString(),

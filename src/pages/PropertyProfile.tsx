@@ -29,26 +29,17 @@ export default function PropertyProfile() {
     property_type: 'Detached House',
     bedrooms: 3,
     bathrooms: 2,
+    tenure: 'Freehold',
+    council_tax_band: 'A',
     epc_rating: '',
     epc_expiry: '',
     construction_age_band: '',
-    
-    // Part A
-    asking_price: '',
-    tenure: 'Freehold',
-    council_tax_band: 'A',
-    
-    // Part B
-    heating: 'Gas Central Heating',
-    drainage: 'Mains Sewerage',
+    // Material Information
     water_supply: 'Mains',
     electricity_supply: 'Mains',
     broadband_speed: 'Superfast',
     mobile_signal: 'Good',
     parking: 'Driveway',
-    
-    // Part C
-    building_changes: '',
     restrictions: '',
     rights_easements: '',
     flood_risk: 'Low',
@@ -86,18 +77,16 @@ export default function PropertyProfile() {
             property_type: data.property_type || 'Detached House',
             bedrooms: data.bedrooms || 3,
             bathrooms: data.bathrooms || 2,
+            tenure: data.tenure || 'Freehold',
+            council_tax_band: data.council_tax_band || 'A',
             epc_rating: mi?.epc_rating || '',
             epc_expiry: mi?.epc_expiry || '',
             construction_age_band: mi?.construction_age_band || '',
-            
-            tenure: data.tenure || 'Freehold',
-            council_tax_band: data.council_tax_band || 'A',
-            
             water_supply: mi?.water_supply || 'Mains',
             electricity_supply: mi?.electricity_supply || 'Mains',
             broadband_speed: mi?.broadband_speed || 'Superfast',
             mobile_signal: mi?.mobile_signal || 'Good',
-            
+            parking: mi?.parking || 'Driveway',
             restrictions: mi?.restrictions || '',
             rights_easements: mi?.rights_easements || '',
             flood_risk: mi?.flood_risk || 'Low',
@@ -209,7 +198,7 @@ export default function PropertyProfile() {
         bathrooms: formData.bathrooms,
         tenure: formData.tenure,
         council_tax_band: formData.council_tax_band,
-        description: formData.building_changes || null,
+        description: null,
       };
 
       // 1. Update existing property or insert a new one for this seller
@@ -250,6 +239,7 @@ export default function PropertyProfile() {
           electricity_supply: formData.electricity_supply,
           broadband_speed: formData.broadband_speed,
           mobile_signal: formData.mobile_signal,
+          parking: formData.parking,
           restrictions: formData.restrictions,
           rights_easements: formData.rights_easements,
           flood_risk: formData.flood_risk,
@@ -418,16 +408,6 @@ export default function PropertyProfile() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <label className="text-sm font-semibold flex items-center gap-2">
-                Asking Price
-                <Tooltip content="The price at which the property is being marketed.">
-                  <span className="material-symbols-outlined text-slate-400 text-xs">help</span>
-                </Tooltip>
-              </label>
-              <input name="asking_price" value={formData.asking_price} onChange={handleChange} className="w-full" placeholder="£" />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-semibold flex items-center gap-2">
                 Tenure
                 <Tooltip content="Freehold means you own the land. Leasehold means you own the building for a set period but not the land.">
                   <span className="material-symbols-outlined text-slate-400 text-xs">help</span>
@@ -438,6 +418,13 @@ export default function PropertyProfile() {
                 <option value="Leasehold">Leasehold</option>
                 <option value="Commonhold">Commonhold</option>
                 <option value="Share of Freehold">Share of Freehold</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-semibold">Council Tax Band</label>
+              <select name="council_tax_band" value={formData.council_tax_band} onChange={handleChange} className="w-full">
+                {['A','B','C','D','E','F','G','H'].map(b => <option key={b} value={b}>Band {b}</option>)}
               </select>
             </div>
           </div>
@@ -454,25 +441,6 @@ export default function PropertyProfile() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-sm font-semibold">Heating System</label>
-              <select name="heating" value={formData.heating} onChange={handleChange} className="w-full">
-                <option value="Gas Central Heating">Gas Central Heating</option>
-                <option value="Electric Heating">Electric Heating</option>
-                <option value="Oil Heating">Oil Heating</option>
-                <option value="Heat Pump">Heat Pump</option>
-              </select>
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-semibold">Drainage</label>
-              <select name="drainage" value={formData.drainage} onChange={handleChange} className="w-full">
-                <option value="Mains Sewerage">Mains Sewerage</option>
-                <option value="Septic Tank">Septic Tank</option>
-                <option value="Cesspit">Cesspit</option>
-              </select>
-            </div>
-
             <div className="space-y-2">
               <label className="text-sm font-semibold">Electricity Supply</label>
               <select name="electricity_supply" value={formData.electricity_supply} onChange={handleChange} className="w-full">

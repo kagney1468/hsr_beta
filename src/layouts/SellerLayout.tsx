@@ -35,15 +35,41 @@ export default function SellerLayout() {
 
         {/* Navigation */}
         <nav className="flex-1 px-4 space-y-6 overflow-y-auto pb-8">
-          {/* Main Pack Nav */}
+          {/* Pack steps */}
           <div>
-            <div className="text-[10px] font-bold tracking-[0.15em] text-[var(--muted)] uppercase px-3 mb-3">Property Pack</div>
+            <div className="text-[10px] font-bold tracking-[0.15em] text-[var(--muted)] uppercase px-3 mb-3">Your Pack</div>
             <div className="space-y-1">
               {[
-                { to: '/seller/dashboard', icon: 'dashboard', label: 'My Property Pack' },
-                { to: '/seller/documents', icon: 'folder_shared', label: 'Documents' },
-                { to: '/seller/onboarding', icon: 'info', label: 'Material Information' },
-                { to: '/seller/dashboard', icon: 'share', label: 'Share Pack' },
+                { to: '/seller/dashboard',   icon: 'dashboard',     label: 'Overview' },
+                { to: '/seller/property',    icon: 'home_work',     label: 'Property Details' },
+                { to: '/seller/documents',   icon: 'folder_open',   label: 'Documents' },
+                { to: '/seller/declaration', icon: 'verified',      label: 'Declaration' },
+              ].map((item) => (
+                <Link
+                  key={item.to + item.label}
+                  to={item.to}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
+                    isActive(item.to)
+                      ? 'bg-[var(--teal-050)] text-[var(--teal-900)] font-semibold border-l-[3px] border-[var(--teal-500)]'
+                      : 'text-[var(--muted)] hover:bg-[var(--teal-050)] hover:text-[var(--teal-900)]'
+                  }`}
+                >
+                  <span className={`material-symbols-outlined text-[20px] ${isActive(item.to) ? 'text-[var(--teal-900)]' : ''}`}>
+                    {item.icon}
+                  </span>
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Account */}
+          <div>
+            <div className="text-[10px] font-bold tracking-[0.15em] text-[var(--muted)] uppercase px-3 mb-3">Account</div>
+            <div className="space-y-1">
+              {[
+                { to: '/seller/profile', icon: 'settings', label: 'Settings' },
+                { to: '/seller/help',    icon: 'help',     label: 'Help' },
               ].map((item) => (
                 <Link
                   key={item.to}
@@ -62,34 +88,7 @@ export default function SellerLayout() {
               ))}
             </div>
           </div>
-
-          {/* Account Nav */}
-          <div>
-            <div className="text-[10px] font-bold tracking-[0.15em] text-[var(--muted)] uppercase px-3 mb-3">Account</div>
-            <div className="space-y-1">
-              {[
-      { path: '/seller/dashboard', icon: 'visibility', label: "Who's Viewed" },
-      { path: '/seller/dashboard', icon: 'chat_bubble', label: 'Messages' },
-      { path: '/seller/profile', icon: 'settings', label: 'Settings' },
-    ].map((item) => (
-      <Link
-        key={item.label}
-        to={item.path}
-        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
-          isActive(item.path)
-            ? 'bg-[var(--teal-050)] text-[var(--teal-900)] font-semibold border-l-[3px] border-[var(--teal-500)]'
-            : 'text-[var(--muted)] hover:bg-[var(--teal-050)] hover:text-[var(--teal-900)]'
-        }`}
-      >
-        <span className={`material-symbols-outlined text-[20px] ${isActive(item.path) ? 'text-[var(--teal-900)]' : ''}`}>
-          {item.icon}
-        </span>
-        {item.label}
-      </Link>
-    ))}
-  </div>
-</div>
-</nav>
+        </nav>
 
 {/* User Profile Footer */}
 <div className="p-4 border-t border-[var(--border)] bg-white">

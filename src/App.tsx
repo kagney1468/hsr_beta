@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import SellerSignup from './pages/SellerSignup';
 import AgentSignup from './pages/AgentSignup';
 import Welcome from './pages/Welcome';
+import AddProperty from './pages/AddProperty';
 import SellerDashboard from './pages/SellerDashboard';
 import PropertyProfile from './pages/PropertyProfile';
 import DocumentUpload from './pages/DocumentUpload';
@@ -45,6 +46,7 @@ export default function App() {
           <Route element={<ProtectedRoute />}>
             {/* First-time seller welcome — full-page, no sidebar */}
             <Route path="/welcome" element={<Welcome />} />
+            <Route path="/add-property" element={<AddProperty />} />
 
             {/* Seller Journey */}
             <Route path="/seller" element={<SellerLayout />}>
