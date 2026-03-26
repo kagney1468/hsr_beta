@@ -124,10 +124,13 @@ export async function ensureUserProfile(user: User): Promise<'seller' | 'agent'>
 
   const isAgent = effectiveRole === 'agent' || normalizeAppRole(existing.role) === 'agent';
   if (isAgent) {
+    // In V2, agencies.agent_user_id references public.users.id (not auth user id)
+    const publicUserId = existing.id;
+
     const { data: agency, error: agencySelErr } = await supabase
       .from('agencies')
       .select('id')
-      .eq('agent_user_id', user.id)
+      .eq('agent_user_id', publicUserId)
       .maybeSingle();
 
     throwDb('Could not load agency', agencySelErr);
@@ -136,8 +139,8 @@ export async function ensureUserProfile(user: User): Promise<'seller' | 'agent'>
       const { data: created, error: agencyError } = await supabase
         .from('agencies')
         .insert({
-          agency_name: (meta.agency_name as string) || 'My agency',
-          agent_user_id: user.id,
+          agency_name: (meta.agency_name as string) || 'My Agency',
+          agent_user_id: publicUserId,
         })
         .select('id')
         .single();
@@ -147,13 +150,13 @@ export async function ensureUserProfile(user: User): Promise<'seller' | 'agent'>
       const { error: linkErr } = await supabase
         .from('users')
         .update({ agency_id: created!.id, role: 'agent', user_type: 'agent' })
-        .eq('auth_user_id', user.id);
+        .eq('id', publicUserId);
       throwDb('Could not link agency', linkErr);
     } else if (!existing.agency_id) {
       const { error: linkErr } = await supabase
         .from('users')
         .update({ agency_id: agency.id })
-        .eq('auth_user_id', user.id);
+        .eq('id', publicUserId);
       throwDb('Could not link agency', linkErr);
     }
     return 'agent';
