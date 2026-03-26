@@ -29,48 +29,44 @@ export default function Login() {
     }
   }, [user, authLoading]);
 
-  const checkRoleAndRedirect = async (userId: string) => {
+  const checkRoleAndRedirect = async (authUserId: string) => {
     setLoading(true);
     try {
       const { data, error: fetchError } = await supabase
         .from('users')
-        .select('role')
-        .eq('auth_user_id', userId)
+        .select('id, role')
+        .eq('auth_user_id', authUserId)
         .maybeSingle();
 
       if (fetchError) throw fetchError;
 
       if (!data) {
-        navigate('/seller/onboarding');
+        // No profile yet — first ever login, will be handled by magic link callback
+        navigate('/welcome');
         return;
       }
 
-      const appRole = String(data.role ?? '')
-        .trim()
-        .toLowerCase();
+      const appRole = String(data.role ?? '').trim().toLowerCase();
 
       if (appRole === 'agent') {
         navigate('/agent/dashboard');
         return;
       }
 
-      if (appRole === 'seller') {
-        const { data: prop, error: propError } = await supabase
-          .from('properties')
-          .select('id')
-          .eq('seller_user_id', userId)
-          .maybeSingle();
+      // Seller: check if they have a property using the public user ID
+      const { data: prop, error: propError } = await supabase
+        .from('properties')
+        .select('id')
+        .eq('seller_user_id', data.id)
+        .maybeSingle();
 
-        if (propError) throw propError;
-        if (!prop) {
-          navigate('/seller/onboarding');
-        } else {
-          navigate('/seller/dashboard');
-        }
-        return;
+      if (propError) throw propError;
+
+      if (!prop) {
+        navigate('/welcome');
+      } else {
+        navigate('/seller/dashboard');
       }
-
-      navigate('/seller/onboarding');
     } catch (err: unknown) {
       console.error('Error fetching role:', err);
       setError(err instanceof Error ? err.message : 'Failed to determine user role. Please try again.');

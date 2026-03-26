@@ -55,8 +55,28 @@ export default function AuthCallback() {
 
         if (role === 'agent') {
           navigate('/agent/dashboard', { replace: true });
-        } else {
+          return;
+        }
+
+        // For sellers: check if they already have a property to determine first login
+        const { data: userRow } = await supabase
+          .from('users')
+          .select('id')
+          .eq('auth_user_id', session.user.id)
+          .maybeSingle();
+
+        const { data: existingProperty } = userRow
+          ? await supabase
+              .from('properties')
+              .select('id')
+              .eq('seller_user_id', userRow.id)
+              .maybeSingle()
+          : { data: null };
+
+        if (existingProperty) {
           navigate('/seller/dashboard', { replace: true });
+        } else {
+          navigate('/welcome', { replace: true });
         }
       } catch (err: unknown) {
         console.error('Auth callback error:', err);

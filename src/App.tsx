@@ -7,11 +7,11 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import SellerSignup from './pages/SellerSignup';
 import AgentSignup from './pages/AgentSignup';
+import Welcome from './pages/Welcome';
 import SellerDashboard from './pages/SellerDashboard';
 import PropertyProfile from './pages/PropertyProfile';
 import DocumentUpload from './pages/DocumentUpload';
 import FinalDeclaration from './pages/FinalDeclaration';
-import SellerOnboarding from './pages/SellerOnboarding';
 import ReadinessDashboard from './pages/ReadinessDashboard';
 import SellerProfile from './pages/SellerProfile';
 import Certificate from './pages/Certificate';
@@ -27,7 +27,6 @@ import PublicPack from './pages/PublicPack';
 import AuthCallback from './pages/AuthCallback';
 
 export default function App() {
-  console.log("App rendering");
   return (
     <AuthProvider>
       <BrowserRouter>
@@ -36,19 +35,21 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup/seller" element={<SellerSignup />} />
           <Route path="/signup/agent" element={<AgentSignup />} />
-          
-          {/* Public Property Pack - Open access before registration gate */}
+
+          {/* Public Property Pack */}
           <Route path="/pack/:token" element={<PublicPack />} />
           <Route path="/share/:token" element={<PublicPack />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
-          
+
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>
-            {/* Seller Journey Routes wrapped in SellerLayout */}
+            {/* First-time seller welcome — full-page, no sidebar */}
+            <Route path="/welcome" element={<Welcome />} />
+
+            {/* Seller Journey */}
             <Route path="/seller" element={<SellerLayout />}>
               <Route index element={<Navigate to="/seller/dashboard" replace />} />
               <Route path="dashboard" element={<SellerDashboard />} />
-              <Route path="onboarding" element={<SellerOnboarding />} />
               <Route path="profile" element={<SellerProfile />} />
               <Route path="property" element={<PropertyProfile />} />
               <Route path="documents" element={<DocumentUpload />} />
@@ -67,6 +68,8 @@ export default function App() {
             </Route>
           </Route>
 
+          {/* Legacy redirects */}
+          <Route path="/seller/onboarding" element={<Navigate to="/welcome" replace />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>

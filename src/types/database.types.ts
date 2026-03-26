@@ -378,6 +378,102 @@ export type Database = {
         }
         Relationships: []
       }
+      property_intelligence: {
+        Row: {
+          id: string
+          property_id: string | null
+          flood_zone: string | null
+          flood_risk_score: string | null
+          council_tax_band: string | null
+          broadband_max_speed_mbps: number | null
+          broadband_availability: string | null
+          crime_rate: string | null
+          crime_category: string | null
+          epc_rating: string | null
+          epc_expiry_date: string | null
+          conservation_area: boolean | null
+          listed_building: string | null
+          data_fetched_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          property_id?: string | null
+          flood_zone?: string | null
+          flood_risk_score?: string | null
+          council_tax_band?: string | null
+          broadband_max_speed_mbps?: number | null
+          broadband_availability?: string | null
+          crime_rate?: string | null
+          crime_category?: string | null
+          epc_rating?: string | null
+          epc_expiry_date?: string | null
+          conservation_area?: boolean | null
+          listed_building?: string | null
+          data_fetched_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          property_id?: string | null
+          flood_zone?: string | null
+          flood_risk_score?: string | null
+          council_tax_band?: string | null
+          broadband_max_speed_mbps?: number | null
+          broadband_availability?: string | null
+          crime_rate?: string | null
+          crime_category?: string | null
+          epc_rating?: string | null
+          epc_expiry_date?: string | null
+          conservation_area?: boolean | null
+          listed_building?: string | null
+          data_fetched_at?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      nearby_schools: {
+        Row: {
+          id: string
+          property_id: string | null
+          school_name: string | null
+          school_type: string | null
+          phase: string | null
+          ofsted_rating: string | null
+          ofsted_rating_label: string | null
+          distance_miles: number | null
+          address: string | null
+          postcode: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          property_id?: string | null
+          school_name?: string | null
+          school_type?: string | null
+          phase?: string | null
+          ofsted_rating?: string | null
+          ofsted_rating_label?: string | null
+          distance_miles?: number | null
+          address?: string | null
+          postcode?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          property_id?: string | null
+          school_name?: string | null
+          school_type?: string | null
+          phase?: string | null
+          ofsted_rating?: string | null
+          ofsted_rating_label?: string | null
+          distance_miles?: number | null
+          address?: string | null
+          postcode?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
