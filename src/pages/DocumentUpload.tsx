@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { SIGNED_DOCUMENT_URL_TTL_SECONDS } from '../lib/storageSignedUrl';
 import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Tooltip } from '../components/ui/Tooltip';
-import { updatePackCompletion } from '../lib/completion';
+import { updatePackCompletion, isLeaseholdTenure } from '../lib/completion';
 
 interface Document {
   id: string;
@@ -14,36 +14,78 @@ interface Document {
   document_type: string;
   name: string;
   file_url: string;
-  created_at: string;
+  status: string;
+  uploaded_at: string;
 }
+
+const ACCEPTED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
+const ACCEPTED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png'];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+const categories = [
+  {
+    id: 'title_deeds',
+    label: 'Title Deeds',
+    tooltip: 'Proves you legally own the property and have the right to sell it. Solicitors need this on day one — having it ready prevents weeks of delay.',
+    required: true,
+  },
+  {
+    id: 'epc',
+    label: 'EPC Certificate',
+    tooltip: 'Legally required to market your property. Shows energy efficiency rating from A–G. Buyers and mortgage lenders both check this.',
+    required: true,
+  },
+  {
+    id: 'building_regs',
+    label: 'Building Regulations Certificates',
+    tooltip: 'Confirms any extensions, conversions or structural works were approved by the local authority. Missing certificates can delay or kill a sale.',
+    required: false,
+  },
+  {
+    id: 'warranties',
+    label: 'Warranties and Guarantees',
+    tooltip: 'Provides buyer peace of mind for recent works such as a new boiler, roof, or windows. Transferable guarantees can be a selling point.',
+    required: false,
+  },
+  {
+    id: 'leasehold',
+    label: 'Leasehold Documents',
+    tooltip: 'Crucial for flats and leasehold houses. Contains the lease, service charge accounts, ground rent details, and management pack.',
+    required: true,
+    condition: (p: any) => isLeaseholdTenure(p?.tenure),
+  },
+  {
+    id: 'planning',
+    label: 'Planning Permissions',
+    tooltip: 'Shows that extensions or changes to the property were legally approved by the council. Buyers\'s solicitors will request these.',
+    required: false,
+  },
+  {
+    id: 'gas_safety',
+    label: 'Gas Safety Certificate',
+    tooltip: 'Shows the boiler and all gas appliances are safe and have been maintained. Reassures buyers about ongoing safety and costs.',
+    required: false,
+  },
+  {
+    id: 'electrical',
+    label: 'Electrical Installation Certificate',
+    tooltip: 'Confirms the wiring and electrical systems are safe and up to standard. Required for any electrical work done since 2005.',
+    required: false,
+  },
+];
 
 export default function DocumentUpload() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('');
   const [property, setProperty] = useState<any>(null);
   const [propertyId, setPropertyId] = useState<string | null>(null);
   const [noProperty, setNoProperty] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const categories = [
-    { id: 'Title Deeds', tooltip: 'Proves you legally own the property and have the right to sell it.', required: true },
-    { id: 'EPC Certificate', tooltip: 'Legally required to market the property. Shows energy efficiency.', required: true },
-    { id: 'Building Regulations Certificates', tooltip: 'Proves any alterations meet safety standards.', required: false },
-    { id: 'Warranties and Guarantees', tooltip: 'Provides buyer peace of mind for recent works like a new boiler or roof.', required: false },
-    { id: 'Leasehold Documents', tooltip: 'Crucial for flats. Contains the lease, service charges, and ground rent details.', required: true, condition: (p: any) => p?.tenure === 'Leasehold' },
-    { id: 'Planning Permissions', tooltip: 'Shows that extensions or changes to the property were legally approved.', required: false },
-    { id: 'Gas Safety Certificate', tooltip: 'Shows boiler and gas appliances are safe and maintained.', required: false },
-    { id: 'Electrical Installation Certificate', tooltip: 'Shows the wiring and electrical systems are safe.', required: false }
-  ];
-
-
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   useEffect(() => {
     async function init() {
@@ -71,7 +113,7 @@ export default function DocumentUpload() {
         setLoading(false);
       }
     }
-    
+
     init();
   }, [user]);
 
@@ -83,17 +125,17 @@ export default function DocumentUpload() {
 
   const loadDocuments = async () => {
     if (!propertyId) return;
-    
+
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('documents')
         .select('*')
         .eq('property_id', propertyId)
-        .order('created_at', { ascending: false });
+        .order('uploaded_at', { ascending: false });
 
       if (error) throw error;
-      setDocuments((data || []) as any);
+      setDocuments((data || []) as Document[]);
     } catch (err: any) {
       console.error('Error loading documents:', err);
       setError(err.message || 'Failed to load documents');
@@ -106,32 +148,45 @@ export default function DocumentUpload() {
     const files = e.target.files;
     if (!files || files.length === 0 || !user || !propertyId) return;
 
-    setUploading(true);
     setError(null);
     setSuccessMessage(null);
+
+    // Validate all files before uploading any
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const ext = '.' + (file.name.split('.').pop() || '').toLowerCase();
+
+      if (!ACCEPTED_MIME_TYPES.includes(file.type) && !ACCEPTED_EXTENSIONS.includes(ext)) {
+        setError(`"${file.name}" is not a supported file type. Please upload PDF, JPG, or PNG only.`);
+        if (fileInputRefs.current[type]) fileInputRefs.current[type]!.value = '';
+        return;
+      }
+
+      if (file.size > MAX_FILE_SIZE) {
+        setError(`"${file.name}" exceeds the 10MB size limit. Please compress or use a smaller file.`);
+        if (fileInputRefs.current[type]) fileInputRefs.current[type]!.value = '';
+        return;
+      }
+    }
+
     setUploadProgress(prev => ({ ...prev, [type]: 0 }));
 
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        
-        if (file.size > 10 * 1024 * 1024) {
-          throw new Error(`File ${file.name} exceeds 10MB limit`);
-        }
+        const ext = (file.name.split('.').pop() || '').toLowerCase();
+        const safeName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${ext}`;
+        const filePath = `${propertyId}/${safeName}`;
 
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-        const filePath = `${propertyId}/${fileName}`;
-
-        setUploadProgress(prev => ({ ...prev, [type]: 50 }));
+        setUploadProgress(prev => ({ ...prev, [type]: 40 }));
 
         const { error: uploadError } = await supabase.storage
           .from('property-documents')
           .upload(filePath, file);
 
         if (uploadError) throw uploadError;
-        
-        setUploadProgress(prev => ({ ...prev, [type]: 80 }));
+
+        setUploadProgress(prev => ({ ...prev, [type]: 75 }));
 
         const { error: dbError } = await supabase
           .from('documents')
@@ -140,32 +195,44 @@ export default function DocumentUpload() {
             document_type: type,
             name: file.name,
             file_url: filePath,
-            created_at: new Date().toISOString()
+            status: 'uploaded',
+            uploaded_at: new Date().toISOString(),
           });
 
         if (dbError) throw dbError;
       }
-      
-      await updatePackCompletion(propertyId);
-      
+
       setUploadProgress(prev => ({ ...prev, [type]: 100 }));
-      setSuccessMessage('Documents uploaded successfully!');
-      setTimeout(() => setUploadProgress(prev => { const newP = {...prev}; delete newP[type]; return newP; }), 2000);
-      loadDocuments();
+      setSuccessMessage('Document uploaded successfully.');
+      await updatePackCompletion(propertyId);
+
+      setTimeout(() => {
+        setUploadProgress(prev => {
+          const next = { ...prev };
+          delete next[type];
+          return next;
+        });
+        setSuccessMessage(null);
+      }, 2500);
+
+      await loadDocuments();
     } catch (err: any) {
       console.error('Error uploading document:', err);
-      setError(err.message || 'Failed to upload document');
+      setError(err.message || 'Upload failed. Please try again.');
+      setUploadProgress(prev => {
+        const next = { ...prev };
+        delete next[type];
+        return next;
+      });
     } finally {
-      setUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      if (fileInputRefs.current[type]) fileInputRefs.current[type]!.value = '';
     }
   };
 
   const handleDelete = async (doc: Document) => {
-    if (!user || !window.confirm(`Are you sure you want to delete ${doc.name}?`)) return;
+    if (!user || !window.confirm(`Delete "${doc.name}"? This cannot be undone.`)) return;
 
+    setError(null);
     try {
       const { error: storageError } = await supabase.storage
         .from('property-documents')
@@ -181,37 +248,36 @@ export default function DocumentUpload() {
       if (dbError) throw dbError;
 
       await updatePackCompletion(propertyId!);
-
-      setDocuments(documents.filter(d => d.id !== doc.id));
+      setDocuments(prev => prev.filter(d => d.id !== doc.id));
     } catch (err: any) {
       console.error('Error deleting document:', err);
-      setError(err.message || 'Failed to delete document');
+      setError(err.message || 'Failed to delete document. Please try again.');
     }
   };
 
   const handleView = async (doc: Document) => {
+    setError(null);
     try {
-      setError(null);
       const { data, error } = await supabase.storage
         .from('property-documents')
         .createSignedUrl(doc.file_url, SIGNED_DOCUMENT_URL_TTL_SECONDS);
 
       if (error) throw error;
-      
+
       if (data?.signedUrl) {
         window.open(data.signedUrl, '_blank');
       } else {
-        throw new Error('Could not generate secure link');
+        throw new Error('Could not generate a secure link for this document.');
       }
     } catch (err: any) {
       console.error('Error viewing document:', err);
-      setError(err.message || 'Failed to open document');
+      setError(err.message || 'Failed to open document. Please try again.');
     }
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null) => {
     if (!dateString) return '';
-    return new Date(dateString).toLocaleDateString();
+    return new Date(dateString).toLocaleDateString('en-GB');
   };
 
   if (noProperty) {
@@ -227,6 +293,8 @@ export default function DocumentUpload() {
     );
   }
 
+  const visibleCategories = categories.filter(c => !c.condition || c.condition(property));
+
   return (
     <div className="max-w-4xl mx-auto p-6 md:p-10 space-y-10">
       <div className="flex flex-col gap-2">
@@ -234,11 +302,21 @@ export default function DocumentUpload() {
         <p className="text-[var(--muted)]">Upload all required certificates and legal documents for your verified pack.</p>
       </div>
 
-      {successMessage && <div className="p-4 bg-[#d1fae5] border border-[#a7f3d0] text-[#065f46] rounded-xl font-semibold">{successMessage}</div>}
-      {error && <div className="p-4 bg-[#fee2e2] border border-[#fecaca] text-[#b91c1c] rounded-xl font-semibold">{error}</div>}
+      {successMessage && (
+        <div className="p-4 bg-[#d1fae5] border border-[#a7f3d0] text-[#065f46] rounded-xl font-semibold flex items-center gap-2">
+          <span className="material-symbols-outlined text-base">check_circle</span>
+          {successMessage}
+        </div>
+      )}
+      {error && (
+        <div className="p-4 bg-[#fee2e2] border border-[#fecaca] text-[#b91c1c] rounded-xl font-semibold flex items-center gap-2">
+          <span className="material-symbols-outlined text-base">error</span>
+          {error}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {categories.filter(c => !c.condition || c.condition(property)).map(category => {
+        {visibleCategories.map(category => {
           const catDocs = documents.filter(d => d.document_type === category.id);
           const hasDoc = catDocs.length > 0;
           const isUploading = uploadProgress[category.id] !== undefined;
@@ -249,22 +327,22 @@ export default function DocumentUpload() {
               <div className="space-y-4">
                 <div className="flex justify-between items-start gap-4">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-semibold text-[var(--teal-900)]">{category.id}</h3>
+                    <h3 className="text-lg font-semibold text-[var(--teal-900)]">{category.label}</h3>
                     <Tooltip content={category.tooltip}>
                       <span className="material-symbols-outlined text-[var(--muted)] text-sm cursor-help hover:text-[var(--teal-600)] transition-colors">help</span>
                     </Tooltip>
                   </div>
                   {hasDoc ? (
-                    <span className="bg-[#d1fae5] text-[#059669] border border-[#a7f3d0] text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-full flex items-center gap-1">
+                    <span className="bg-[#d1fae5] text-[#059669] border border-[#a7f3d0] text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-full flex items-center gap-1 shrink-0">
                       <span className="material-symbols-outlined text-xs">check_circle</span>
                       Uploaded
                     </span>
                   ) : category.required ? (
-                    <span className="bg-[#fee2e2] text-[#dc2626] border border-[#fecaca] text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-full flex items-center gap-1">
+                    <span className="bg-[#fee2e2] text-[#dc2626] border border-[#fecaca] text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-full flex items-center gap-1 shrink-0">
                       Action Required
                     </span>
                   ) : (
-                    <span className="bg-[var(--teal-050)] text-[var(--teal-900)] border border-[var(--border)] text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-full flex items-center gap-1">
+                    <span className="bg-[var(--teal-050)] text-[var(--teal-900)] border border-[var(--border)] text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-full flex items-center gap-1 shrink-0">
                       Optional
                     </span>
                   )}
@@ -274,17 +352,25 @@ export default function DocumentUpload() {
                   {catDocs.map(doc => (
                     <div key={doc.id} className="p-3 bg-white border border-[var(--border)] rounded-xl flex items-center justify-between">
                       <div className="flex items-center gap-3 truncate">
-                        <span className="material-symbols-outlined text-[var(--teal-600)]">description</span>
+                        <span className="material-symbols-outlined text-[var(--teal-600)] shrink-0">description</span>
                         <div className="truncate">
                           <p className="text-sm font-semibold text-[var(--teal-900)] truncate">{doc.name}</p>
-                          <p className="text-[10px] text-[var(--muted)] uppercase tracking-widest">{formatDate(doc.created_at)}</p>
+                          <p className="text-[10px] text-[var(--muted)] uppercase tracking-widest">{formatDate(doc.uploaded_at)}</p>
                         </div>
                       </div>
                       <div className="flex gap-1 ml-4 shrink-0">
-                        <button onClick={(e) => { e.stopPropagation(); handleView(doc); }} className="size-8 flex items-center justify-center rounded-lg text-[var(--muted)] hover:bg-[var(--teal-050)] hover:text-[var(--teal-600)] transition-colors">
+                        <button
+                          onClick={e => { e.stopPropagation(); handleView(doc); }}
+                          title="View document"
+                          className="size-8 flex items-center justify-center rounded-lg text-[var(--muted)] hover:bg-[var(--teal-050)] hover:text-[var(--teal-600)] transition-colors"
+                        >
                           <span className="material-symbols-outlined text-[18px]">visibility</span>
                         </button>
-                        <button onClick={(e) => { e.stopPropagation(); handleDelete(doc); }} className="size-8 flex items-center justify-center rounded-lg text-[var(--muted)] hover:bg-[#fee2e2] hover:text-[#dc2626] transition-colors">
+                        <button
+                          onClick={e => { e.stopPropagation(); handleDelete(doc); }}
+                          title="Delete document"
+                          className="size-8 flex items-center justify-center rounded-lg text-[var(--muted)] hover:bg-[#fee2e2] hover:text-[#dc2626] transition-colors"
+                        >
                           <span className="material-symbols-outlined text-[18px]">delete</span>
                         </button>
                       </div>
@@ -293,35 +379,39 @@ export default function DocumentUpload() {
                 </div>
               </div>
 
-              <div className="mt-6 pt-6 border-t border-[var(--border)] relative">
+              <div className="mt-6 pt-6 border-t border-[var(--border)]">
                 {isUploading ? (
                   <div className="space-y-2">
                     <div className="flex justify-between text-xs text-[var(--muted)] font-semibold uppercase tracking-widest">
-                      <span>Uploading...</span>
+                      <span>Uploading…</span>
                       <span>{progress}%</span>
                     </div>
                     <div className="h-2 w-full bg-[var(--teal-050)] border border-[var(--border)] rounded-full overflow-hidden">
-                      <div className="h-full bg-[var(--teal-600)] transition-all duration-300" style={{ width: `${progress}%` }} />
+                      <div
+                        className="h-full bg-[var(--teal-600)] transition-all duration-300"
+                        style={{ width: `${progress}%` }}
+                      />
                     </div>
                   </div>
                 ) : (
-                  <div>
-                    <input 
-                      type="file" 
+                  <>
+                    <input
+                      ref={el => { fileInputRefs.current[category.id] = el; }}
+                      type="file"
                       id={`file-${category.id}`}
-                      className="hidden" 
-                      multiple 
+                      className="hidden"
                       accept=".pdf,.jpg,.jpeg,.png"
-                      onChange={(e) => handleFileUpload(e, category.id)}
+                      onChange={e => handleFileUpload(e, category.id)}
                     />
-                    <label 
+                    <label
                       htmlFor={`file-${category.id}`}
                       className="w-full flex items-center justify-center h-12 rounded-xl border border-dashed border-[var(--border)] text-[var(--muted)] text-sm font-semibold hover:border-[var(--teal-500)] hover:text-[var(--teal-600)] hover:bg-[var(--teal-050)] transition-colors cursor-pointer"
                     >
                       <span className="material-symbols-outlined mr-2">upload_file</span>
-                      {hasDoc ? 'Upload Another File' : 'Browse Files'}
+                      {hasDoc ? 'Upload Another' : 'Browse Files'}
                     </label>
-                  </div>
+                    <p className="text-[10px] text-[var(--muted)] text-center mt-2 uppercase tracking-widest">PDF, JPG or PNG · Max 10MB</p>
+                  </>
                 )}
               </div>
             </Card>

@@ -65,7 +65,7 @@ export default function AgentDashboard() {
       // 2. Get all documents and declarations for progress calc
       const { data: docsData } = await supabase
         .from('documents')
-        .select('property_id, category');
+        .select('property_id, document_type');
 
       const { data: declData } = await supabase
         .from('seller_declarations')
@@ -79,8 +79,8 @@ export default function AgentDashboard() {
         // Progress Scoring (Detailed for the progress bar)
         let score = 0;
         if (prop.address && prop.property_type) score += 20; // Basic Info
-        if (propDocs.some(d => d.category === 'Proof of ID')) score += 20;
-        if (propDocs.some(d => d.category === 'Title Deeds')) score += 20;
+        if (propDocs.length >= 1) score += 20;
+        if (propDocs.some(d => d.document_type === 'title_deeds')) score += 20;
         if (propDocs.length >= 4) score += 20; // 4+ docs
         if (propDecl?.confirms_accuracy) score += 20; // Final declaration
 

@@ -325,8 +325,8 @@ export type Database = {
           name: string | null
           file_url: string | null
           document_type: string | null
-          category: string | null
-          created_at: string
+          status: string | null
+          uploaded_at: string | null
         }
         Insert: {
           id?: string
@@ -334,8 +334,8 @@ export type Database = {
           name?: string | null
           file_url?: string | null
           document_type?: string | null
-          category?: string | null
-          created_at?: string
+          status?: string | null
+          uploaded_at?: string | null
         }
         Update: {
           id?: string
@@ -343,8 +343,8 @@ export type Database = {
           name?: string | null
           file_url?: string | null
           document_type?: string | null
-          category?: string | null
-          created_at?: string
+          status?: string | null
+          uploaded_at?: string | null
         }
         Relationships: []
       }

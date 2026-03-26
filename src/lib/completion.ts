@@ -59,14 +59,14 @@ export function computePackCompletion({
 
   const leasehold = isLeaseholdTenure(prop.tenure as string);
 
-  const hasTitle = docs.some((d) => d.document_type === 'Title Deeds');
-  const hasEpcDoc = docs.some((d) => d.document_type === 'EPC Certificate');
+  const hasTitle = docs.some((d) => d.document_type === 'title_deeds');
+  const hasEpcDoc = docs.some((d) => d.document_type === 'epc');
   const epcFromApi =
     !!(mi.epc_rating && String(mi.epc_rating).trim()) ||
     !!(prop.epc_rating && String(prop.epc_rating).trim());
   const epcComplete = hasEpcDoc || epcFromApi;
 
-  const hasLeaseholdDocs = docs.some((d) => d.document_type === 'Leasehold Documents');
+  const hasLeaseholdDocs = docs.some((d) => d.document_type === 'leasehold');
 
   let requiredSlots = 2;
   let satisfied = 0;

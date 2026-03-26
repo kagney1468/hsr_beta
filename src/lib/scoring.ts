@@ -3,7 +3,7 @@ export interface PackScoreInput {
     address?: string;
     property_type?: string;
   };
-  documents: { category: string }[];
+  documents: { document_type: string }[];
   declaration?: { confirms_accuracy: boolean };
 }
 
@@ -15,13 +15,13 @@ export const calculatePackScore = (input: PackScoreInput) => {
     score += 20;
   }
   
-  // 2. ID (20%)
-  if (input.documents.some(d => d.category === 'Proof of ID')) {
+  // 2. Any document uploaded (20%)
+  if (input.documents.length >= 1) {
     score += 20;
   }
-  
+
   // 3. Title Deeds (20%)
-  if (input.documents.some(d => d.category === 'Title Deeds')) {
+  if (input.documents.some(d => d.document_type === 'title_deeds')) {
     score += 20;
   }
   

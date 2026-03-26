@@ -43,9 +43,9 @@ export default function ReadinessDashboard() {
         let missing = [];
 
         // 1. Mandatory Documents (50%)
-        const mandatoryDocs = ['Title Deeds', 'EPC Certificate'];
-        if (propData?.tenure === 'Leasehold') {
-          mandatoryDocs.push('Leasehold Documents');
+        const mandatoryDocs = ['title_deeds', 'epc'];
+        if ((propData?.tenure || '').toLowerCase() === 'leasehold') {
+          mandatoryDocs.push('leasehold');
         }
 
         let uploadedMandatoryCount = 0;

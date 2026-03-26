@@ -103,13 +103,13 @@ export default function SellerDashboard() {
         const hasEpc = !!(
           materialInfo?.epc_rating ||
           property.epc_rating ||
-          documents?.find((d: any) => d.document_type === 'EPC Certificate')
+          documents?.find((d: any) => d.document_type === 'epc')
         );
         let dUploaded = hasEpc ? 1 : 0;
-        if (documents?.find((d: any) => d.document_type === 'Title Deeds')) dUploaded++;
+        if (documents?.find((d: any) => d.document_type === 'title_deeds')) dUploaded++;
         if (
           (property.tenure || '').toLowerCase() === 'leasehold' &&
-          documents?.find((d: any) => d.document_type === 'Leasehold Documents')
+          documents?.find((d: any) => d.document_type === 'leasehold')
         )
           dUploaded++;
 
