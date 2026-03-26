@@ -1,92 +1,114 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
+import { getPublicUserIdByAuthUserId } from '../lib/publicUser';
+import { getAuthRedirectUrl } from '../lib/ensureUserProfile';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 
+type Tab = 'pipeline' | 'leads' | 'invite';
+
 export default function AgentDashboard() {
-  const [properties, setProperties] = useState<any[]>([]);
+  const { user } = useAuth();
+  const [tab, setTab] = useState<Tab>('pipeline');
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [showAddPropertyModal, setShowAddPropertyModal] = useState(false);
-  const [newProperty, setNewProperty] = useState({
-    address_line1: '',
-    address_postcode: '',
-    seller_email: ''
-  });
+  const [properties, setProperties] = useState<any[]>([]);
+  const [leads, setLeads] = useState<any[]>([]);
+  const [packViewsThisMonth, setPackViewsThisMonth] = useState(0);
+  const [publicUserId, setPublicUserId] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadDashboardData();
-    
-    // Real-time subscription for properties and related data
-    const propSubscription = supabase
-      .channel('agent_dashboard_changes')
-      .on('postgres_changes' as any, { event: '*', schema: 'public', table: 'properties' }, () => {
-        loadDashboardData(true);
-      })
-      .on('postgres_changes' as any, { event: '*', schema: 'public', table: 'documents' }, () => {
-        loadDashboardData(true);
-      })
-      .on('postgres_changes' as any, { event: '*', schema: 'public', table: 'seller_declarations' }, () => {
-        loadDashboardData(true);
-      })
-      .subscribe();
+  // Invite state
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviting, setInviting] = useState(false);
+  const [inviteResult, setInviteResult] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-    return () => {
-      supabase.removeChannel(propSubscription);
-    };
-  }, []);
-
-  async function loadDashboardData(silent = false) {
+  const loadDashboardData = useCallback(async (silent = false) => {
+    if (!user) return;
     if (!silent) setLoading(true);
     else setIsRefreshing(true);
-    
+
     try {
-      // 1. Get properties
-      const { data: propsData, error: propsError } = await supabase
-        .from('properties')
-        .select('*');
-      if (propsError) throw propsError;
+      const pubId = publicUserId ?? await getPublicUserIdByAuthUserId(user.id);
+      if (!publicUserId) setPublicUserId(pubId);
 
-      // 1b. Fetch seller profiles using seller_user_id = public.users.id
-      const sellerIds = Array.from(
-        new Set(((propsData as any[]) || []).map(p => p.seller_user_id).filter(Boolean))
-      ) as string[];
+      // Get this agent's agency
+      const { data: agencyData } = await supabase
+        .from('agencies')
+        .select('id, agency_name')
+        .eq('agent_user_id', pubId)
+        .maybeSingle();
 
-      const sellersById = new Map<string, any>();
-      if (sellerIds.length > 0) {
-        const { data: sellers } = await supabase
-          .from('users')
-          .select('id, full_name, phone, email')
-          .in('id', sellerIds);
-        (sellers || []).forEach((s: any) => sellersById.set(s.id, s));
+      if (!agencyData) {
+        setProperties([]);
+        setLeads([]);
+        return;
       }
 
-      // 2. Get all documents and declarations for progress calc
-      const { data: docsData } = await supabase
-        .from('documents')
-        .select('property_id, document_type');
+      // Get sellers linked to this agency
+      const { data: sellersData } = await supabase
+        .from('users')
+        .select('id, full_name, email, phone')
+        .eq('agency_id', agencyData.id);
 
-      const { data: declData } = await supabase
-        .from('seller_declarations')
-        .select('property_id, confirms_accuracy, confirms_ai_review');
+      const sellerIds = (sellersData || []).map((s: any) => s.id);
+      const sellersById = new Map((sellersData || []).map((s: any) => [s.id, s]));
 
-      const enrichedProperties = (propsData as any[])?.map(prop => {
-        const propDocs = (docsData as any[])?.filter(d => d.property_id === prop.id) || [];
-        const propDecl = (declData as any[])?.find(d => d.property_id === prop.id);
+      if (sellerIds.length === 0) {
+        setProperties([]);
+        setLeads([]);
+        return;
+      }
+
+      // Get properties for these sellers
+      const { data: propsData } = await supabase
+        .from('properties')
+        .select('*')
+        .in('seller_user_id', sellerIds);
+
+      const propIds = (propsData || []).map((p: any) => p.id);
+
+      if (propIds.length === 0) {
+        setProperties([]);
+        setLeads([]);
+        return;
+      }
+
+      // Fetch documents, declarations, viewers in parallel
+      const [{ data: docsData }, { data: declData }, { data: viewersData }] = await Promise.all([
+        supabase.from('documents').select('property_id, document_type').in('property_id', propIds),
+        supabase.from('seller_declarations').select('property_id, confirms_accuracy').in('property_id', propIds),
+        supabase.from('pack_viewers').select('*').in('property_id', propIds).order('viewed_at', { ascending: false }),
+      ]);
+
+      // Views this month
+      const monthStart = new Date();
+      monthStart.setDate(1);
+      monthStart.setHours(0, 0, 0, 0);
+      const viewsThisMonth = (viewersData || []).filter(
+        (v: any) => new Date(v.viewed_at) >= monthStart
+      ).length;
+      setPackViewsThisMonth(viewsThisMonth);
+
+      // Enrich properties
+      const enriched = (propsData || []).map((prop: any) => {
+        const propDocs = (docsData || []).filter((d: any) => d.property_id === prop.id);
+        const propDecl = (declData || []).find((d: any) => d.property_id === prop.id);
+        const propViews = (viewersData || []).filter((v: any) => v.property_id === prop.id).length;
         const seller = sellersById.get(prop.seller_user_id);
 
-        // Progress Scoring (Detailed for the progress bar)
-        let score = 0;
-        if (prop.address_line1 && prop.property_type) score += 20; // Basic Info
-        if (propDocs.length >= 1) score += 20;
-        if (propDocs.some(d => d.document_type === 'title_deeds')) score += 20;
-        if (propDocs.length >= 4) score += 20; // 4+ docs
-        if (propDecl?.confirms_accuracy) score += 20; // Final declaration
+        let score = prop.pack_completion_percentage || 0;
+        if (score === 0) {
+          if (prop.address_line1 && prop.property_type) score += 20;
+          if (propDocs.length >= 1) score += 20;
+          if (propDocs.some((d: any) => d.document_type === 'title_deeds')) score += 20;
+          if (propDocs.length >= 4) score += 20;
+          if (propDecl?.confirms_accuracy) score += 20;
+        }
 
-        // Status Logic
         let status: 'Action Required' | 'In Progress' | 'Pack Complete' = 'In Progress';
-        if (score === 100) status = 'Pack Complete';
+        if (score >= 100) status = 'Pack Complete';
         else if (score < 30) status = 'Action Required';
 
         return {
@@ -94,227 +116,422 @@ export default function AgentDashboard() {
           sellerName: seller?.full_name || 'Pending Onboarding',
           score,
           status,
-          updatedAt: prop.updated_at || prop.created_at,
+          viewCount: propViews,
         };
-      }) || [];
+      });
 
-      setProperties(enrichedProperties);
-    } catch (error) {
-      console.error('Error loading dashboard:', error);
+      setProperties(enriched);
+
+      // Enrich leads with property address
+      const propAddressMap = new Map(
+        (propsData || []).map((p: any) => [
+          p.id,
+          [p.address_line1, p.address_postcode].filter(Boolean).join(', '),
+        ])
+      );
+
+      setLeads(
+        (viewersData || []).map((v: any) => ({
+          ...v,
+          propertyAddress: propAddressMap.get(v.property_id) || 'Unknown Property',
+        }))
+      );
+    } catch (err) {
+      console.error('Error loading dashboard:', err);
     } finally {
       setLoading(false);
       setIsRefreshing(false);
     }
-  }
+  }, [user, publicUserId]);
 
-  // KPI Calculations
-  const activeProperties = properties.length;
+  useEffect(() => {
+    loadDashboardData();
+
+    const sub = supabase
+      .channel('agent_dashboard_rt')
+      .on('postgres_changes' as any, { event: '*', schema: 'public', table: 'properties' }, () => loadDashboardData(true))
+      .on('postgres_changes' as any, { event: '*', schema: 'public', table: 'documents' }, () => loadDashboardData(true))
+      .on('postgres_changes' as any, { event: '*', schema: 'public', table: 'pack_viewers' }, () => loadDashboardData(true))
+      .on('postgres_changes' as any, { event: '*', schema: 'public', table: 'seller_declarations' }, () => loadDashboardData(true))
+      .subscribe();
+
+    return () => { supabase.removeChannel(sub); };
+  }, [loadDashboardData]);
+
+  // KPIs
   const packsComplete = properties.filter(p => p.status === 'Pack Complete').length;
-  const awaitingSellerAction = properties.filter(p => p.status === 'Action Required').length;
-  const avgCompletion = properties.length > 0 
-    ? Math.round(properties.reduce((acc, p) => acc + p.score, 0) / properties.length) 
-    : 0;
+  const awaitingAction = properties.filter(p => p.status === 'Action Required').length;
 
   const kpis = [
-    { label: 'Active Properties', value: activeProperties, icon: 'home_work' },
+    { label: 'Total Properties', value: properties.length, icon: 'home_work', color: 'text-[var(--teal-600)]' },
     { label: 'Packs Complete', value: packsComplete, icon: 'verified', color: 'text-[var(--teal-600)]' },
-    { label: 'Awaiting Seller Action', value: awaitingSellerAction, icon: 'error_outline', color: 'text-red-500' },
-    { label: 'Average Pack Completion', value: `${avgCompletion}%`, icon: 'donut_large', color: 'text-amber-500' },
+    { label: 'Awaiting Seller Action', value: awaitingAction, icon: 'error_outline', color: 'text-red-500' },
+    { label: 'Pack Views This Month', value: packViewsThisMonth, icon: 'visibility', color: 'text-blue-500' },
   ];
 
-  const handleAddProperty = async (e: React.FormEvent) => {
+  // Invite seller
+  const handleInviteSeller = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert('Mock: Creating property and sending invite to ' + newProperty.seller_email);
-    setShowAddPropertyModal(false);
-    setNewProperty({ address_line1: '', address_postcode: '', seller_email: '' });
+    if (!inviteEmail || !publicUserId) return;
+    setInviting(true);
+    setInviteResult(null);
+    try {
+      const redirectUrl = `${getAuthRedirectUrl()}?agent_ref=${publicUserId}`;
+      const { error } = await supabase.auth.signInWithOtp({
+        email: inviteEmail,
+        options: {
+          emailRedirectTo: redirectUrl,
+          shouldCreateUser: true,
+          data: { role: 'seller' },
+        },
+      });
+      if (error) throw error;
+      setInviteResult({ type: 'success', text: `Invitation sent to ${inviteEmail}` });
+      setInviteEmail('');
+    } catch (err: any) {
+      setInviteResult({ type: 'error', text: err.message || 'Failed to send invitation.' });
+    } finally {
+      setInviting(false);
+    }
+  };
+
+  // CSV export
+  const handleExportLeads = () => {
+    const headers = ['Name', 'Email', 'Phone', 'Property', 'Date', 'Is Selling', 'Selling Location'];
+    const rows = leads.map((l: any) => [
+      l.viewer_name || '',
+      l.viewer_email || '',
+      l.viewer_phone || '',
+      l.propertyAddress || '',
+      new Date(l.viewed_at).toLocaleDateString('en-GB'),
+      l.is_selling ? 'Yes' : 'No',
+      l.selling_location || '',
+    ]);
+    const csv = [headers, ...rows]
+      .map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `leads-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[var(--page)] flex items-center justify-center p-6">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin size-10 border-4 border-[var(--teal-600)] border-t-transparent rounded-full" />
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-[var(--page)] text-[var(--text)] overflow-y-auto">
-      {/* ── HEADER ── */}
-      <div className="px-6 md:px-10 pt-10 pb-8 border-b border-[var(--border)] flex flex-col md:flex-row items-start md:items-center justify-between gap-6 bg-white">
-        <div>
-          <h1 className="text-3xl font-black font-heading tracking-tight text-[var(--teal-900)]">Property Pipeline</h1>
-          <p className="text-[var(--muted)] mt-1 flex items-center gap-2">
-            Overview of all active instructions
-            {isRefreshing && <span className="size-1.5 rounded-full bg-[var(--teal-500)] animate-pulse" />}
-          </p>
-        </div>
-        <Button 
-          variant="primary" 
-          onClick={() => setShowAddPropertyModal(true)}
-          className="h-12 px-6 rounded-xl font-black font-heading flex items-center gap-2"
-        >
-          <span className="material-symbols-outlined text-[20px]">add_circle</span>
-          Add Property
-        </Button>
-      </div>
+  const tabs: { id: Tab; label: string; icon: string }[] = [
+    { id: 'pipeline', label: 'Pipeline', icon: 'home_work' },
+    { id: 'leads', label: `Leads (${leads.length})`, icon: 'group' },
+    { id: 'invite', label: 'Invite Seller', icon: 'person_add' },
+  ];
 
-      <main className="p-6 md:p-10 space-y-10">
-        {/* ── KPI GRID ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {kpis.map((kpi, i) => (
-            <Card key={i} className="p-6 space-y-4 hover:border-[var(--teal-500)]/20 transition-all">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black text-[var(--muted)] uppercase tracking-widest">{kpi.label}</span>
-                <span className={`material-symbols-outlined ${kpi.color || 'text-[var(--teal-600)]'} opacity-50`}>{kpi.icon}</span>
-              </div>
-              <div className="text-4xl font-black font-heading tracking-tight text-[var(--teal-900)]">{kpi.value}</div>
-            </Card>
+  return (
+    <div className="min-h-screen bg-[var(--page)] text-[var(--text)]">
+      {/* Header */}
+      <div className="px-6 md:px-10 pt-10 pb-0 border-b border-[var(--border)] bg-white">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6">
+          <div>
+            <h1 className="text-3xl font-black font-heading tracking-tight text-[var(--teal-900)]">Agent Dashboard</h1>
+            <p className="text-[var(--muted)] mt-1 flex items-center gap-2 text-sm">
+              Manage your property pipeline and leads
+              {isRefreshing && <span className="size-1.5 rounded-full bg-[var(--teal-500)] animate-pulse" />}
+            </p>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-1">
+          {tabs.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`flex items-center gap-2 px-5 py-3 text-sm font-bold transition-all border-b-2 -mb-px ${
+                tab === t.id
+                  ? 'border-[var(--teal-600)] text-[var(--teal-900)]'
+                  : 'border-transparent text-[var(--muted)] hover:text-[var(--teal-900)]'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[18px]">{t.icon}</span>
+              {t.label}
+            </button>
           ))}
         </div>
+      </div>
 
-        {/* ── PROPERTY TABLE ── */}
-        <div className="space-y-6">
-          <Card className="overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-[var(--border)] bg-[var(--teal-050)]">
-                    <th className="px-6 py-5 text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.15em]">Property Address</th>
-                    <th className="px-6 py-5 text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.15em]">Seller Name</th>
-                    <th className="px-6 py-5 text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.15em] w-48">Pack Progress</th>
-                    <th className="px-6 py-5 text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.15em]">Status</th>
-                    <th className="px-6 py-5 text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.15em]">Last Updated</th>
-                    <th className="px-6 py-5"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--border)]">
-                  {properties.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-6 py-24 text-center text-[var(--muted)] font-medium italic">
-                        <div className="flex flex-col items-center gap-3">
-                          <span className="material-symbols-outlined text-4xl text-[var(--border)]">inventory_2</span>
-                          No active properties in pipeline.
-                        </div>
-                      </td>
-                    </tr>
-                  ) : properties.map(prop => (
-                    <tr key={prop.id} className="hover:bg-[var(--teal-050)]/50 transition-colors group">
-                      <td className="px-6 py-6">
-                        <Link to={`/agent/property/${prop.id}`} className="block">
-                          <div className="font-bold text-[var(--teal-900)] group-hover:text-[var(--teal-600)] transition-colors">{prop.address_line1}</div>
-                          <div className="text-[11px] text-[var(--muted)] mt-1 uppercase tracking-wider">{prop.address_postcode}</div>
-                        </Link>
-                      </td>
-                      <td className="px-6 py-6 text-sm text-[var(--text)] font-medium">
-                        {prop.sellerName}
-                      </td>
-                      <td className="px-6 py-6">
-                        <div className="space-y-2">
-                           <div className="h-1.5 w-full bg-[var(--teal-050)] border border-[var(--border)] rounded-full overflow-hidden">
-                             <div 
-                               className={`h-full rounded-full transition-all duration-700 ${
-                                 prop.status === 'Pack Complete' ? 'bg-[var(--teal-600)]' : 
-                                 prop.status === 'In Progress' ? 'bg-amber-500' : 'bg-red-500'
-                               }`}
-                               style={{ width: `${prop.score}%` }} 
-                             />
-                           </div>
-                           <div className="text-[10px] font-black text-[var(--muted)]">{prop.score}% COMPLETE</div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-6">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
-                          prop.status === 'Pack Complete' ? 'bg-[var(--teal-050)] text-[var(--teal-600)] border-[var(--teal-050)]' : 
-                          prop.status === 'In Progress' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 
-                          'bg-red-500/10 text-red-500 border-red-500/20'
-                        }`}>
-                          <span className={`size-1.5 rounded-full ${
-                             prop.status === 'Pack Complete' ? 'bg-[var(--teal-600)]' : 
-                             prop.status === 'In Progress' ? 'bg-amber-500' : 'bg-red-500'
-                          }`} />
-                          {prop.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-6 text-[11px] font-bold text-[var(--muted)] uppercase tracking-wider">
-                        {new Date(prop.updatedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </td>
-                      <td className="px-6 py-6 text-right">
-                         <Link to={`/agent/property/${prop.id}`} className="p-2 hover:bg-[var(--teal-050)] rounded-lg transition-colors inline-block">
-                           <span className="material-symbols-outlined text-[var(--muted)] group-hover:text-[var(--teal-600)] transition-colors">chevron_right</span>
-                         </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        </div>
-      </main>
+      <main className="p-6 md:p-10 space-y-8">
 
-      {/* ── ADD PROPERTY MODAL ── */}
-      {showAddPropertyModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-[var(--teal-900)]/20 backdrop-blur-md">
-          <Card className="w-full max-w-lg p-10 space-y-8 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between">
-              <h3 className="text-2xl font-black font-heading tracking-tight text-[var(--teal-900)]">Add New Instruction</h3>
-              <button
-                type="button"
-                onClick={() => setShowAddPropertyModal(false)}
-                className="size-10 flex items-center justify-center rounded-full hover:bg-[var(--teal-050)] text-[var(--muted)] hover:text-[var(--teal-900)] transition-colors"
-              >
-                <span className="material-symbols-outlined">close</span>
-              </button>
+        {/* ── PIPELINE TAB ── */}
+        {tab === 'pipeline' && (
+          <>
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {kpis.map((kpi, i) => (
+                <Card key={i} className="p-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black text-[var(--muted)] uppercase tracking-widest">{kpi.label}</span>
+                    <span className={`material-symbols-outlined ${kpi.color} opacity-60`}>{kpi.icon}</span>
+                  </div>
+                  <div className="text-4xl font-black font-heading tracking-tight text-[var(--teal-900)]">{kpi.value}</div>
+                </Card>
+              ))}
             </div>
-            
-            <form onSubmit={handleAddProperty} className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-[var(--muted)] uppercase tracking-widest px-1">Property Address</label>
-                <input
-                  required
-                  type="text"
-                    value={newProperty.address_line1}
-                    onChange={e => setNewProperty({...newProperty, address_line1: e.target.value})}
-                  className="w-full"
-                  placeholder="e.g. 12 Maple Gardens"
-                />
+
+            {/* Property Table */}
+            <Card className="overflow-hidden">
+              <div className="px-6 py-5 border-b border-[var(--border)] bg-[var(--teal-050)]/40">
+                <h2 className="font-black font-heading text-[var(--teal-900)]">Property Pipeline</h2>
               </div>
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-[var(--muted)] uppercase tracking-widest px-1">Postcode</label>
-                  <input
-                    required
-                    type="text"
-                    value={newProperty.address_postcode}
-                    onChange={e => setNewProperty({...newProperty, address_postcode: e.target.value})}
-                    className="w-full"
-                    placeholder="E.g. SW1 1AA"
-                  />
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-[var(--border)] bg-[var(--teal-050)]">
+                      <th className="px-6 py-4 text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.15em]">Address</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.15em]">Seller</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.15em] w-48">Progress</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.15em]">Status</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.15em]">Views</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.15em]">Updated</th>
+                      <th className="px-6 py-4"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--border)]">
+                    {properties.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="px-6 py-20 text-center">
+                          <div className="flex flex-col items-center gap-3 text-[var(--muted)]">
+                            <span className="material-symbols-outlined text-4xl text-[var(--border)]">inventory_2</span>
+                            <p className="font-medium italic text-sm">No properties yet. Invite sellers to get started.</p>
+                            <button
+                              onClick={() => setTab('invite')}
+                              className="mt-2 text-[var(--teal-600)] font-bold text-sm hover:underline"
+                            >
+                              Invite a seller →
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : properties.map(prop => (
+                      <tr key={prop.id} className="hover:bg-[var(--teal-050)]/50 transition-colors group cursor-pointer">
+                        <td className="px-6 py-5">
+                          <Link to={`/agent/property/${prop.id}`} className="block">
+                            <div className="font-bold text-[var(--teal-900)] group-hover:text-[var(--teal-600)] transition-colors">{prop.address_line1}</div>
+                            <div className="text-[11px] text-[var(--muted)] mt-0.5 uppercase tracking-wider">{prop.address_postcode}</div>
+                          </Link>
+                        </td>
+                        <td className="px-6 py-5 text-sm text-[var(--text)] font-medium">{prop.sellerName}</td>
+                        <td className="px-6 py-5">
+                          <div className="space-y-1.5">
+                            <div className="h-1.5 w-full bg-[var(--teal-050)] border border-[var(--border)] rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all duration-700 ${
+                                  prop.status === 'Pack Complete' ? 'bg-[var(--teal-600)]' :
+                                  prop.status === 'In Progress' ? 'bg-amber-500' : 'bg-red-500'
+                                }`}
+                                style={{ width: `${prop.score}%` }}
+                              />
+                            </div>
+                            <div className="text-[10px] font-black text-[var(--muted)]">{prop.score}% COMPLETE</div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-5">
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                            prop.status === 'Pack Complete'
+                              ? 'bg-[var(--teal-050)] text-[var(--teal-600)] border-[var(--teal-050)]'
+                              : prop.status === 'In Progress'
+                              ? 'bg-amber-50 text-amber-600 border-amber-100'
+                              : 'bg-red-50 text-red-500 border-red-100'
+                          }`}>
+                            <span className={`size-1.5 rounded-full ${
+                              prop.status === 'Pack Complete' ? 'bg-[var(--teal-600)]' :
+                              prop.status === 'In Progress' ? 'bg-amber-500' : 'bg-red-500'
+                            }`} />
+                            {prop.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-5 text-sm font-bold text-[var(--teal-900)]">{prop.viewCount}</td>
+                        <td className="px-6 py-5 text-[11px] font-bold text-[var(--muted)] uppercase tracking-wider">
+                          {prop.updated_at || prop.created_at
+                            ? new Date(prop.updated_at || prop.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                            : '—'}
+                        </td>
+                        <td className="px-6 py-5 text-right">
+                          <Link to={`/agent/property/${prop.id}`} className="p-2 hover:bg-[var(--teal-050)] rounded-lg transition-colors inline-block">
+                            <span className="material-symbols-outlined text-[var(--muted)] group-hover:text-[var(--teal-600)] transition-colors">chevron_right</span>
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          </>
+        )}
+
+        {/* ── LEADS TAB ── */}
+        {tab === 'leads' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-black font-heading text-[var(--teal-900)]">All Viewer Registrations</h2>
+                <p className="text-sm text-[var(--muted)] mt-1">
+                  Viewers who registered to access property packs across your portfolio.
+                  <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--teal-050)] text-[var(--teal-600)] text-[10px] font-black uppercase tracking-wider border border-[var(--border)]">
+                    <span className="size-1.5 rounded-full bg-[var(--teal-500)] animate-pulse" />
+                    Priority leads highlighted
+                  </span>
+                </p>
+              </div>
+              {leads.length > 0 && (
+                <Button variant="outline" onClick={handleExportLeads} className="h-10 px-4 rounded-xl flex items-center gap-2 text-sm font-bold">
+                  <span className="material-symbols-outlined text-[18px]">download</span>
+                  Export CSV
+                </Button>
+              )}
+            </div>
+
+            <Card className="overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-[var(--border)] bg-[var(--teal-050)]">
+                      <th className="px-6 py-4 text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.15em]">Viewer</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.15em]">Phone</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.15em]">Property Viewed</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.15em]">Date</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.15em]">Also Selling?</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--border)]">
+                    {leads.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-16 text-center text-[var(--muted)] italic text-sm">
+                          No viewer registrations yet. Share property packs to generate leads.
+                        </td>
+                      </tr>
+                    ) : leads.map((lead: any) => (
+                      <tr
+                        key={lead.id}
+                        className={`transition-colors ${
+                          lead.is_selling
+                            ? 'bg-[var(--teal-050)]/60 hover:bg-[var(--teal-050)]'
+                            : 'hover:bg-gray-50'
+                        }`}
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            {lead.is_selling && (
+                              <div className="size-2 rounded-full bg-[var(--teal-500)] animate-pulse shrink-0" />
+                            )}
+                            <div>
+                              <div className={`font-bold text-sm ${lead.is_selling ? 'text-[var(--teal-900)]' : 'text-[var(--text)]'}`}>
+                                {lead.viewer_name || '—'}
+                              </div>
+                              <div className="text-[10px] text-[var(--muted)] font-mono">{lead.viewer_email || '—'}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-[var(--muted)]">{lead.viewer_phone || '—'}</td>
+                        <td className="px-6 py-4 text-sm text-[var(--text)] font-medium">{lead.propertyAddress}</td>
+                        <td className="px-6 py-4 text-[11px] text-[var(--muted)] font-medium">
+                          {new Date(lead.viewed_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </td>
+                        <td className="px-6 py-4">
+                          {lead.is_selling ? (
+                            <div className="space-y-0.5">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--teal-050)] text-[var(--teal-600)] text-[10px] font-black uppercase tracking-wider border border-[var(--border)]">
+                                Priority Lead
+                              </span>
+                              {lead.selling_location && (
+                                <div className="text-[10px] text-[var(--muted)] pl-1">Selling in {lead.selling_location}</div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-[11px] font-medium text-[var(--muted)]">Buyer only</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* ── INVITE SELLER TAB ── */}
+        {tab === 'invite' && (
+          <div className="max-w-2xl space-y-8">
+            <div>
+              <h2 className="text-xl font-black font-heading text-[var(--teal-900)]">Invite a Seller</h2>
+              <p className="text-sm text-[var(--muted)] mt-1">Two ways to link sellers to your agency account.</p>
+            </div>
+
+            {/* Method 1 */}
+            <Card className="p-8 space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-xl bg-[var(--teal-600)] text-white flex items-center justify-center font-black font-heading text-sm shrink-0">1</div>
+                <div>
+                  <h3 className="font-black font-heading text-[var(--teal-900)]">Send email invitation</h3>
+                  <p className="text-xs text-[var(--muted)] mt-0.5">The seller receives a magic link that automatically links their account to your agency.</p>
                 </div>
+              </div>
+
+              {inviteResult && (
+                <div className={`p-4 rounded-xl border font-semibold text-sm animate-in fade-in duration-300 ${
+                  inviteResult.type === 'success'
+                    ? 'bg-[#d1fae5] border-[#a7f3d0] text-[#065f46]'
+                    : 'bg-[#fee2e2] border-[#fecaca] text-[#b91c1c]'
+                }`}>
+                  {inviteResult.text}
+                </div>
+              )}
+
+              <form onSubmit={handleInviteSeller} className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-[var(--muted)] uppercase tracking-widest px-1">Seller Email</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Seller Email Address</label>
                   <input
-                    required
                     type="email"
-                    value={newProperty.seller_email}
-                    onChange={e => setNewProperty({...newProperty, seller_email: e.target.value})}
+                    required
+                    value={inviteEmail}
+                    onChange={e => setInviteEmail(e.target.value)}
                     className="w-full"
                     placeholder="seller@example.com"
                   />
                 </div>
+                <Button type="submit" variant="primary" disabled={inviting || !inviteEmail} className="h-12 px-8 rounded-xl font-bold">
+                  {inviting ? 'Sending…' : 'Send Invitation Email'}
+                </Button>
+              </form>
+            </Card>
+
+            {/* Method 2 */}
+            <Card className="p-8 space-y-4 border-dashed">
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-xl bg-[var(--teal-050)] border border-[var(--border)] text-[var(--teal-600)] flex items-center justify-center font-black font-heading text-sm shrink-0">2</div>
+                <div>
+                  <h3 className="font-black font-heading text-[var(--teal-900)]">Seller self-refers</h3>
+                  <p className="text-xs text-[var(--muted)] mt-0.5">Sellers can enter your agency name during signup — accounts are linked automatically.</p>
+                </div>
               </div>
-              
-              <Button 
-                type="submit" 
-                variant="primary" 
-                className="w-full h-16 rounded-2xl font-black font-heading text-lg mt-4"
-              >
-                Create Instruction & Invite Seller
-              </Button>
-            </form>
-          </Card>
-        </div>
-      )}
+              <div className="p-4 rounded-xl bg-[var(--teal-050)] border border-[var(--border)]">
+                <p className="text-xs text-[var(--teal-900)]">
+                  On the seller signup page, there is a field: <strong>"Were you referred by an estate agent? Enter their agency name"</strong>.
+                  If the name matches your agency exactly, their account will be linked to yours on first login.
+                </p>
+              </div>
+            </Card>
+          </div>
+        )}
+      </main>
     </div>
   );
 }

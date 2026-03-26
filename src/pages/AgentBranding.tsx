@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { getPublicUserIdByAuthUserId } from '../lib/publicUser';
 
 interface AgencySettings {
   id?: string;
@@ -35,10 +36,11 @@ export default function AgentBranding() {
     async function load() {
       if (!user) { setLoading(false); return; }
       try {
+        const publicUserId = await getPublicUserIdByAuthUserId(user.id);
         const { data } = await supabase
           .from('agencies')
           .select('*')
-          .eq('agent_user_id', user.id)
+          .eq('agent_user_id', publicUserId)
           .single();
         if (data) {
           setSettings({
@@ -82,22 +84,24 @@ export default function AgentBranding() {
 
       // Upload logo if a new file was selected
       if (logoFile && user) {
+        const publicUserId = await getPublicUserIdByAuthUserId(user.id);
         const ext = logoFile.name.split('.').pop();
-        const path = `${user.id}/logo.${ext}`;
+        const path = `${publicUserId}/logo.${ext}`;
         const { error: uploadError } = await supabase.storage
-          .from('agency-logos')
+          .from('agency-assets')
           .upload(path, logoFile, { upsert: true });
 
         if (uploadError) throw uploadError;
 
         const { data: urlData } = supabase.storage
-          .from('agency-logos')
+          .from('agency-assets')
           .getPublicUrl(path);
         logo_url = urlData.publicUrl;
       }
 
+      const pubId = await getPublicUserIdByAuthUserId(user!.id);
       const payload = {
-        agent_user_id: user?.id,
+        agent_user_id: pubId,
         agency_name: settings.name,
         logo_url,
         brand_colour: settings.brand_colour,

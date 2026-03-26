@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { getPublicUserIdByAuthUserId } from '../lib/publicUser';
 
 export default function AgentLayout() {
   const { user } = useAuth();
@@ -11,12 +12,17 @@ export default function AgentLayout() {
   useEffect(() => {
     async function loadAgency() {
       if (!user) return;
-      const { data } = await supabase
-        .from('agencies')
-        .select('*')
-        .eq('agent_user_id', user.id)
-        .maybeSingle();
-      if (data) setAgency(data);
+      try {
+        const publicUserId = await getPublicUserIdByAuthUserId(user.id);
+        const { data } = await supabase
+          .from('agencies')
+          .select('*')
+          .eq('agent_user_id', publicUserId)
+          .maybeSingle();
+        if (data) setAgency(data);
+      } catch {
+        // silently fail — agency may not yet be set up
+      }
     }
     loadAgency();
   }, [user]);
@@ -25,13 +31,10 @@ export default function AgentLayout() {
     location.pathname === path || location.pathname.startsWith(path + '/');
 
   const navItems = [
-    { label: 'All Properties', icon: 'home_work', path: '/agent/dashboard' },
-    { label: 'Action Required', icon: 'warning', path: '/agent/action-required' },
-    { label: 'Packs Complete', icon: 'check_circle', path: '/agent/packs-complete' },
-    { label: 'Clients', icon: 'group', path: '/agent/clients' },
-    { label: 'Reports', icon: 'bar_chart', path: '/agent/reports' },
+    { label: 'Pipeline', icon: 'home_work', path: '/agent/dashboard' },
+    { label: 'Leads', icon: 'group', path: '/agent/dashboard?tab=leads' },
+    { label: 'Invite Seller', icon: 'person_add', path: '/agent/dashboard?tab=invite' },
     { label: 'Branding', icon: 'palette', path: '/agent/branding' },
-    { label: 'Settings', icon: 'settings', path: '/agent/settings' },
   ];
 
   return (

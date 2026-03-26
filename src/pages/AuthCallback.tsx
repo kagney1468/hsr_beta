@@ -58,12 +58,46 @@ export default function AuthCallback() {
           return;
         }
 
-        // For sellers: check if they already have a property to determine first login
+        // For sellers: fetch their public user row
         const { data: userRow } = await supabase
           .from('users')
-          .select('id')
+          .select('id, agency_id')
           .eq('auth_user_id', session.user.id)
           .maybeSingle();
+
+        if (userRow) {
+          // Method 1: agent_ref in URL — link seller to the inviting agent's agency
+          const agentRef = params.get('agent_ref');
+          if (agentRef && !userRow.agency_id) {
+            const { data: agencyRow } = await supabase
+              .from('agencies')
+              .select('id')
+              .eq('agent_user_id', agentRef)
+              .maybeSingle();
+            if (agencyRow) {
+              await supabase
+                .from('users')
+                .update({ agency_id: agencyRow.id })
+                .eq('id', userRow.id);
+            }
+          }
+
+          // Method 2: referred_by_agency in user metadata — match agency by name
+          const referredByAgency = session.user.user_metadata?.referred_by_agency;
+          if (referredByAgency && !userRow.agency_id && !agentRef) {
+            const { data: agencyRow } = await supabase
+              .from('agencies')
+              .select('id')
+              .ilike('agency_name', referredByAgency.trim())
+              .maybeSingle();
+            if (agencyRow) {
+              await supabase
+                .from('users')
+                .update({ agency_id: agencyRow.id })
+                .eq('id', userRow.id);
+            }
+          }
+        }
 
         const { data: existingProperty } = userRow
           ? await supabase
