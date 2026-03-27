@@ -5,6 +5,7 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { templates } from '../lib/emailTemplates';
 import Footer from '../components/Footer';
+import PropertyIntelligence from '../components/PropertyIntelligence';
 
 const STORAGE_PREFIX = 'hsr-pack-registered-';
 
@@ -546,6 +547,18 @@ export default function PublicPack() {
               ) : (
                 <p className="text-[var(--muted)] text-sm">No documents uploaded yet.</p>
               )}
+            </section>
+
+            <section className="space-y-6 print:break-inside-avoid">
+              <div className="border-b border-[var(--border)] pb-3">
+                <h2 className="text-2xl font-black font-heading text-[var(--teal-900)]">
+                  Property Information
+                </h2>
+                <p className="text-xs text-[var(--muted)] mt-1 font-semibold uppercase tracking-widest">
+                  Sourced from Official UK Government Data
+                </p>
+              </div>
+              <PropertyIntelligence token={token} isPublic />
             </section>
 
             <Card className="p-8 border-[var(--border)] bg-[var(--teal-050)] rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6 print:hidden">

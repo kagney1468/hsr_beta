@@ -448,6 +448,7 @@ export type Database = {
           epc_expiry_date: string | null
           conservation_area: boolean | null
           listed_building: string | null
+          recent_sales: Json | null
           data_fetched_at: string | null
           created_at: string
         }
@@ -465,6 +466,7 @@ export type Database = {
           epc_expiry_date?: string | null
           conservation_area?: boolean | null
           listed_building?: string | null
+          recent_sales?: Json | null
           data_fetched_at?: string | null
           created_at?: string
         }
@@ -482,6 +484,7 @@ export type Database = {
           epc_expiry_date?: string | null
           conservation_area?: boolean | null
           listed_building?: string | null
+          recent_sales?: Json | null
           data_fetched_at?: string | null
           created_at?: string
         }
@@ -556,6 +559,10 @@ export type Database = {
           p_selling_location: string | null
         }
         Returns: Json
+      }
+      get_property_intelligence_by_token: {
+        Args: { p_token: string }
+        Returns: Json | null
       }
     }
     Enums: {

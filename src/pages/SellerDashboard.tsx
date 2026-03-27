@@ -8,6 +8,7 @@ import { Tooltip } from '../components/ui/Tooltip';
 import { updatePackCompletion } from '../lib/completion';
 import { getPackShareUrl } from '../lib/siteUrl';
 import { getPublicUserIdByAuthUserId } from '../lib/publicUser';
+import PropertyIntelligence from '../components/PropertyIntelligence';
 
 export default function SellerDashboard() {
   const { user } = useAuth();
@@ -551,6 +552,13 @@ export default function SellerDashboard() {
             ))}
           </div>
         </div>
+
+        {data.property.address_postcode && (
+          <PropertyIntelligence
+            propertyId={data.property.id}
+            postcode={data.property.address_postcode}
+          />
+        )}
 
         <div className="space-y-8">
           <div className="flex items-center justify-between px-2">
