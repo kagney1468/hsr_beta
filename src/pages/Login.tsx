@@ -87,12 +87,9 @@ export default function Login() {
         email,
         options: {
           emailRedirectTo: redirectTo,
-          /** Must allow new Auth users here or "login" never creates an account / sends first-time mail. */
-          shouldCreateUser: true,
-          /** Match Agent/Seller signup so AuthCallback + ensureUserProfile see the correct role. */
-          data: {
-            role: role === 'agent' ? 'agent' : 'seller',
-          },
+          // Login only — do not create new accounts from the login page.
+          // New users must register via /signup/seller or /signup/agent.
+          shouldCreateUser: false,
         },
       });
 

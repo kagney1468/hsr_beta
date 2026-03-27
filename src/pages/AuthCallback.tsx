@@ -5,9 +5,18 @@ import { ensureUserProfile } from '../lib/ensureUserProfile';
 import { formatCallbackError } from '../lib/authErrors';
 
 /**
- * AuthCallback — handles the redirect after a user clicks the magic link.
- * Supabase sends PKCE: /auth/callback?code=... — client must use flowType 'pkce' so
- * initialize() exchanges the code before getSession() returns a user.
+ * AuthCallback — handles the redirect after a user clicks a magic link.
+ *
+ * Implicit flow (primary): Supabase delivers tokens in the URL hash:
+ *   /auth/callback#access_token=...&refresh_token=...&token_type=bearer
+ *   detectSessionInUrl:true processes this automatically, but we also call
+ *   setSession() explicitly to guarantee the session is established before
+ *   proceeding.
+ *
+ * PKCE fallback: if a ?code= query param is present (legacy or fallback),
+ *   we exchange it for a session.
+ *
+ * agent_ref param: passed by agent invitation links; links new seller to agency.
  */
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -23,8 +32,30 @@ export default function AuthCallback() {
           throw new Error(decodeURIComponent(oauthError.replace(/\+/g, ' ')));
         }
 
-        // Ensure PKCE code is exchanged (avoids race where getSession runs before init finishes).
-        let session = (await supabase.auth.getSession()).data.session;
+        let session = null;
+
+        // ── 1. Implicit flow: tokens arrive in the URL hash ──────────────────
+        const hash = window.location.hash;
+        if (hash && hash.includes('access_token=')) {
+          const hashParams = new URLSearchParams(hash.substring(1));
+          const accessToken = hashParams.get('access_token');
+          const refreshToken = hashParams.get('refresh_token') ?? '';
+          if (accessToken) {
+            const { data, error: setErr } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+            if (setErr) throw setErr;
+            session = data.session;
+          }
+        }
+
+        // ── 2. Check if detectSessionInUrl already handled it ─────────────────
+        if (!session) {
+          session = (await supabase.auth.getSession()).data.session;
+        }
+
+        // ── 3. PKCE fallback: exchange code from query string ─────────────────
         const code = params.get('code');
         if (!session && code) {
           const { data: exchanged, error: exchangeErr } = await supabase.auth.exchangeCodeForSession(code);
@@ -36,6 +67,7 @@ export default function AuthCallback() {
           }
         }
 
+        // ── 4. Short retries in case of async session propagation delay ───────
         if (!session) {
           await new Promise((res) => setTimeout(res, 400));
           session = (await supabase.auth.getSession()).data.session;

@@ -11,8 +11,14 @@ if (import.meta.env.DEV && (!supabaseUrl || !supabaseAnonKey)) {
 }
 
 /**
- * Supabase email magic links use PKCE: redirect is `/auth/callback?code=...`.
- * `flowType: 'implicit'` breaks PKCE callbacks (session never established → "No session found").
+ * Implicit flow is used so magic links work when email clients open them in a
+ * different browser context (where the PKCE code_verifier stored in localStorage
+ * is unavailable, causing "pkce_code_verifier_not_found").
+ *
+ * With implicit flow Supabase delivers the session via the URL hash:
+ *   /auth/callback#access_token=...&refresh_token=...
+ * `detectSessionInUrl: true` processes this automatically; AuthCallback also
+ * handles it explicitly as a fallback.
  */
 export const supabase = createClient<Database>(supabaseUrl || '', supabaseAnonKey || '', {
   db: {
@@ -22,6 +28,6 @@ export const supabase = createClient<Database>(supabaseUrl || '', supabaseAnonKe
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
-    flowType: 'pkce',
+    flowType: 'implicit',
   },
 });
