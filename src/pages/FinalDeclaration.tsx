@@ -86,12 +86,10 @@ export default function FinalDeclaration() {
         .from('seller_declarations')
         .select('id')
         .eq('property_id', propertyId)
-        .single();
+        .maybeSingle();
 
-      const { data: userRow } = await supabase.from('users').select('id').eq('auth_user_id', user.id).maybeSingle();
       const payload = {
         property_id: propertyId,
-        seller_user_id: userRow?.id || null,
         confirms_accuracy: confirmsAccuracy,
         confirms_ai_review: confirmsLegalRight, // Reusing field for legal right confirm
         signed_at: new Date().toISOString(),

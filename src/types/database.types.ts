@@ -344,7 +344,6 @@ export type Database = {
         Row: {
           id: string
           property_id: string | null
-          seller_user_id: string | null
           confirms_accuracy: boolean
           confirms_ai_review: boolean
           signed_at: string | null
@@ -353,7 +352,6 @@ export type Database = {
         Insert: {
           id?: string
           property_id?: string | null
-          seller_user_id?: string | null
           confirms_accuracy?: boolean
           confirms_ai_review?: boolean
           signed_at?: string | null
@@ -362,7 +360,6 @@ export type Database = {
         Update: {
           id?: string
           property_id?: string | null
-          seller_user_id?: string | null
           confirms_accuracy?: boolean
           confirms_ai_review?: boolean
           signed_at?: string | null
