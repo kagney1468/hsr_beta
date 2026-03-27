@@ -33,28 +33,33 @@ export default function Login() {
   const checkRoleAndRedirect = async (authUserId: string) => {
     setLoading(true);
     try {
+      // Read user_type — the authoritative routing field
       const { data, error: fetchError } = await supabase
         .from('users')
-        .select('id, role')
+        .select('id, user_type, onboarding_complete')
         .eq('auth_user_id', authUserId)
         .maybeSingle();
 
       if (fetchError) throw fetchError;
 
       if (!data) {
-        // No profile yet — first ever login, will be handled by magic link callback
-        navigate('/welcome');
+        setError('No account found for this email. Please sign up first.');
         return;
       }
 
-      const appRole = String(data.role ?? '').trim().toLowerCase();
+      const userType = (data.user_type ?? '').toLowerCase();
 
-      if (appRole === 'agent') {
+      if (userType === 'agent') {
         navigate('/agent/dashboard');
         return;
       }
 
-      // Seller: check if they have a property using the public user ID
+      // Seller: use onboarding_complete flag, fall back to property check
+      if (data.onboarding_complete === true) {
+        navigate('/seller/dashboard');
+        return;
+      }
+
       const { data: prop, error: propError } = await supabase
         .from('properties')
         .select('id')
@@ -63,11 +68,7 @@ export default function Login() {
 
       if (propError) throw propError;
 
-      if (!prop) {
-        navigate('/welcome');
-      } else {
-        navigate('/seller/dashboard');
-      }
+      navigate(prop ? '/seller/dashboard' : '/welcome');
     } catch (err: unknown) {
       console.error('Error fetching role:', err);
       setError(err instanceof Error ? err.message : 'Failed to determine user role. Please try again.');

@@ -83,67 +83,79 @@ export default function AuthCallback() {
           );
         }
 
-        const role = await ensureUserProfile(session.user);
+        // Ensure profile row exists and get the definitive role
+        await ensureUserProfile(session.user);
 
-        if (role === 'agent') {
+        // ── Step 1: Read user_type (authoritative routing field) from public.users ──
+        const { data: userRow, error: userErr } = await supabase
+          .from('users')
+          .select('id, user_type, onboarding_complete, agency_id')
+          .eq('auth_user_id', session.user.id)
+          .maybeSingle();
+
+        if (userErr) throw userErr;
+
+        if (!userRow) {
+          // Profile still missing after ensureUserProfile — bail to login with message
+          navigate('/login', {
+            replace: true,
+            state: { error: 'Account not found. Please sign up first.' },
+          });
+          return;
+        }
+
+        // ── Agency referral linking (seller invite flows) ─────────────────────
+        const agentRef = params.get('agent_ref');
+        if (agentRef && !userRow.agency_id) {
+          const { data: agencyRow } = await supabase
+            .from('agencies')
+            .select('id')
+            .eq('agent_user_id', agentRef)
+            .maybeSingle();
+          if (agencyRow) {
+            await supabase
+              .from('users')
+              .update({ agency_id: agencyRow.id })
+              .eq('id', userRow.id);
+          }
+        }
+
+        const referredByAgency = session.user.user_metadata?.referred_by_agency;
+        if (referredByAgency && !userRow.agency_id && !agentRef) {
+          const { data: agencyRow } = await supabase
+            .from('agencies')
+            .select('id')
+            .ilike('agency_name', referredByAgency.trim())
+            .maybeSingle();
+          if (agencyRow) {
+            await supabase
+              .from('users')
+              .update({ agency_id: agencyRow.id })
+              .eq('id', userRow.id);
+          }
+        }
+
+        // ── Step 2: Redirect based on user_type ───────────────────────────────
+        const userType = (userRow.user_type ?? '').toLowerCase();
+
+        if (userType === 'agent') {
           navigate('/agent/dashboard', { replace: true });
           return;
         }
 
-        // For sellers: fetch their public user row
-        const { data: userRow } = await supabase
-          .from('users')
-          .select('id, agency_id')
-          .eq('auth_user_id', session.user.id)
+        // Seller: use onboarding_complete flag, fall back to property check
+        if (userRow.onboarding_complete === true) {
+          navigate('/seller/dashboard', { replace: true });
+          return;
+        }
+
+        const { data: existingProperty } = await supabase
+          .from('properties')
+          .select('id')
+          .eq('seller_user_id', userRow.id)
           .maybeSingle();
 
-        if (userRow) {
-          // Method 1: agent_ref in URL — link seller to the inviting agent's agency
-          const agentRef = params.get('agent_ref');
-          if (agentRef && !userRow.agency_id) {
-            const { data: agencyRow } = await supabase
-              .from('agencies')
-              .select('id')
-              .eq('agent_user_id', agentRef)
-              .maybeSingle();
-            if (agencyRow) {
-              await supabase
-                .from('users')
-                .update({ agency_id: agencyRow.id })
-                .eq('id', userRow.id);
-            }
-          }
-
-          // Method 2: referred_by_agency in user metadata — match agency by name
-          const referredByAgency = session.user.user_metadata?.referred_by_agency;
-          if (referredByAgency && !userRow.agency_id && !agentRef) {
-            const { data: agencyRow } = await supabase
-              .from('agencies')
-              .select('id')
-              .ilike('agency_name', referredByAgency.trim())
-              .maybeSingle();
-            if (agencyRow) {
-              await supabase
-                .from('users')
-                .update({ agency_id: agencyRow.id })
-                .eq('id', userRow.id);
-            }
-          }
-        }
-
-        const { data: existingProperty } = userRow
-          ? await supabase
-              .from('properties')
-              .select('id')
-              .eq('seller_user_id', userRow.id)
-              .maybeSingle()
-          : { data: null };
-
-        if (existingProperty) {
-          navigate('/seller/dashboard', { replace: true });
-        } else {
-          navigate('/welcome', { replace: true });
-        }
+        navigate(existingProperty ? '/seller/dashboard' : '/welcome', { replace: true });
       } catch (err: unknown) {
         console.error('Auth callback error:', err);
         setErrorMsg(formatCallbackError(err));

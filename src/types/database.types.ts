@@ -101,6 +101,7 @@ export type Database = {
           full_name: string | null
           phone: string | null
           user_type: string | null
+          onboarding_complete: boolean | null
           created_at: string
           auth_user_id: string
           role: string | null
@@ -119,6 +120,7 @@ export type Database = {
           full_name?: string | null
           phone?: string | null
           user_type?: string | null
+          onboarding_complete?: boolean | null
           created_at?: string
           auth_user_id: string
           role?: string | null
@@ -137,6 +139,7 @@ export type Database = {
           full_name?: string | null
           phone?: string | null
           user_type?: string | null
+          onboarding_complete?: boolean | null
           created_at?: string
           auth_user_id?: string
           role?: string | null
