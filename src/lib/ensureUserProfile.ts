@@ -141,6 +141,27 @@ export async function ensureUserProfile(user: User): Promise<'seller' | 'agent'>
         .insert({
           agency_name: (meta.agency_name as string) || 'My Agency',
           agent_user_id: publicUserId,
+          // trading address
+          trading_address_line1: (meta.trading_address_line1 as string) || null,
+          trading_address_line2: (meta.trading_address_line2 as string) || null,
+          trading_address_town: (meta.trading_address_town as string) || null,
+          trading_address_county: (meta.trading_address_county as string) || null,
+          trading_address_postcode: (meta.trading_address_postcode as string) || null,
+          // contact
+          phone: (meta.phone as string) || null,
+          // registration
+          company_registration_number: (meta.company_registration_number as string) || null,
+          vat_number: (meta.vat_number as string) || null,
+          naea_number: (meta.naea_number as string) || null,
+          // signatory
+          authorised_signatory_name: (meta.authorised_signatory_name as string) || null,
+          authorised_signatory_title: (meta.authorised_signatory_title as string) || null,
+          // terms
+          terms_agreed: (meta.terms_agreed as boolean) || false,
+          terms_agreed_at: (meta.terms_agreed_at as string) || null,
+          terms_version: (meta.terms_version as string) || null,
+          dpa_agreed: (meta.dpa_agreed as boolean) || false,
+          dpa_agreed_at: (meta.dpa_agreed_at as string) || null,
         })
         .select('id')
         .single();

@@ -17,6 +17,26 @@ export type Database = {
           brand_colour: string | null
           custom_domain: string | null
           agent_user_id: string | null
+          // trading address
+          trading_address_line1: string | null
+          trading_address_line2: string | null
+          trading_address_town: string | null
+          trading_address_county: string | null
+          trading_address_postcode: string | null
+          // contact & registration
+          phone: string | null
+          company_registration_number: string | null
+          vat_number: string | null
+          naea_number: string | null
+          // signatory
+          authorised_signatory_name: string | null
+          authorised_signatory_title: string | null
+          // terms
+          terms_agreed: boolean | null
+          terms_agreed_at: string | null
+          terms_version: string | null
+          dpa_agreed: boolean | null
+          dpa_agreed_at: string | null
           created_at: string
           updated_at: string
         }
@@ -27,6 +47,22 @@ export type Database = {
           brand_colour?: string | null
           custom_domain?: string | null
           agent_user_id?: string | null
+          trading_address_line1?: string | null
+          trading_address_line2?: string | null
+          trading_address_town?: string | null
+          trading_address_county?: string | null
+          trading_address_postcode?: string | null
+          phone?: string | null
+          company_registration_number?: string | null
+          vat_number?: string | null
+          naea_number?: string | null
+          authorised_signatory_name?: string | null
+          authorised_signatory_title?: string | null
+          terms_agreed?: boolean | null
+          terms_agreed_at?: string | null
+          terms_version?: string | null
+          dpa_agreed?: boolean | null
+          dpa_agreed_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -37,6 +73,22 @@ export type Database = {
           brand_colour?: string | null
           custom_domain?: string | null
           agent_user_id?: string | null
+          trading_address_line1?: string | null
+          trading_address_line2?: string | null
+          trading_address_town?: string | null
+          trading_address_county?: string | null
+          trading_address_postcode?: string | null
+          phone?: string | null
+          company_registration_number?: string | null
+          vat_number?: string | null
+          naea_number?: string | null
+          authorised_signatory_name?: string | null
+          authorised_signatory_title?: string | null
+          terms_agreed?: boolean | null
+          terms_agreed_at?: string | null
+          terms_version?: string | null
+          dpa_agreed?: boolean | null
+          dpa_agreed_at?: string | null
           created_at?: string
           updated_at?: string
         }
