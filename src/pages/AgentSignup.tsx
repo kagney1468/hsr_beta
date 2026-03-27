@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import Footer from '../components/Footer';
 import { supabase } from '../lib/supabase';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -608,6 +609,7 @@ export default function AgentSignup() {
           </form>
         )}
       </div>
+      <Footer />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import Footer from '../components/Footer';
 
 const STEPS = [
   {
@@ -129,6 +130,7 @@ export default function Welcome() {
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

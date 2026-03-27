@@ -1,6 +1,7 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import Footer from '../components/Footer';
 
 export default function SellerLayout() {
   const { user } = useAuth();
@@ -109,8 +110,11 @@ export default function SellerLayout() {
 
       {/* ── MAIN CONTENT ── */}
       <main className="flex-1 ml-[280px]">
-        <div className="min-h-screen">
-          <Outlet />
+        <div className="min-h-screen flex flex-col">
+          <div className="flex-1">
+            <Outlet />
+          </div>
+          <Footer />
         </div>
       </main>
     </div>

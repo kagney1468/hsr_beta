@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { getPublicUserIdByAuthUserId } from '../lib/publicUser';
+import Footer from '../components/Footer';
 
 const UK_POSTCODE_REGEX = /^[A-Z]{1,2}[0-9][0-9A-Z]?\s?[0-9][A-Z]{2}$/i;
 
@@ -294,6 +295,7 @@ export default function AddProperty() {
           </form>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

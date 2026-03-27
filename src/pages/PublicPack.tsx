@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { templates } from '../lib/emailTemplates';
+import Footer from '../components/Footer';
 
 const STORAGE_PREFIX = 'hsr-pack-registered-';
 
@@ -561,6 +562,7 @@ export default function PublicPack() {
           </div>
         )}
       </main>
+      <Footer />
     </div>
   );
 }

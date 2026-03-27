@@ -26,16 +26,26 @@ import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import PublicPack from './pages/PublicPack';
 import AuthCallback from './pages/AuthCallback';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
+import CookiePolicy from './pages/CookiePolicy';
+import CookieBanner from './components/CookieBanner';
 
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <CookieBanner />
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup/seller" element={<SellerSignup />} />
           <Route path="/signup/agent" element={<AgentSignup />} />
+
+          {/* Legal pages — public, no auth */}
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms-of-service" element={<TermsOfService />} />
+          <Route path="/cookie-policy" element={<CookiePolicy />} />
 
           {/* Public Property Pack */}
           <Route path="/pack/:token" element={<PublicPack />} />
