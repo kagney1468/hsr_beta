@@ -203,8 +203,8 @@ export default function AgentBranding() {
                   className="w-full"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-[var(--muted)] uppercase tracking-wider mb-2">Custom Domain</label>
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">Custom Domain</label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)] text-sm z-10">https://</span>
                   <input
@@ -215,7 +215,15 @@ export default function AgentBranding() {
                     className="w-full pl-[4.25rem]"
                   />
                 </div>
-                <p className="text-[11px] text-[var(--muted)] mt-1.5">Point your domain's CNAME to <span className="text-[var(--accent)] font-mono">portal.homesalesready.com</span></p>
+                <div className="pt-1 space-y-1">
+                  <p style={{ color: '#5a7a7c', fontSize: '0.85rem' }}>
+                    Point your domain's CNAME record to{' '}
+                    <span className="font-mono font-semibold">portal.homesalesready.com</span>
+                  </p>
+                  <p style={{ color: '#5a7a7c', fontSize: '0.85rem' }}>
+                    Allow up to 24 hours for DNS changes to take effect.
+                  </p>
+                </div>
               </div>
             </div>
 
