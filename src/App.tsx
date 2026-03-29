@@ -4,6 +4,7 @@
  */
 
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import Login from './pages/Login';
 import SellerSignup from './pages/SellerSignup';
 import AgentSignup from './pages/AgentSignup';
@@ -36,6 +37,7 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <CookieBanner />
+        <SpeedInsights />
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
