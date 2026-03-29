@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import Footer from '../components/Footer';
+import { getGreeting } from '../lib/greeting';
 
 const STEPS = [
   {
@@ -75,10 +76,29 @@ export default function Welcome() {
               You're in
             </div>
             <h1 className="text-5xl md:text-6xl font-black font-heading tracking-tighter text-[var(--teal-900)] leading-none">
-              {name ? `Welcome, ${name}.` : 'Welcome.'}
+              {getGreeting(name || null)} — welcome to HomeSalesReady
             </h1>
             <p className="text-xl text-[var(--muted)] max-w-xl mx-auto leading-relaxed">
-              You're about to build a complete property pack — the fastest way to sell your home in the UK.
+              Let's get your property sale-ready. We'll guide you through every step.
+            </p>
+          </div>
+
+          {/* Disclaimer */}
+          <div style={{
+            background: 'white',
+            border: '1.5px solid #ddeaeb',
+            borderLeft: '4px solid #17afaf',
+            borderRadius: '10px',
+            padding: '20px 24px',
+            maxWidth: '800px',
+            margin: '0 auto',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <span>ℹ️</span>
+              <span style={{ fontWeight: 700, color: '#0d4a4a', fontSize: '0.95rem' }}>About This Platform</span>
+            </div>
+            <p style={{ color: '#5a7a7c', fontSize: '0.9rem', lineHeight: 1.75, margin: 0 }}>
+              Important: HomeSalesReady is an information collation platform. We are not solicitors, estate agents or legal advisers, and nothing on this platform constitutes legal advice or opinion. Our purpose is to help you gather, organise and share the information and documents relevant to your property sale, creating a comprehensive digital property pack. All information you provide is self-declared. We recommend you seek independent legal advice from a qualified solicitor for all aspects of your property transaction.
             </p>
           </div>
 

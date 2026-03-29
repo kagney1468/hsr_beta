@@ -9,6 +9,7 @@ import { updatePackCompletion } from '../lib/completion';
 import { getPackShareUrl } from '../lib/siteUrl';
 import { getPublicUserIdByAuthUserId } from '../lib/publicUser';
 import PropertyIntelligence from '../components/PropertyIntelligence';
+import { getGreeting } from '../lib/greeting';
 
 export default function SellerDashboard() {
   const { user } = useAuth();
@@ -195,6 +196,19 @@ export default function SellerDashboard() {
   };
 
   const [copying, setCopying] = useState(false);
+  const [firstName, setFirstName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('users')
+      .select('full_name')
+      .eq('auth_user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.full_name) setFirstName(data.full_name.split(' ')[0]);
+      });
+  }, [user]);
 
   const ensureShareLink = async () => {
     if (!data.property) return null;
@@ -305,7 +319,14 @@ export default function SellerDashboard() {
         </div>
       )}
 
-      <div className="px-6 md:px-10 pt-12 pb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div className="px-6 md:px-10 pt-10 pb-2">
+        <h1 className="text-3xl font-black font-heading tracking-tight text-[var(--teal-900)]">
+          {getGreeting(firstName)}
+        </h1>
+        <p className="text-[var(--muted)] mt-1 text-sm">Here's where your property pack is today</p>
+      </div>
+
+      <div className="px-6 md:px-10 pt-6 pb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-3">
             <span

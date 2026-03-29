@@ -6,6 +6,7 @@ import { getPublicUserIdByAuthUserId } from '../lib/publicUser';
 import { getAuthRedirectUrl } from '../lib/ensureUserProfile';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { getGreeting } from '../lib/greeting';
 
 type Tab = 'pipeline' | 'leads' | 'invite';
 
@@ -18,6 +19,7 @@ export default function AgentDashboard() {
   const [leads, setLeads] = useState<any[]>([]);
   const [packViewsThisMonth, setPackViewsThisMonth] = useState(0);
   const [publicUserId, setPublicUserId] = useState<string | null>(null);
+  const [agentFirstName, setAgentFirstName] = useState<string | null>(null);
 
   // Invite state
   const [inviteEmail, setInviteEmail] = useState('');
@@ -145,6 +147,18 @@ export default function AgentDashboard() {
   }, [user, publicUserId]);
 
   useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('users')
+      .select('full_name')
+      .eq('auth_user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.full_name) setAgentFirstName(data.full_name.split(' ')[0]);
+      });
+  }, [user]);
+
+  useEffect(() => {
     loadDashboardData();
 
     const sub = supabase
@@ -239,9 +253,11 @@ export default function AgentDashboard() {
       <div className="px-6 md:px-10 pt-10 pb-0 border-b border-[var(--border)] bg-white">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6">
           <div>
-            <h1 className="text-3xl font-black font-heading tracking-tight text-[var(--teal-900)]">Agent Dashboard</h1>
+            <h1 className="text-3xl font-black font-heading tracking-tight text-[var(--teal-900)]">
+              {getGreeting(agentFirstName)}
+            </h1>
             <p className="text-[var(--muted)] mt-1 flex items-center gap-2 text-sm">
-              Manage your property pipeline and leads
+              Here's your property pipeline
               {isRefreshing && <span className="size-1.5 rounded-full bg-[var(--teal-500)] animate-pulse" />}
             </p>
           </div>
