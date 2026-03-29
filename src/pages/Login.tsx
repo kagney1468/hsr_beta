@@ -7,12 +7,8 @@ import { Button } from '../components/ui/Button';
 import { getAuthRedirectUrl } from '../lib/ensureUserProfile';
 import { formatAuthError } from '../lib/authErrors';
 import Footer from '../components/Footer';
-const getGreeting = () => {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 18) return 'Good afternoon';
-  return 'Good evening';
-};
+import DisclaimerBox from '../components/DisclaimerBox';
+import { getGreeting } from '../lib/greeting';
 
 export default function Login() {
   const [role, setRole] = useState<'seller' | 'agent' | null>(null);
@@ -139,7 +135,7 @@ export default function Login() {
             </div>
             
             <div className="space-y-4">
-                <h1 className="text-5xl md:text-6xl font-black font-heading tracking-tighter text-[var(--teal-900)]">{getGreeting()}</h1>
+                <h1 className="text-5xl md:text-6xl font-black font-heading tracking-tighter text-[var(--teal-900)]">{getGreeting(null)}</h1>
                 <p className="text-[var(--muted)] text-lg">Please select your account type to continue.</p>
             </div>
 
@@ -177,6 +173,10 @@ export default function Login() {
                         <span className="material-symbols-outlined text-sm">arrow_forward</span>
                     </div>
                 </Card>
+            </div>
+
+            <div style={{ paddingTop: '40px', paddingBottom: '40px' }}>
+              <DisclaimerBox />
             </div>
 
             <div className="pt-8 flex flex-col items-center gap-4">
