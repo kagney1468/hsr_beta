@@ -32,7 +32,7 @@ export default function DisclaimerBox() {
           margin: 0,
         }}
       >
-        HomeSalesReady is an information collation platform. We are not solicitors, estate agents or legal advisers, and nothing on this platform constitutes legal advice or opinion. Our purpose is to help you gather, organise and share the information and documents relevant to your property sale, creating a comprehensive digital property pack. All information you provide is self-declared. We recommend you seek independent legal advice from a qualified solicitor for all aspects of your property transaction.
+        HomeSalesReady is an information collation platform. We are not solicitors, estate agents or legal advisers, and nothing on this platform constitutes legal advice or opinion. Our purpose is to help you gather, organise and share the information and documents relevant to your property sale, creating a comprehensive digital property pack. HomeSalesReady was founded by property professionals who continue to work actively in the industry — so every feature has been shaped by genuine, hands-on experience of what sellers and agents actually need. All information you provide is self-declared. We recommend you seek independent legal advice from a qualified solicitor for all aspects of your property transaction.
       </p>
     </div>
   );
