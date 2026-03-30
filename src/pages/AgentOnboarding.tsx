@@ -1,14 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import Footer from '../components/Footer';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { getAuthRedirectUrl } from '../lib/ensureUserProfile';
-import { formatAuthError } from '../lib/authErrors';
-import GoogleLoginButton from '../components/GoogleLoginButton';
 
-// ── Types ───────────────────────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────────────────────────
 
 interface FirmData {
   agencyName: string;
@@ -18,7 +15,6 @@ interface FirmData {
   county: string;
   postcode: string;
   phone: string;
-  email: string;
   companyRegNumber: string;
   vatNumber: string;
   naeaNumber: string;
@@ -38,8 +34,6 @@ interface TermsData {
 }
 
 const JOB_TITLES = ['Director', 'Partner', 'Authorised Representative'];
-
-// ── Step progress indicator ──────────────────────────────────────────────────
 
 const STEPS = [
   { n: 1, label: 'Firm Details' },
@@ -81,8 +75,6 @@ function StepIndicator({ current }: { current: number }) {
   );
 }
 
-// ── Field helper ─────────────────────────────────────────────────────────────
-
 function Field({
   label,
   required,
@@ -111,12 +103,13 @@ function Field({
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function AgentSignup() {
+export default function AgentOnboarding() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
 
   const [firm, setFirm] = useState<FirmData>({
     agencyName: '',
@@ -126,14 +119,13 @@ export default function AgentSignup() {
     county: '',
     postcode: '',
     phone: '',
-    email: '',
     companyRegNumber: '',
     vatNumber: '',
     naeaNumber: '',
   });
 
   const [signatory, setSignatory] = useState<SignatoryData>({
-    fullName: '',
+    fullName: user?.user_metadata?.full_name || '',
     jobTitle: 'Director',
     isAuthorised: false,
   });
@@ -145,13 +137,43 @@ export default function AgentSignup() {
     signatureName: '',
   });
 
+  // On mount: if agent already has an agencies record, skip onboarding
+  useEffect(() => {
+    if (!user) return;
+
+    async function checkExistingAgency() {
+      try {
+        const { data: userRow } = await supabase
+          .from('users')
+          .select('id, agency_id')
+          .eq('auth_user_id', user!.id)
+          .maybeSingle();
+
+        if (userRow?.agency_id) {
+          navigate('/agent/dashboard', { replace: true });
+          return;
+        }
+      } finally {
+        setChecking(false);
+      }
+    }
+
+    checkExistingAgency();
+  }, [user, navigate]);
+
+  // Pre-fill signatory name from Google metadata once user is available
+  useEffect(() => {
+    const fullName = user?.user_metadata?.full_name;
+    if (fullName && !signatory.fullName) {
+      setSignatory(s => ({ ...s, fullName }));
+    }
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const setFirmField = (e: React.ChangeEvent<HTMLInputElement>) =>
     setFirm(f => ({ ...f, [e.target.name]: e.target.value }));
 
   const setSignatoryField = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setSignatory(s => ({ ...s, [e.target.name]: e.target.value }));
-
-  // ── Step validation ─────────────────────────────────────────────────────
 
   function validateStep1(): string | null {
     if (!firm.agencyName.trim()) return 'Agency/firm name is required.';
@@ -159,7 +181,6 @@ export default function AgentSignup() {
     if (!firm.town.trim()) return 'Town is required.';
     if (!firm.postcode.trim()) return 'Postcode is required.';
     if (!firm.phone.trim()) return 'Main telephone number is required.';
-    if (!firm.email.trim()) return 'Main email address is required.';
     if (!firm.companyRegNumber.trim()) return 'Company registration number is required.';
     return null;
   }
@@ -197,52 +218,67 @@ export default function AgentSignup() {
       setError('Please type your full name as your electronic signature.');
       return;
     }
+    if (!user) {
+      setError('Session expired. Please log in again.');
+      return;
+    }
 
     setLoading(true);
     setError(null);
 
-    const now = new Date().toISOString();
-
     try {
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email: firm.email,
-        options: {
-          emailRedirectTo: getAuthRedirectUrl(),
-          shouldCreateUser: true,
-          data: {
-            // core identity
-            full_name: signatory.fullName,
-            agency_name: firm.agencyName,
-            phone: firm.phone,
-            role: 'agent',
-            // firm details
-            trading_address_line1: firm.addressLine1,
-            trading_address_line2: firm.addressLine2 || null,
-            trading_address_town: firm.town,
-            trading_address_county: firm.county || null,
-            trading_address_postcode: firm.postcode,
-            company_registration_number: firm.companyRegNumber,
-            vat_number: firm.vatNumber || null,
-            naea_number: firm.naeaNumber || null,
-            // signatory
-            authorised_signatory_name: signatory.fullName,
-            authorised_signatory_title: signatory.jobTitle,
-            // terms
-            terms_agreed: true,
-            terms_agreed_at: now,
-            terms_version: 'v1.0',
-            dpa_agreed: true,
-            dpa_agreed_at: now,
-          },
-        },
-      });
+      const now = new Date().toISOString();
 
-      if (otpError) throw otpError;
-      setSuccess(true);
+      // Get the public.users row to get the internal user id
+      const { data: userRow, error: userFetchErr } = await supabase
+        .from('users')
+        .select('id')
+        .eq('auth_user_id', user.id)
+        .maybeSingle();
+
+      if (userFetchErr) throw userFetchErr;
+      if (!userRow) throw new Error('User profile not found. Please contact support.');
+
+      // Insert the agencies row
+      const { data: agency, error: agencyErr } = await supabase
+        .from('agencies')
+        .insert({
+          agency_name: firm.agencyName,
+          agent_user_id: userRow.id,
+          trading_address_line1: firm.addressLine1,
+          trading_address_line2: firm.addressLine2 || null,
+          trading_address_town: firm.town,
+          trading_address_county: firm.county || null,
+          trading_address_postcode: firm.postcode,
+          phone: firm.phone,
+          company_registration_number: firm.companyRegNumber,
+          vat_number: firm.vatNumber || null,
+          naea_number: firm.naeaNumber || null,
+          authorised_signatory_name: signatory.fullName,
+          authorised_signatory_title: signatory.jobTitle,
+          terms_agreed: true,
+          terms_agreed_at: now,
+          terms_version: 'v1.0',
+          dpa_agreed: true,
+          dpa_agreed_at: now,
+        })
+        .select('id')
+        .single();
+
+      if (agencyErr) throw agencyErr;
+
+      // Link agency to user
+      const { error: linkErr } = await supabase
+        .from('users')
+        .update({ agency_id: agency.id })
+        .eq('id', userRow.id);
+
+      if (linkErr) throw linkErr;
+
+      navigate('/agent/dashboard', { replace: true });
     } catch (err: unknown) {
-      console.error('Agent signup error:', err);
-      setError(formatAuthError(err));
-    } finally {
+      console.error('Agent onboarding error:', err);
+      setError(err instanceof Error ? err.message : 'Could not save firm details. Please try again.');
       setLoading(false);
     }
   }
@@ -250,36 +286,13 @@ export default function AgentSignup() {
   const termsAllTicked = terms.agreedToS && terms.agreedDpa && terms.confirmedAccuracy;
   const canSign = termsAllTicked && terms.signatureName.trim().length > 0;
 
-  // ── Success screen ──────────────────────────────────────────────────────
-
-  if (success) {
+  if (checking) {
     return (
-      <div className="min-h-screen bg-[var(--page)] flex items-center justify-center p-6">
-        <Card className="max-w-lg w-full p-10 text-center space-y-6">
-          <div className="size-20 bg-[var(--teal-050)] text-[var(--teal-600)] border border-[var(--border)] flex items-center justify-center rounded-3xl mx-auto">
-            <span className="material-symbols-outlined text-4xl">verified</span>
-          </div>
-          <h2 className="text-3xl font-black font-heading text-[var(--teal-900)]">Application submitted</h2>
-          <p className="text-[var(--muted)] text-sm leading-relaxed">
-            Your firm registration has been recorded. We've sent a secure sign-in link to{' '}
-            <strong className="text-[var(--teal-900)]">{firm.email}</strong>.
-          </p>
-          <div className="p-4 rounded-xl bg-[var(--teal-050)] border border-[var(--border)] text-left space-y-2">
-            <p className="text-[10px] font-black text-[var(--muted)] uppercase tracking-widest">Agreement summary</p>
-            <p className="text-sm text-[var(--text)]"><strong>{signatory.fullName}</strong> ({signatory.jobTitle})</p>
-            <p className="text-sm text-[var(--text)]">Terms of Service v1.0 — agreed</p>
-            <p className="text-sm text-[var(--text)]">Data Processing Agreement — agreed</p>
-            <p className="text-[11px] text-[var(--muted)]">Recorded at {new Date().toLocaleString('en-GB')}</p>
-          </div>
-          <Button variant="primary" className="w-full h-12 rounded-xl" onClick={() => navigate('/login')}>
-            Return to Login
-          </Button>
-        </Card>
+      <div className="min-h-screen bg-[var(--page)] flex items-center justify-center">
+        <div className="animate-spin size-8 border-2 border-[var(--teal-600)] border-t-transparent rounded-full" />
       </div>
     );
   }
-
-  // ── Layout wrapper ──────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen bg-[var(--page)] flex flex-col items-center justify-start py-12 px-4 relative overflow-hidden">
@@ -292,34 +305,21 @@ export default function AgentSignup() {
             <span className="material-symbols-outlined text-3xl">home_filled</span>
             <span className="font-heading font-black text-xl tracking-tight text-[var(--teal-900)]">HomeSalesReady</span>
           </div>
-          <h1 className="text-4xl font-black font-heading text-[var(--teal-900)] tracking-tight">Agent registration</h1>
-          <p className="text-[var(--muted)] text-sm">Register your firm to manage property packs for your sellers.</p>
+          <h1 className="text-4xl font-black font-heading text-[var(--teal-900)] tracking-tight">Complete your registration</h1>
+          <p className="text-[var(--muted)] text-sm">Please provide your firm details to activate your agent account.</p>
         </div>
 
-        {/* Step indicator */}
         <StepIndicator current={step} />
 
-        {/* Error banner */}
         {error && (
           <div className="p-4 bg-[#fee2e2] border border-[#fecaca] text-[#b91c1c] rounded-xl text-sm font-semibold animate-in fade-in duration-200">
             {error}
           </div>
         )}
 
-        {/* ── STEP 1: FIRM DETAILS ─────────────────────────────────── */}
+        {/* ── STEP 1: FIRM DETAILS ──────────────────────────────────────── */}
         {step === 1 && (
           <Card className="p-8 space-y-6">
-            <GoogleLoginButton
-              beforeAuth={() => localStorage.setItem('hsr_pending_signup_role', 'agent')}
-              onError={(msg) => setError(msg)}
-            />
-
-            <div className="flex items-center gap-3">
-              <div className="flex-1 h-px bg-[var(--border)]" />
-              <span className="text-xs font-semibold text-[#5a7a7c]">or</span>
-              <div className="flex-1 h-px bg-[var(--border)]" />
-            </div>
-
             <div>
               <h2 className="text-xl font-black font-heading text-[var(--teal-900)]">Firm Details</h2>
               <p className="text-sm text-[var(--muted)] mt-1">Enter the registered details of your estate agency firm.</p>
@@ -355,16 +355,9 @@ export default function AgentSignup() {
 
               <div className="pt-2 border-t border-[var(--border)]">
                 <p className="text-[10px] font-black text-[var(--muted)] uppercase tracking-widest mb-4">Contact Information</p>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <Field label="Main Telephone" required>
-                      <input type="tel" name="phone" required value={firm.phone} onChange={setFirmField} className="w-full" placeholder="01234 567890" />
-                    </Field>
-                    <Field label="Main Email Address" required>
-                      <input type="email" name="email" required value={firm.email} onChange={setFirmField} className="w-full" placeholder="info@youragency.com" />
-                    </Field>
-                  </div>
-                </div>
+                <Field label="Main Telephone" required>
+                  <input type="tel" name="phone" required value={firm.phone} onChange={setFirmField} className="w-full" placeholder="01234 567890" />
+                </Field>
               </div>
 
               <div className="pt-2 border-t border-[var(--border)]">
@@ -390,16 +383,10 @@ export default function AgentSignup() {
                 <span className="material-symbols-outlined text-[18px] ml-2">arrow_forward</span>
               </Button>
             </form>
-
-            <div className="text-center">
-              <p className="text-sm text-[var(--muted)]">
-                Already registered? <Link to="/login" className="text-[var(--teal-600)] font-semibold hover:underline">Log in here</Link>
-              </p>
-            </div>
           </Card>
         )}
 
-        {/* ── STEP 2: AUTHORISED SIGNATORY ────────────────────────── */}
+        {/* ── STEP 2: AUTHORISED SIGNATORY ─────────────────────────────── */}
         {step === 2 && (
           <Card className="p-8 space-y-6">
             <div>
@@ -423,12 +410,7 @@ export default function AgentSignup() {
               </Field>
 
               <Field label="Job Title" required>
-                <select
-                  name="jobTitle"
-                  value={signatory.jobTitle}
-                  onChange={setSignatoryField}
-                  className="w-full"
-                >
+                <select name="jobTitle" value={signatory.jobTitle} onChange={setSignatoryField} className="w-full">
                   {JOB_TITLES.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
                 <p className="text-[10px] text-[var(--muted)] mt-1">
@@ -472,10 +454,9 @@ export default function AgentSignup() {
           </Card>
         )}
 
-        {/* ── STEP 3: TERMS & AGREEMENT ────────────────────────────── */}
+        {/* ── STEP 3: TERMS & AGREEMENT ────────────────────────────────── */}
         {step === 3 && (
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Terms of Service */}
             <Card className="p-6 space-y-4">
               <div className="flex items-center gap-3">
                 <div className="size-9 rounded-xl bg-[var(--teal-050)] border border-[var(--border)] flex items-center justify-center">
@@ -488,7 +469,7 @@ export default function AgentSignup() {
                   </Link>
                 </div>
               </div>
-              <div className="p-4 rounded-xl bg-[var(--teal-050)] border border-[var(--border)] text-sm text-[var(--text)] space-y-2 leading-relaxed">
+              <div className="p-4 rounded-xl bg-[var(--teal-050)] border border-[var(--border)] text-sm text-[var(--text)] leading-relaxed">
                 <p>By agreeing you confirm that: your firm will use HomeSalesReady solely for legitimate property transaction purposes; you will not misuse the platform or share access credentials; you accept responsibility for your sellers' use of the platform; HomeSalesReady may terminate access for breach of these terms.</p>
               </div>
               <label className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
@@ -500,13 +481,10 @@ export default function AgentSignup() {
                   onChange={e => setTerms(t => ({ ...t, agreedToS: e.target.checked }))}
                   className="mt-0.5 size-4 accent-[var(--teal-600)] shrink-0"
                 />
-                <span className="text-sm text-[var(--text)]">
-                  <strong>I have read and agree to the Terms of Service</strong>
-                </span>
+                <span className="text-sm text-[var(--text)]"><strong>I have read and agree to the Terms of Service</strong></span>
               </label>
             </Card>
 
-            {/* DPA */}
             <Card className="p-6 space-y-4">
               <div className="flex items-center gap-3">
                 <div className="size-9 rounded-xl bg-[var(--teal-050)] border border-[var(--border)] flex items-center justify-center">
@@ -519,7 +497,7 @@ export default function AgentSignup() {
                   </Link>
                 </div>
               </div>
-              <div className="p-4 rounded-xl bg-[var(--teal-050)] border border-[var(--border)] text-sm text-[var(--text)] space-y-2 leading-relaxed">
+              <div className="p-4 rounded-xl bg-[var(--teal-050)] border border-[var(--border)] text-sm text-[var(--text)] leading-relaxed">
                 <p>HomeSalesReady acts as a data processor on behalf of your firm. Seller and buyer personal data is stored on UK-based servers. We process data solely for the purposes of creating property packs. You retain ownership of all client data and may request deletion at any time. We are GDPR compliant and maintain ISO 27001 security standards.</p>
               </div>
               <label className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
@@ -531,13 +509,10 @@ export default function AgentSignup() {
                   onChange={e => setTerms(t => ({ ...t, agreedDpa: e.target.checked }))}
                   className="mt-0.5 size-4 accent-[var(--teal-600)] shrink-0"
                 />
-                <span className="text-sm text-[var(--text)]">
-                  <strong>I have read and agree to the Data Processing Agreement</strong>
-                </span>
+                <span className="text-sm text-[var(--text)]"><strong>I have read and agree to the Data Processing Agreement</strong></span>
               </label>
             </Card>
 
-            {/* Accuracy confirmation + signature */}
             <Card className="p-6 space-y-5">
               <div>
                 <h3 className="font-black font-heading text-[var(--teal-900)]">Electronic Signature</h3>
@@ -601,12 +576,12 @@ export default function AgentSignup() {
                   {loading ? (
                     <span className="flex items-center justify-center gap-2">
                       <span className="animate-spin size-4 border-2 border-black/20 border-t-black rounded-full" />
-                      Submitting…
+                      Saving…
                     </span>
                   ) : (
                     <>
                       <span className="material-symbols-outlined text-[18px] mr-2">verified</span>
-                      Submit Registration
+                      Complete Registration
                     </>
                   )}
                 </Button>
@@ -621,7 +596,6 @@ export default function AgentSignup() {
           </form>
         )}
       </div>
-      <Footer />
     </div>
   );
 }

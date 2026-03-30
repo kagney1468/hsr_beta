@@ -23,6 +23,7 @@ import AgentLayout from './layouts/AgentLayout';
 import AgentDashboard from './pages/AgentDashboard';
 import AgentBranding from './pages/AgentBranding';
 import AgentPropertyDetail from './pages/AgentPropertyDetail';
+import AgentOnboarding from './pages/AgentOnboarding';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import PublicPack from './pages/PublicPack';
@@ -58,6 +59,8 @@ export default function App() {
           <Route element={<ProtectedRoute />}>
             {/* First-time seller welcome — full-page, no sidebar */}
             <Route path="/welcome" element={<Welcome />} />
+            {/* Agent onboarding — Google OAuth agents who haven't set up firm details yet */}
+            <Route path="/agent/onboarding" element={<AgentOnboarding />} />
             <Route path="/add-property" element={<AddProperty />} />
 
             {/* Seller Journey */}

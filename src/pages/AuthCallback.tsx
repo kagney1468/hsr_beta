@@ -5,18 +5,15 @@ import { ensureUserProfile } from '../lib/ensureUserProfile';
 import { formatCallbackError } from '../lib/authErrors';
 
 /**
- * AuthCallback — handles the redirect after a user clicks a magic link.
+ * AuthCallback — handles the redirect after magic-link or Google OAuth login.
  *
- * Implicit flow (primary): Supabase delivers tokens in the URL hash:
- *   /auth/callback#access_token=...&refresh_token=...&token_type=bearer
- *   detectSessionInUrl:true processes this automatically, but we also call
- *   setSession() explicitly to guarantee the session is established before
- *   proceeding.
+ * Implicit flow (magic link): tokens arrive in URL hash.
+ * PKCE / OAuth flow (Google): Supabase exchanges code from query string.
  *
- * PKCE fallback: if a ?code= query param is present (legacy or fallback),
- *   we exchange it for a session.
- *
- * agent_ref param: passed by agent invitation links; links new seller to agency.
+ * New Google users are created in public.users with type determined by:
+ *   1. agent_ref URL param → agent
+ *   2. hsr_pending_signup_role in localStorage (set by AgentSignup) → agent
+ *   3. Otherwise → seller
  */
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -55,7 +52,7 @@ export default function AuthCallback() {
           session = (await supabase.auth.getSession()).data.session;
         }
 
-        // ── 3. PKCE fallback: exchange code from query string ─────────────────
+        // ── 3. PKCE / OAuth fallback: exchange code from query string ─────────
         const code = params.get('code');
         if (!session && code) {
           const { data: exchanged, error: exchangeErr } = await supabase.auth.exchangeCodeForSession(code);
@@ -67,7 +64,7 @@ export default function AuthCallback() {
           }
         }
 
-        // ── 4. Short retries in case of async session propagation delay ───────
+        // ── 4. Short retries for async session propagation ────────────────────
         if (!session) {
           await new Promise((res) => setTimeout(res, 400));
           session = (await supabase.auth.getSession()).data.session;
@@ -83,10 +80,61 @@ export default function AuthCallback() {
           );
         }
 
-        // Ensure profile row exists and get the definitive role
-        await ensureUserProfile(session.user);
+        const isGoogleOAuth = session.user.app_metadata?.provider === 'google';
 
-        // ── Step 1: Read user_type (authoritative routing field) from public.users ──
+        if (isGoogleOAuth) {
+          // ── Google OAuth: handle new-user creation directly ─────────────────
+          const { data: existingUser } = await supabase
+            .from('users')
+            .select('id')
+            .eq('auth_user_id', session.user.id)
+            .maybeSingle();
+
+          if (!existingUser) {
+            // New Google user — determine role from URL params or localStorage
+            const agentRef = params.get('agent_ref');
+            const pendingRole = localStorage.getItem('hsr_pending_signup_role');
+            const userType: 'seller' | 'agent' =
+              agentRef || pendingRole === 'agent' ? 'agent' : 'seller';
+            localStorage.removeItem('hsr_pending_signup_role');
+
+            const fullName = (session.user.user_metadata?.full_name as string) || null;
+
+            const { error: insertError } = await supabase.from('users').insert({
+              auth_user_id: session.user.id,
+              email: session.user.email,
+              full_name: fullName,
+              role: userType,
+              user_type: userType,
+            });
+
+            // 23505 = unique violation — row was race-created, fine to continue
+            if (insertError && insertError.code !== '23505') {
+              throw new Error('Could not create profile: ' + insertError.message);
+            }
+          } else {
+            // Existing Google user — ensure full_name is saved if missing
+            const fullName = (session.user.user_metadata?.full_name as string) || null;
+            if (fullName) {
+              const { data: userRow } = await supabase
+                .from('users')
+                .select('full_name')
+                .eq('auth_user_id', session.user.id)
+                .maybeSingle();
+              if (userRow && !userRow.full_name) {
+                await supabase
+                  .from('users')
+                  .update({ full_name: fullName })
+                  .eq('auth_user_id', session.user.id);
+              }
+            }
+          }
+        } else {
+          // ── Magic link flow: use existing ensureUserProfile logic ─────────────
+          await ensureUserProfile(session.user);
+        }
+
+        // ── Read user row (authoritative routing source) ──────────────────────
         const { data: userRow, error: userErr } = await supabase
           .from('users')
           .select('id, user_type, onboarding_complete, agency_id')
@@ -96,7 +144,6 @@ export default function AuthCallback() {
         if (userErr) throw userErr;
 
         if (!userRow) {
-          // Profile still missing after ensureUserProfile — bail to login with message
           navigate('/login', {
             replace: true,
             state: { error: 'Account not found. Please sign up first.' },
@@ -135,11 +182,16 @@ export default function AuthCallback() {
           }
         }
 
-        // ── Step 2: Redirect based on user_type ───────────────────────────────
+        // ── Redirect based on user_type ───────────────────────────────────────
         const userType = (userRow.user_type ?? '').toLowerCase();
 
         if (userType === 'agent') {
-          navigate('/agent/dashboard', { replace: true });
+          // Agent with no linked agency → collect firm details first
+          if (!userRow.agency_id) {
+            navigate('/agent/onboarding', { replace: true });
+          } else {
+            navigate('/agent/dashboard', { replace: true });
+          }
           return;
         }
 
@@ -194,7 +246,7 @@ export default function AuthCallback() {
         </div>
         <div>
           <h1 className="text-2xl font-black font-heading text-[var(--teal-900)]">Signing you in…</h1>
-          <p className="text-[var(--muted)] text-sm mt-2">You’ll be redirected to your dashboard shortly.</p>
+          <p className="text-[var(--muted)] text-sm mt-2">You'll be redirected to your dashboard shortly.</p>
         </div>
       </div>
     </div>
