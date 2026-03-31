@@ -77,29 +77,33 @@ export default function AgentBranding() {
   }
 
   async function handleSave() {
+    if (!user) {
+      setSaveStatus('error');
+      return;
+    }
+
     setSaving(true);
     setSaveStatus('idle');
     try {
       let logo_url = settings.logo_url;
 
       // Upload logo if a new file was selected
-      if (logoFile && user) {
-        const publicUserId = await getPublicUserIdByAuthUserId(user.id);
+      if (logoFile) {
         const ext = logoFile.name.split('.').pop();
-        const path = `${publicUserId}/logo.${ext}`;
+        const path = `${user.id}/logo.${ext}`;
         const { error: uploadError } = await supabase.storage
-          .from('agency-assets')
+          .from('agency-logos')
           .upload(path, logoFile, { upsert: true });
 
         if (uploadError) throw uploadError;
 
         const { data: urlData } = supabase.storage
-          .from('agency-assets')
+          .from('agency-logos')
           .getPublicUrl(path);
         logo_url = urlData.publicUrl;
       }
 
-      const pubId = await getPublicUserIdByAuthUserId(user!.id);
+      const pubId = await getPublicUserIdByAuthUserId(user.id);
       const payload = {
         agent_user_id: pubId,
         agency_name: settings.name,

@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { getPublicUserIdByAuthUserId } from '../lib/publicUser';
 import Footer from '../components/Footer';
 
 export default function AgentLayout() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const location = useLocation();
   const [agency, setAgency] = useState<any>(null);
 
@@ -31,6 +32,11 @@ export default function AgentLayout() {
   const isActive = (path: string) =>
     location.pathname === path || location.pathname.startsWith(path + '/');
 
+  async function handleLogout() {
+    await signOut();
+    navigate('/login', { replace: true });
+  }
+
   const navItems = [
     { label: 'Pipeline', icon: 'home_work', path: '/agent/dashboard' },
     { label: 'Leads', icon: 'group', path: '/agent/dashboard?tab=leads' },
@@ -41,7 +47,7 @@ export default function AgentLayout() {
   return (
     <div className="bg-[var(--page)] font-display text-[var(--text)] min-h-screen flex flex-col md:flex-row overflow-hidden">
       {/* ── SIDEBAR ── */}
-      <aside className="w-full md:w-[260px] md:min-w-[260px] md:min-h-screen bg-white border-b md:border-b-0 md:border-r border-[var(--border)] flex flex-col p-4 overflow-y-auto md:sticky md:top-0 md:h-screen z-30">
+      <aside className="w-full md:w-[260px] md:min-w-[260px] bg-white border-b md:border-b-0 md:border-r border-[var(--border)] flex flex-col p-4 md:sticky md:top-0 md:h-screen md:overflow-y-auto z-30">
         {/* Agency Brand Block */}
         <div className="bg-white border border-[var(--border)] rounded-2xl p-4 mb-6 text-center flex-shrink-0 flex flex-col items-center shadow-soft">
           {agency?.logo_url ? (
@@ -76,14 +82,24 @@ export default function AgentLayout() {
         </nav>
 
         {/* User Footer */}
-        <div className="mt-8 pt-4 border-t border-[var(--border)] flex items-center gap-3 px-2">
-           <div className="size-8 rounded-full bg-[var(--teal-050)] border border-[var(--border)] flex items-center justify-center text-[10px] font-semibold text-[var(--teal-900)]">
-             {user?.email?.[0].toUpperCase()}
-           </div>
-           <div className="flex-1 truncate">
-             <div className="text-[11px] font-semibold text-[var(--teal-900)] truncate">{user?.email}</div>
-             <div className="text-[9px] text-[var(--muted)] uppercase font-semibold">Agent Account</div>
-           </div>
+        <div className="mt-8 pt-4 border-t border-[var(--border)] space-y-2">
+          <div className="flex items-center gap-3 px-2">
+            <div className="size-8 rounded-full bg-[var(--teal-050)] border border-[var(--border)] flex items-center justify-center text-[10px] font-semibold text-[var(--teal-900)]">
+              {user?.email?.[0].toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0 truncate">
+              <div className="text-[11px] font-semibold text-[var(--teal-900)] truncate">{user?.email}</div>
+              <div className="text-[9px] text-[var(--muted)] uppercase font-semibold">Agent Account</div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold text-[var(--teal-900)] border border-[var(--border)] bg-[var(--page)] hover:bg-[var(--teal-050)] transition-colors"
+          >
+            <span className="material-symbols-outlined text-[18px]">logout</span>
+            Log out
+          </button>
         </div>
       </aside>
 

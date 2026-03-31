@@ -25,7 +25,6 @@ Deno.serve(async (req) => {
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Verify the requesting user has access to this property via RLS
     const authHeader = req.headers.get('Authorization')
     if (authHeader) {
       const userClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -45,7 +44,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Check cache — return if fetched within last 24 hours
     const { data: existing } = await supabase
       .from('property_intelligence')
       .select('*')
@@ -67,47 +65,51 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Resolve coordinates via postcodes.io
     const cleanPostcode = postcode.replace(/\s+/g, '').toUpperCase()
     const pcRes = await fetch(`https://api.postcodes.io/postcodes/${cleanPostcode}`)
+    if (!pcRes.ok) throw new Error(`postcodes.io responded ${pcRes.status} for ${cleanPostcode}`)
     const pcJson = await pcRes.json()
     if (!pcJson.result) throw new Error(`Could not resolve postcode: ${postcode}`)
     const { latitude: lat, longitude: lng } = pcJson.result
 
-    // Call all five APIs in parallel; never let one failure block the rest
-    const [floodResult, crimeResult, broadbandResult, salesResult, schoolsResult] =
+    const [floodResult, crimeResult, broadbandResult, salesResult, schoolsResult, epcResult] =
       await Promise.allSettled([
         fetchFlood(lat, lng),
         fetchCrime(lat, lng),
-        fetchBroadband(postcode),
-        fetchSales(postcode),
-        fetchSchools(postcode),
+        fetchBroadband(cleanPostcode),
+        fetchSales(cleanPostcode),
+        fetchSchools(lat, lng),
+        fetchEpc(cleanPostcode),
       ])
 
-    const flood    = floodResult.status    === 'fulfilled' ? floodResult.value    : null
-    const crime    = crimeResult.status    === 'fulfilled' ? crimeResult.value    : null
-    const broadband = broadbandResult.status === 'fulfilled' ? broadbandResult.value : null
-    const sales    = salesResult.status    === 'fulfilled' ? salesResult.value    : null
-    const schoolsData = schoolsResult.status === 'fulfilled' ? schoolsResult.value : []
+    const flood       = floodResult.status     === 'fulfilled' ? floodResult.value     : null
+    const crime       = crimeResult.status     === 'fulfilled' ? crimeResult.value     : null
+    const broadband   = broadbandResult.status === 'fulfilled' ? broadbandResult.value : null
+    const sales       = salesResult.status     === 'fulfilled' ? salesResult.value     : null
+    const schoolsData = schoolsResult.status   === 'fulfilled' ? schoolsResult.value   : []
+    const epc         = epcResult.status       === 'fulfilled' ? epcResult.value       : null
 
-    const names = ['flood', 'crime', 'broadband', 'sales', 'schools']
-    ;[floodResult, crimeResult, broadbandResult, salesResult, schoolsResult].forEach((r, i) => {
-      if (r.status === 'rejected') {
-        console.error(`[property-intelligence] ${names[i]} API failed:`, r.reason?.message ?? r.reason)
-      }
-    })
+    const names = ['flood', 'crime', 'broadband', 'sales', 'schools', 'epc']
+    ;[floodResult, crimeResult, broadbandResult, salesResult, schoolsResult, epcResult]
+      .forEach((r, i) => {
+        if (r.status === 'rejected') {
+          console.error(`[property-intelligence] ${names[i]} failed:`, r.reason?.message ?? r.reason)
+        }
+      })
 
-    // Upsert property_intelligence row
     const upsertPayload: Record<string, unknown> = {
       property_id,
-      flood_zone:              flood?.zone    ?? null,
-      flood_risk_score:        flood?.risk    ?? null,
+      flood_zone:               flood?.zone   ?? null,
+      flood_risk_score:         flood?.risk   ?? null,
       broadband_max_speed_mbps: broadband?.maxSpeed   ?? null,
-      broadband_availability:  broadband?.technology  ?? null,
-      crime_rate:    crime?.total != null ? String(crime.total) : null,
-      crime_category: crime?.categories ? JSON.stringify(crime.categories) : null,
-      recent_sales:  sales ?? null,
-      data_fetched_at: new Date().toISOString(),
+      broadband_availability:   broadband?.technology ?? null,
+      crime_rate:               crime?.total != null ? String(crime.total) : null,
+      crime_category:           crime?.categories ? JSON.stringify(crime.categories) : null,
+      recent_sales:             sales ?? null,
+      epc_rating:               epc?.rating ?? null,
+      epc_expiry:               epc?.expiry ?? null,
+      epc_url:                  epc?.url    ?? null,
+      data_fetched_at:          new Date().toISOString(),
     }
 
     const { data: saved, error: upsertErr } = await supabase
@@ -116,9 +118,11 @@ Deno.serve(async (req) => {
       .select()
       .single()
 
-    if (upsertErr) throw upsertErr
+    if (upsertErr) {
+      console.error('[property-intelligence] Upsert failed:', upsertErr.message)
+      throw upsertErr
+    }
 
-    // Save schools: delete old rows then insert fresh ones
     if (Array.isArray(schoolsData) && schoolsData.length > 0) {
       await supabase.from('nearby_schools').delete().eq('property_id', property_id)
       await supabase.from('nearby_schools').insert(
@@ -146,6 +150,7 @@ Deno.serve(async (req) => {
       JSON.stringify({ ...saved, schools: schools ?? [] }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
+
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Internal error'
     console.error('[property-intelligence] Fatal error:', msg)
@@ -155,8 +160,6 @@ Deno.serve(async (req) => {
     )
   }
 })
-
-// ── API helpers ────────────────────────────────────────────────────────────────
 
 async function fetchFlood(lat: number, lng: number) {
   const url = `https://environment.data.gov.uk/flood-monitoring/id/floodAreas?lat=${lat}&long=${lng}&dist=1`
@@ -179,7 +182,7 @@ async function fetchCrime(lat: number, lng: number) {
   const res = await fetch(url)
   if (!res.ok) throw new Error(`Crime API responded ${res.status}`)
   const crimes = await res.json()
-  if (!Array.isArray(crimes)) throw new Error('Unexpected crime API response shape')
+  if (!Array.isArray(crimes)) throw new Error('Unexpected crime API response')
 
   const total = crimes.length
   const counts: Record<string, number> = {}
@@ -196,26 +199,32 @@ async function fetchCrime(lat: number, lng: number) {
 }
 
 async function fetchBroadband(postcode: string) {
-  const url = `https://api.ofcom.org.uk/broadband-coverage?postcode=${encodeURIComponent(postcode.trim())}`
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`Broadband API responded ${res.status}`)
+  const url = `https://api.ofcom.org.uk/connected-nations/broadband?postcode=${encodeURIComponent(postcode)}`
+  const res = await fetch(url, { headers: { Accept: 'application/json' } })
+
+  if (!res.ok) {
+    console.warn(`[broadband] Ofcom responded ${res.status} — returning null`)
+    return { maxSpeed: null, technology: null }
+  }
+
   const json = await res.json()
 
   const maxSpeed =
     json?.MaxDownloadSpeed ??
     json?.maxDownloadSpeed ??
     json?.max_download_speed ??
+    json?.[0]?.MaxDownloadSpeed ??
     null
 
   const technology =
     json?.Technology ??
     json?.technology ??
     json?.ConnectionType ??
-    json?.connectionType ??
+    json?.[0]?.Technology ??
     null
 
   return {
-    maxSpeed:   maxSpeed   != null ? Number(maxSpeed)  : null,
+    maxSpeed:   maxSpeed   != null ? Number(maxSpeed)   : null,
     technology: technology != null ? String(technology) : null,
   }
 }
@@ -223,16 +232,15 @@ async function fetchBroadband(postcode: string) {
 async function fetchSales(postcode: string) {
   const url =
     `https://landregistry.data.gov.uk/data/ppi/transaction-record.json` +
-    `?propertyAddress.postcode=${encodeURIComponent(postcode.trim())}` +
-    `&_pageSize=5&_sort=-transactionDate`
-  const res = await fetch(url)
+    `?propertyAddress.postcode=${encodeURIComponent(postcode)}&_pageSize=5&_sort=-transactionDate`
+  const res = await fetch(url, { headers: { Accept: 'application/json' } })
   if (!res.ok) throw new Error(`Land Registry API responded ${res.status}`)
   const json = await res.json()
 
   const items: unknown[] =
-    (json?.result?.items) ??
-    (json?.result?.primaryTopic?.items) ??
-    (json?.items) ??
+    json?.result?.items ??
+    json?.result?.primaryTopic?.items ??
+    json?.items ??
     []
 
   if (!Array.isArray(items)) return []
@@ -241,7 +249,7 @@ async function fetchSales(postcode: string) {
     .slice(0, 5)
     .map((item: unknown) => {
       const i = item as Record<string, unknown>
-      const price = i.pricePaid
+      const price   = i.pricePaid
       const rawDate = (i.transactionDate as Record<string, unknown>)?.['@value'] ?? i.transactionDate
       const typeObj = i.propertyType as Record<string, unknown> | undefined
       const type    = typeObj?.label ?? typeObj?.['@id']?.toString().split('/').pop() ?? null
@@ -254,18 +262,19 @@ async function fetchSales(postcode: string) {
     .filter((s) => s.price != null && s.price > 0)
 }
 
-async function fetchSchools(postcode: string) {
+async function fetchSchools(lat: number, lng: number) {
   const url =
-    `https://www.get-information-schools.service.gov.uk/api/schools` +
-    `?postcode=${encodeURIComponent(postcode.trim())}&radiusInMiles=1`
+    `https://get-information-schools.service.gov.uk/api/schools/search` +
+    `?lat=${lat}&lon=${lng}&radiusInMiles=1&statusCode=1`
   const res = await fetch(url, { headers: { Accept: 'application/json' } })
   if (!res.ok) throw new Error(`Schools API responded ${res.status}`)
   const json = await res.json()
 
   const list: unknown[] =
-    Array.isArray(json) ? json :
-    Array.isArray(json?.schools) ? json.schools :
+    Array.isArray(json)                 ? json :
+    Array.isArray(json?.schools)        ? json.schools :
     Array.isArray(json?.Establishments) ? json.Establishments :
+    Array.isArray(json?.data)           ? json.data :
     []
 
   const ofstedLabels: Record<string, string> = {
@@ -275,20 +284,58 @@ async function fetchSchools(postcode: string) {
     '4': 'Inadequate',
   }
 
-  return list.slice(0, 8).map((s: unknown) => {
+  return list.slice(0, 10).map((s: unknown) => {
     const school = s as Record<string, unknown>
     const ratingCode = (school.OfstedRating as Record<string, unknown>)?.Code
-    const ratingStr  = ratingCode != null ? String(ratingCode) : (school.ofstedRating as string | null) ?? null
+    const ratingStr  = ratingCode != null
+      ? String(ratingCode)
+      : (school.ofstedRating as string | null) ?? null
+
+    const rawDist   = school.Distance ?? school.distance ?? null
+    const distMiles = rawDist != null ? Math.round((Number(rawDist) / 1609.34) * 10) / 10 : null
 
     return {
-      name:         school.EstablishmentName ?? school.name ?? 'Unknown School',
-      type:         (school.TypeOfEstablishment as Record<string, unknown>)?.DisplayName ?? school.type ?? '',
-      phase:        (school.PhaseOfEducation  as Record<string, unknown>)?.DisplayName ?? school.phase ?? '',
+      name:         school.EstablishmentName ?? school.name    ?? 'Unknown School',
+      type:         (school.TypeOfEstablishment as Record<string, unknown>)?.DisplayName ?? school.type  ?? '',
+      phase:        (school.PhaseOfEducation   as Record<string, unknown>)?.DisplayName ?? school.phase ?? '',
       ofstedRating: ratingStr,
       ofstedLabel:  ratingStr ? (ofstedLabels[ratingStr] ?? ratingStr) : null,
-      distance:     school.Distance ?? school.distance ?? null,
+      distance:     distMiles,
       address:      school.Street   ?? school.address  ?? null,
-      postcode:     school.Postcode ?? school.postcode  ?? null,
+      postcode:     school.Postcode ?? school.postcode ?? null,
     }
   })
+}
+
+async function fetchEpc(postcode: string) {
+  const EPC_API_KEY = Deno.env.get('EPC_API_KEY') ?? ''
+  const EPC_EMAIL   = Deno.env.get('EPC_EMAIL')   ?? ''
+  const url =
+    `https://epc.opendatacommunities.org/api/v1/domestic/search` +
+    `?postcode=${encodeURIComponent(postcode)}&size=1`
+
+  const res = await fetch(url, {
+    headers: {
+      Accept:        'application/json',
+      Authorization: `Basic ${btoa(`${EPC_EMAIL}:${EPC_API_KEY}`)}`,
+    },
+  })
+
+  if (!res.ok) {
+    console.warn(`[epc] Open Data Communities responded ${res.status}`)
+    return null
+  }
+
+  const json = await res.json()
+  const rows: unknown[] = json?.rows ?? []
+  if (!rows.length) return null
+
+  const row = rows[0] as Record<string, unknown>
+  return {
+    rating: row['current-energy-rating'] ?? null,
+    expiry: row['lodgement-date']         ?? null,
+    url:    row['lmk-key']
+              ? `https://find-energy-certificate.service.gov.uk/energy-certificate/${row['lmk-key']}`
+              : null,
+  }
 }

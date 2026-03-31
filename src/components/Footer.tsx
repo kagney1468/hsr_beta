@@ -1,6 +1,15 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Footer({ className = '' }: { className?: string }) {
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  async function handleLogout() {
+    await signOut();
+    navigate('/login', { replace: true });
+  }
+
   return (
     <footer className={`border-t border-[var(--border)] bg-white ${className}`}>
       <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
@@ -26,6 +35,18 @@ export default function Footer({ className = '' }: { className?: string }) {
             <Link to="/cookie-policy" className="text-xs text-[var(--muted)] hover:text-[var(--teal-600)] font-medium transition-colors px-1">
               Cookie Policy
             </Link>
+            {user ? (
+              <>
+                <span className="text-[var(--border)] text-xs">·</span>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="text-xs text-[var(--muted)] hover:text-[var(--teal-600)] font-medium transition-colors px-1"
+                >
+                  Log out
+                </button>
+              </>
+            ) : null}
           </div>
           <p className="text-xs text-[var(--muted)] text-center sm:text-right">
             Copyright 2026 Kadima Systems Ltd. Company Number 16746375. Registered in England and Wales.

@@ -1,11 +1,16 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
 import Footer from '../components/Footer';
 
 export default function SellerLayout() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const location = useLocation();
+
+  async function handleLogout() {
+    await signOut();
+    navigate('/login', { replace: true });
+  }
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -91,21 +96,28 @@ export default function SellerLayout() {
           </div>
         </nav>
 
-{/* User Profile Footer */}
-<div className="p-4 border-t border-[var(--border)] bg-white">
-<div className="flex items-center gap-3 p-2 rounded-xl bg-[var(--page)] border border-[var(--border)]">
-  <div className="size-9 rounded-lg bg-white border border-[var(--border)] flex items-center justify-center text-[var(--muted)]">
-    <span className="material-symbols-outlined text-xl">person</span>
-  </div>
-  <div className="flex-1 min-w-0">
-    <p className="text-xs font-semibold text-[var(--teal-900)] truncate">{user?.user_metadata?.full_name || 'My Account'}</p>
-    <p className="text-[10px] text-[var(--muted)] font-medium">Seller Account</p>
-  </div>
-  <button onClick={() => supabase.auth.signOut()} className="text-[var(--muted)] hover:text-[var(--teal-900)]">
-    <span className="material-symbols-outlined text-lg">logout</span>
-  </button>
-</div>
-</div>
+        {/* User Profile Footer */}
+        <div className="p-4 border-t border-[var(--border)] bg-white space-y-2">
+          <div className="flex items-center gap-3 p-2 rounded-xl bg-[var(--page)] border border-[var(--border)]">
+            <div className="size-9 rounded-lg bg-white border border-[var(--border)] flex items-center justify-center text-[var(--muted)]">
+              <span className="material-symbols-outlined text-xl">person</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-[var(--teal-900)] truncate">
+                {user?.user_metadata?.full_name || user?.email || 'My Account'}
+              </p>
+              <p className="text-[10px] text-[var(--muted)] font-medium">Seller Account</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold text-[var(--teal-900)] border border-[var(--border)] bg-white hover:bg-[var(--teal-050)] transition-colors"
+          >
+            <span className="material-symbols-outlined text-[18px]">logout</span>
+            Log out
+          </button>
+        </div>
       </aside>
 
       {/* ── MAIN CONTENT ── */}
