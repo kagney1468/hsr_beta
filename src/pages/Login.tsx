@@ -126,9 +126,10 @@ export default function Login() {
 
   if (!role) {
     return (
-      <div className="min-h-screen bg-[var(--page)] flex flex-col items-center justify-center p-6 relative overflow-hidden">
+      <div className="min-h-screen bg-[var(--page)] flex flex-col">
+        <div className="flex-1 flex flex-col items-center justify-center p-6 relative overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-[var(--teal-050)] blur-[120px] rounded-full pointer-events-none" />
-        
+
         <div className="w-full max-w-4xl space-y-12 relative z-10 text-center">
             <div className="flex items-center justify-center gap-3 text-[var(--teal-600)] mb-8">
                 <span className="material-symbols-outlined text-4xl">home_filled</span>
@@ -188,6 +189,8 @@ export default function Login() {
                 </div>
             </div>
         </div>
+        </div>
+        <Footer />
       </div>
     );
   }
