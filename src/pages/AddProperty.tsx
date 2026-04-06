@@ -6,6 +6,7 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { getPublicUserIdByAuthUserId } from '../lib/publicUser';
 import Footer from '../components/Footer';
+import PostcodeLookup, { AddressData } from '../components/PostcodeLookup';
 
 const UK_POSTCODE_REGEX = /^[A-Z]{1,2}[0-9][0-9A-Z]?\s?[0-9][A-Z]{2}$/i;
 
@@ -34,7 +35,6 @@ export default function AddProperty() {
   const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [postcodeError, setPostcodeError] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     address_line1: '',
@@ -52,16 +52,6 @@ export default function AddProperty() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
-    if (name === 'address_postcode') setPostcodeError(null);
-  };
-
-  const validatePostcode = (postcode: string): boolean => {
-    if (!UK_POSTCODE_REGEX.test(postcode.trim())) {
-      setPostcodeError('Please enter a valid UK postcode e.g. SW1A 1AA');
-      return false;
-    }
-    setPostcodeError(null);
-    return true;
   };
 
   const isValid =
@@ -75,7 +65,6 @@ export default function AddProperty() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !isValid) return;
-    if (!validatePostcode(form.address_postcode)) return;
 
     setSaving(true);
     setError(null);
@@ -167,80 +156,11 @@ export default function AddProperty() {
             {/* Address */}
             <Card className="p-6 md:p-8 space-y-5">
               <h2 className="font-black font-heading text-[var(--teal-900)] text-xl">Property address</h2>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Address Line 1 *</label>
-                <input
-                  name="address_line1"
-                  required
-                  value={form.address_line1}
-                  onChange={handleChange}
-                  className="w-full"
-                  placeholder="e.g. 12 Maple Gardens"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Address Line 2 (Optional)</label>
-                <input
-                  name="address_line2"
-                  value={form.address_line2}
-                  onChange={handleChange}
-                  className="w-full"
-                  placeholder="Flat, apartment, building name"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Town *</label>
-                  <input
-                    name="address_town"
-                    required
-                    value={form.address_town}
-                    onChange={handleChange}
-                    className="w-full"
-                    placeholder="e.g. Bristol"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">County (Optional)</label>
-                  <input
-                    name="address_county"
-                    value={form.address_county}
-                    onChange={handleChange}
-                    className="w-full"
-                    placeholder="e.g. Somerset"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">City (Optional)</label>
-                <input
-                  name="address_city"
-                  value={form.address_city}
-                  onChange={handleChange}
-                  className="w-full"
-                  placeholder="e.g. Bristol"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Postcode *</label>
-                <input
-                  name="address_postcode"
-                  required
-                  value={form.address_postcode}
-                  onChange={handleChange}
-                  onBlur={() => form.address_postcode && validatePostcode(form.address_postcode)}
-                  className={`w-full uppercase tracking-widest font-semibold ${postcodeError ? 'border-red-400 focus:border-red-500' : ''}`}
-                  placeholder="e.g. SW1A 1AA"
-                />
-                {postcodeError && (
-                  <p className="text-red-500 text-xs font-semibold">{postcodeError}</p>
-                )}
-              </div>
+              <PostcodeLookup
+                onAddressSelect={(data: AddressData) =>
+                  setForm(prev => ({ ...prev, ...data }))
+                }
+              />
             </Card>
 
             {/* Property details */}
