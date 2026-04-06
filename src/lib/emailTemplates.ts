@@ -129,5 +129,14 @@ export const templates = {
       <p class="text">Log in and finish your pack today to ensure you're ready when the right buyer comes along.</p>
       <a href="https://portal.homesalesready.com/login" class="button">Finish My Pack</a>
     `)
+  }),
+  packComplete: (agentName: string, propertyAddress: string, agencyName: string) => ({
+    subject: `Pack complete: ${propertyAddress}`,
+    html: getEmailTemplate(`
+      <h1 class="heading">A seller has completed their pack</h1>
+      <p class="text">Hi ${agentName},</p>
+      <p class="text">The property pack for <strong>${propertyAddress}</strong> has been signed and completed by the seller. It is now ready for you to review.</p>
+      <a href="https://portal.homesalesready.com/login" class="button">View Pack</a>
+    `, { name: agencyName })
   })
 };

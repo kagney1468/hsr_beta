@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { templates } from '../lib/emailTemplates';
 
 export default function FinalDeclaration() {
   const { user } = useAuth();
@@ -109,6 +110,57 @@ export default function FinalDeclaration() {
       }
 
       setMessage({ type: 'success', text: 'Declaration signed successfully!' });
+
+      // Notify the agent — non-blocking, failure does not affect the seller journey
+      try {
+        const { data: sellerData } = await supabase
+          .from('users')
+          .select('agency_id')
+          .eq('auth_user_id', user.id)
+          .maybeSingle();
+
+        if (sellerData?.agency_id) {
+          const { data: agencyData } = await supabase
+            .from('agencies')
+            .select('agent_user_id, agency_name')
+            .eq('id', sellerData.agency_id)
+            .maybeSingle();
+
+          if (agencyData?.agent_user_id) {
+            const { data: agentData } = await supabase
+              .from('users')
+              .select('email, full_name')
+              .eq('auth_user_id', agencyData.agent_user_id)
+              .maybeSingle();
+
+            const { data: propData } = await supabase
+              .from('properties')
+              .select('address')
+              .eq('id', propertyId)
+              .maybeSingle();
+
+            if (agentData?.email) {
+              const emailPayload = templates.packComplete(
+                agentData.full_name || 'there',
+                propData?.address || 'your property',
+                agencyData.agency_name || 'HomeSalesReady'
+              );
+              await fetch('/api/send-viewer-notification', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({
+                  to: [agentData.email],
+                  subject: emailPayload.subject,
+                  html: emailPayload.html,
+                }),
+              });
+            }
+          }
+        }
+      } catch (emailErr) {
+        console.warn('Pack complete notification could not be sent:', emailErr);
+      }
+
       setTimeout(() => {
         navigate('/seller/dashboard');
       }, 1500);
