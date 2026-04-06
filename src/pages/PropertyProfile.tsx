@@ -7,6 +7,7 @@ import { Tooltip } from '../components/ui/Tooltip';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { updatePackCompletion } from '../lib/completion';
+import PostcodeLookup, { AddressData } from '../components/PostcodeLookup';
 
 export default function PropertyProfile() {
   const { user } = useAuth();
@@ -15,6 +16,7 @@ export default function PropertyProfile() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   
+  const [addressLocked, setAddressLocked] = useState(false);
   const [epcLoading, setEpcLoading] = useState(false);
   const [epcStatus, setEpcStatus] = useState<'initial' | 'found' | 'not_found' | 'multiple'>('initial');
   const [epcOptions, setEpcOptions] = useState<any[]>([]);
@@ -95,6 +97,7 @@ export default function PropertyProfile() {
             disputes: mi?.disputes || 'None',
             building_regs_required: mi?.building_regs_required || false,
           });
+          if (data.address_line1) setAddressLocked(true);
         }
       } catch (error) {
         console.error('Error loading property:', error);
@@ -297,47 +300,51 @@ export default function PropertyProfile() {
           </div>
 
           <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Address Line 1</label>
-              <input type="text" name="address_line1" value={formData.address_line1} onChange={handleChange} className="w-full" placeholder="e.g. 12 Maple Gardens" />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Address Line 2 (Optional)</label>
-              <input type="text" name="address_line2" value={formData.address_line2} onChange={handleChange} className="w-full" placeholder="Flat, apartment, building name" />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Town</label>
-                <input type="text" name="address_town" value={formData.address_town} onChange={handleChange} className="w-full" placeholder="e.g. Bristol" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">County (Optional)</label>
-                <input type="text" name="address_county" value={formData.address_county} onChange={handleChange} className="w-full" placeholder="e.g. Somerset" />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Postcode</label>
-              <div className="flex gap-3">
-                <input
-                  type="text"
-                  name="postcode"
-                  value={formData.postcode}
-                  onChange={handleChange}
-                  className="w-full uppercase tracking-widest font-semibold"
-                  placeholder="e.g. SW1A 1AA"
-                />
+            {/* Address — locked display for returning users, lookup for new entry */}
+            {addressLocked ? (
+              <div className="space-y-3">
+                <div className="p-4 rounded-xl bg-[var(--teal-050)] border border-[#6dd4d4]">
+                  <p className="text-sm font-semibold text-[var(--teal-900)] leading-relaxed">
+                    {[formData.address_line1, formData.address_line2, formData.address_town, formData.address_county, formData.postcode]
+                      .filter(Boolean)
+                      .join(', ')}
+                  </p>
+                </div>
                 <button
                   type="button"
-                  onClick={() => handleEpcLookup(formData.postcode, formData.address_line1)}
-                  disabled={epcLoading || !formData.postcode || !formData.address_line1}
-                  className="shrink-0 px-4 py-2 rounded-xl bg-[var(--teal-050)] border border-[var(--border)] text-[var(--teal-900)] text-xs font-bold hover:bg-[var(--teal-100)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                  onClick={() => setAddressLocked(false)}
+                  className="text-xs font-semibold text-[var(--teal-600)] hover:text-[var(--teal-900)] underline underline-offset-2 transition-colors"
                 >
-                  {epcLoading ? 'Looking up…' : 'Auto-fetch EPC'}
+                  Change address
                 </button>
               </div>
+            ) : (
+              <PostcodeLookup
+                onAddressSelect={(data: AddressData) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    address_line1: data.address_line1,
+                    address_line2: data.address_line2,
+                    address_town: data.address_town,
+                    address_county: data.address_county,
+                    postcode: data.address_postcode,
+                  }));
+                  setAddressLocked(true);
+                }}
+              />
+            )}
+
+            {/* EPC auto-fetch — enabled once address is confirmed */}
+            <div className="flex items-center gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => handleEpcLookup(formData.postcode, formData.address_line1)}
+                disabled={epcLoading || !formData.postcode || !formData.address_line1}
+                className="shrink-0 px-4 py-2 rounded-xl bg-[var(--teal-050)] border border-[var(--border)] text-[var(--teal-900)] text-xs font-bold hover:bg-[var(--teal-100)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+              >
+                {epcLoading ? 'Looking up…' : 'Auto-fetch EPC'}
+              </button>
+              <p className="text-xs text-[var(--muted)]">Automatically fill your EPC rating and expiry from the national register.</p>
             </div>
 
             {epcLoading && (
