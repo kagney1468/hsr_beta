@@ -224,33 +224,51 @@ async function fetchCrime(lat: number, lng: number) {
 }
 
 async function fetchBroadband(postcode: string) {
-  const url = `https://api.ofcom.org.uk/connected-nations/broadband?postcode=${encodeURIComponent(postcode)}`
-  const res = await fetch(url, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(8_000) })
+  const OFCOM_API_KEY = Deno.env.get('OFCOM_API_KEY') ?? ''
+  if (!OFCOM_API_KEY) {
+    console.warn('[broadband] OFCOM_API_KEY not set — skipping')
+    return { maxSpeed: null, technology: null }
+  }
+
+  // Postcode must have no spaces, uppercase
+  const cleanPc = postcode.replace(/\s+/g, '').toUpperCase()
+  const url = `https://api-proxy.ofcom.org.uk/broadband/coverage/${encodeURIComponent(cleanPc)}`
+
+  const res = await fetch(url, {
+    headers: {
+      'Accept': 'application/json',
+      'Ocp-Apim-Subscription-Key': OFCOM_API_KEY,
+    },
+    signal: AbortSignal.timeout(8_000),
+  })
 
   if (!res.ok) {
-    console.warn(`[broadband] Ofcom responded ${res.status} — returning null`)
+    console.warn(`[broadband] Ofcom responded ${res.status} for ${cleanPc}`)
     return { maxSpeed: null, technology: null }
   }
 
   const json = await res.json()
+  const addresses: Record<string, number>[] = Array.isArray(json?.Availability) ? json.Availability : []
 
-  const maxSpeed =
-    json?.MaxDownloadSpeed ??
-    json?.maxDownloadSpeed ??
-    json?.max_download_speed ??
-    json?.[0]?.MaxDownloadSpeed ??
-    null
+  if (addresses.length === 0) return { maxSpeed: null, technology: null }
 
-  const technology =
-    json?.Technology ??
-    json?.technology ??
-    json?.ConnectionType ??
-    json?.[0]?.Technology ??
-    null
+  // Take the best speed available across all addresses in the postcode
+  let maxDown = 0
+  let hasUltrafast = false
+  let hasSuperfast  = false
+
+  for (const addr of addresses) {
+    const down = addr.MaxPredictedDown ?? 0
+    if (down > maxDown) maxDown = down
+    if ((addr.MaxUfbbPredictedDown ?? -1) > 0) hasUltrafast = true
+    if ((addr.MaxSfbbPredictedDown ?? -1) > 0) hasSuperfast  = true
+  }
+
+  const technology = hasUltrafast ? 'Ultrafast (Full Fibre)' : hasSuperfast ? 'Superfast' : 'Basic'
 
   return {
-    maxSpeed:   maxSpeed   != null ? Number(maxSpeed)   : null,
-    technology: technology != null ? String(technology) : null,
+    maxSpeed:   maxDown > 0 ? Math.round(maxDown) : null,
+    technology: maxDown > 0 ? technology          : null,
   }
 }
 
@@ -302,20 +320,10 @@ async function fetchSchools(lat: number, lng: number) {
     Array.isArray(json?.data)           ? json.data :
     []
 
-  const ofstedLabels: Record<string, string> = {
-    '1': 'Outstanding',
-    '2': 'Good',
-    '3': 'Requires Improvement',
-    '4': 'Inadequate',
-  }
-
+  // Note: Ofsted removed single-grade ratings from September 2024.
+  // We now show school name, phase and distance only.
   return list.slice(0, 10).map((s: unknown) => {
     const school = s as Record<string, unknown>
-    const ratingCode = (school.OfstedRating as Record<string, unknown>)?.Code
-    const ratingStr  = ratingCode != null
-      ? String(ratingCode)
-      : (school.ofstedRating as string | null) ?? null
-
     const rawDist   = school.Distance ?? school.distance ?? null
     const distMiles = rawDist != null ? Math.round((Number(rawDist) / 1609.34) * 10) / 10 : null
 
@@ -323,8 +331,8 @@ async function fetchSchools(lat: number, lng: number) {
       name:         school.EstablishmentName ?? school.name    ?? 'Unknown School',
       type:         (school.TypeOfEstablishment as Record<string, unknown>)?.DisplayName ?? school.type  ?? '',
       phase:        (school.PhaseOfEducation   as Record<string, unknown>)?.DisplayName ?? school.phase ?? '',
-      ofstedRating: ratingStr,
-      ofstedLabel:  ratingStr ? (ofstedLabels[ratingStr] ?? ratingStr) : null,
+      ofstedRating: null,
+      ofstedLabel:  null,
       distance:     distMiles,
       address:      school.Street   ?? school.address  ?? null,
       postcode:     school.Postcode ?? school.postcode ?? null,
@@ -335,6 +343,12 @@ async function fetchSchools(lat: number, lng: number) {
 async function fetchEpc(postcode: string) {
   const EPC_API_KEY = Deno.env.get('EPC_API_KEY') ?? ''
   const EPC_EMAIL   = Deno.env.get('EPC_EMAIL')   ?? ''
+
+  if (!EPC_API_KEY || !EPC_EMAIL) {
+    console.warn('[epc] EPC_API_KEY or EPC_EMAIL not set — skipping')
+    return null
+  }
+
   const url =
     `https://epc.opendatacommunities.org/api/v1/domestic/search` +
     `?postcode=${encodeURIComponent(postcode)}&size=1`
@@ -348,7 +362,7 @@ async function fetchEpc(postcode: string) {
   })
 
   if (!res.ok) {
-    console.warn(`[epc] Open Data Communities responded ${res.status}`)
+    console.warn(`[epc] Open Data Communities responded ${res.status} — credentials may be invalid or postcode not found`)
     return null
   }
 

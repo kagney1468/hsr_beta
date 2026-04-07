@@ -308,20 +308,17 @@ export default function PropertyIntelligence({ propertyId, postcode, token, isPu
           ) : (
             <div className="space-y-4">
               {schools.map((school, i) => (
-                <div key={school.id ?? i} className="space-y-1.5">
+                <div key={school.id ?? i} className="space-y-1">
                   <p className="text-sm font-bold text-[var(--teal-900)] leading-tight">
                     {school.school_name ?? 'Unknown school'}
                   </p>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {school.distance_miles != null && (
-                      <span className="text-xs text-[var(--muted)]">
-                        {Number(school.distance_miles).toFixed(1)} mi
-                      </span>
+                  <div className="flex items-center gap-3 text-xs text-[var(--muted)]">
+                    {school.phase && (
+                      <span>{school.phase}</span>
                     )}
-                    <Badge
-                      label={ofstedLabel(school.ofsted_rating, school.ofsted_rating_label)}
-                      color={ofstedColor(school.ofsted_rating)}
-                    />
+                    {school.distance_miles != null && (
+                      <span>{Number(school.distance_miles).toFixed(1)} mi away</span>
+                    )}
                   </div>
                 </div>
               ))}
