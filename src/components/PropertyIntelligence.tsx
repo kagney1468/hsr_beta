@@ -188,7 +188,15 @@ export default function PropertyIntelligence({ propertyId, postcode, token, isPu
           'property-intelligence',
           { body: { postcode, property_id: propertyId } }
         );
-        if (fnErr) throw fnErr;
+        if (fnErr) {
+          // Try to extract the real error message from the response body
+          let errMsg = fnErr.message ?? 'Failed to load property intelligence';
+          try {
+            const body = await (fnErr as any).context?.json?.();
+            if (body?.error) errMsg = body.error;
+          } catch { /* ignore parse errors */ }
+          throw new Error(errMsg);
+        }
         setData(result as IntelligenceData);
       }
     } catch (err: unknown) {
@@ -251,10 +259,21 @@ export default function PropertyIntelligence({ propertyId, postcode, token, isPu
         )}
       </div>
 
-      {/* Error state */}
+      {/* Error state — quiet fallback, not a scary red banner */}
       {error && !loading && (
-        <div className="p-4 bg-[#fee2e2] border border-[#fecaca] rounded-xl text-sm text-[#991b1b] font-semibold">
-          {error}
+        <div className="p-6 bg-white border border-[var(--border)] rounded-2xl flex items-center gap-4 text-sm text-[var(--muted)]">
+          <span className="material-symbols-outlined text-2xl text-[var(--muted)] shrink-0">cloud_off</span>
+          <div>
+            <p className="font-semibold text-[var(--teal-900)]">Property intelligence unavailable</p>
+            <p className="text-xs mt-0.5">We couldn't load your local data right now. Try refreshing — if it keeps happening, please get in touch.</p>
+          </div>
+          <button
+            onClick={fetchData}
+            className="ml-auto shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] text-xs font-semibold text-[var(--teal-900)] hover:bg-[var(--teal-050)] transition-colors"
+          >
+            <span className="material-symbols-outlined text-sm">refresh</span>
+            Retry
+          </button>
         </div>
       )}
 

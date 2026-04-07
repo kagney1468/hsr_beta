@@ -27,16 +27,38 @@ Deno.serve(async (req) => {
 
     const authHeader = req.headers.get('Authorization')
     if (authHeader) {
+      // Verify ownership using service role (bypasses RLS) + manual auth_user_id check
+      // This avoids RLS ambiguity when querying properties by id alone
       const userClient = createClient(supabaseUrl, supabaseAnonKey, {
         global: { headers: { Authorization: authHeader } },
       })
-      const { data: propCheck } = await userClient
-        .from('properties')
+      const { data: { user }, error: userErr } = await userClient.auth.getUser()
+
+      if (userErr || !user) {
+        return new Response(
+          JSON.stringify({ error: 'Unauthorised — could not verify user' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Look up the public user row
+      const { data: publicUser } = await supabase
+        .from('users')
         .select('id')
+        .eq('auth_user_id', user.id)
+        .maybeSingle()
+
+      // Look up the property (service role, no RLS)
+      const { data: propCheck } = await supabase
+        .from('properties')
+        .select('id, seller_user_id')
         .eq('id', property_id)
         .maybeSingle()
 
-      if (!propCheck) {
+      if (!propCheck || !publicUser || propCheck.seller_user_id !== publicUser.id) {
+        console.error(
+          `[property-intelligence] Access denied — property=${property_id} seller=${propCheck?.seller_user_id} publicUser=${publicUser?.id}`
+        )
         return new Response(
           JSON.stringify({ error: 'Property not found or access denied' }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
