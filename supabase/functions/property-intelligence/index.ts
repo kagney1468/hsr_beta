@@ -88,7 +88,10 @@ Deno.serve(async (req) => {
     }
 
     const cleanPostcode = postcode.replace(/\s+/g, '').toUpperCase()
-    const pcRes = await fetch(`https://api.postcodes.io/postcodes/${cleanPostcode}`)
+    const pcRes = await fetch(
+      `https://api.postcodes.io/postcodes/${cleanPostcode}`,
+      { signal: AbortSignal.timeout(8_000) }
+    )
     if (!pcRes.ok) throw new Error(`postcodes.io responded ${pcRes.status} for ${cleanPostcode}`)
     const pcJson = await pcRes.json()
     if (!pcJson.result) throw new Error(`Could not resolve postcode: ${postcode}`)
@@ -185,7 +188,7 @@ Deno.serve(async (req) => {
 
 async function fetchFlood(lat: number, lng: number) {
   const url = `https://environment.data.gov.uk/flood-monitoring/id/floodAreas?lat=${lat}&long=${lng}&dist=1`
-  const res = await fetch(url)
+  const res = await fetch(url, { signal: AbortSignal.timeout(8_000) })
   if (!res.ok) throw new Error(`Flood API responded ${res.status}`)
   const json = await res.json()
   const items = Array.isArray(json?.items) ? json.items : []
@@ -201,7 +204,7 @@ async function fetchFlood(lat: number, lng: number) {
 
 async function fetchCrime(lat: number, lng: number) {
   const url = `https://data.police.uk/api/crimes-street/all-crime?lat=${lat}&lng=${lng}`
-  const res = await fetch(url)
+  const res = await fetch(url, { signal: AbortSignal.timeout(8_000) })
   if (!res.ok) throw new Error(`Crime API responded ${res.status}`)
   const crimes = await res.json()
   if (!Array.isArray(crimes)) throw new Error('Unexpected crime API response')
@@ -222,7 +225,7 @@ async function fetchCrime(lat: number, lng: number) {
 
 async function fetchBroadband(postcode: string) {
   const url = `https://api.ofcom.org.uk/connected-nations/broadband?postcode=${encodeURIComponent(postcode)}`
-  const res = await fetch(url, { headers: { Accept: 'application/json' } })
+  const res = await fetch(url, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(8_000) })
 
   if (!res.ok) {
     console.warn(`[broadband] Ofcom responded ${res.status} — returning null`)
@@ -255,7 +258,7 @@ async function fetchSales(postcode: string) {
   const url =
     `https://landregistry.data.gov.uk/data/ppi/transaction-record.json` +
     `?propertyAddress.postcode=${encodeURIComponent(postcode)}&_pageSize=5&_sort=-transactionDate`
-  const res = await fetch(url, { headers: { Accept: 'application/json' } })
+  const res = await fetch(url, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(8_000) })
   if (!res.ok) throw new Error(`Land Registry API responded ${res.status}`)
   const json = await res.json()
 
@@ -288,7 +291,7 @@ async function fetchSchools(lat: number, lng: number) {
   const url =
     `https://get-information-schools.service.gov.uk/api/schools/search` +
     `?lat=${lat}&lon=${lng}&radiusInMiles=1&statusCode=1`
-  const res = await fetch(url, { headers: { Accept: 'application/json' } })
+  const res = await fetch(url, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(8_000) })
   if (!res.ok) throw new Error(`Schools API responded ${res.status}`)
   const json = await res.json()
 
@@ -341,6 +344,7 @@ async function fetchEpc(postcode: string) {
       Accept:        'application/json',
       Authorization: `Basic ${btoa(`${EPC_EMAIL}:${EPC_API_KEY}`)}`,
     },
+    signal: AbortSignal.timeout(8_000),
   })
 
   if (!res.ok) {
