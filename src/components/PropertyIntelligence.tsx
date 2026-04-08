@@ -7,14 +7,12 @@ import { Card } from './ui/Card';
 interface IntelligenceData {
   id?: string;
   property_id?: string;
-  flood_zone: string | null;
-  flood_risk_score: string | null;
-  broadband_max_speed_mbps: number | null;
-  broadband_availability: string | null;
-  crime_rate: string | null;
-  crime_category: string | null;
+  flood_risk: { zone: string; risk: string } | null;
+  broadband_max_speed: string | null;
+  broadband_availability: { maxSpeed: number | null; technology: string | null } | null;
+  crime_statistics: { total: number; categories: CrimeCategory[] } | null;
   recent_sales: SaleRecord[] | null;
-  data_fetched_at: string | null;
+  last_updated: string | null;
   schools: SchoolRecord[];
 }
 
@@ -212,18 +210,13 @@ export default function PropertyIntelligence({ propertyId, postcode, token, isPu
 
   // ── Derived values ──────────────────────────────────────────────────────────
 
-  const crimeTotal: number | null = data?.crime_rate != null ? parseInt(data.crime_rate, 10) : null;
+  const crimeTotal: number | null = data?.crime_statistics?.total ?? null;
+  const crimeCategories: CrimeCategory[] = data?.crime_statistics?.categories ?? [];
 
-  const crimeCategories: CrimeCategory[] = (() => {
-    if (!data?.crime_category) return [];
-    try { return JSON.parse(data.crime_category) as CrimeCategory[]; }
-    catch { return []; }
-  })();
-
-  const mbps = data?.broadband_max_speed_mbps ?? null;
+  const mbps: number | null = data?.broadband_availability?.maxSpeed ?? null;
   const schools = (data?.schools ?? []).slice(0, 3);
   const sales   = (Array.isArray(data?.recent_sales) ? data!.recent_sales : []).slice(0, 5);
-  const lastUpdated = data?.data_fetched_at;
+  const lastUpdated = data?.last_updated;
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -282,20 +275,20 @@ export default function PropertyIntelligence({ propertyId, postcode, token, isPu
 
         {/* ── Card 1: Flood Risk ─────────────────────────────────────────────── */}
         <IntelligenceCard emoji="🌊" title="Flood Risk" source="Environment Agency" loading={loading}>
-          {!data?.flood_risk_score ? (
+          {!data?.flood_risk?.risk ? (
             <p className="text-sm text-[var(--muted)]">No data available</p>
           ) : (
             <div className="space-y-3">
-              <Badge label={data.flood_risk_score} color={floodColor(data.flood_risk_score)} />
+              <Badge label={data.flood_risk.risk} color={floodColor(data.flood_risk.risk)} />
               <p className="text-sm text-[var(--muted)] leading-relaxed">
-                {floodColor(data.flood_risk_score) === 'red'
+                {floodColor(data.flood_risk.risk) === 'red'
                   ? 'This area has a high risk of flooding. Speak to your insurer before proceeding.'
-                  : floodColor(data.flood_risk_score) === 'amber'
+                  : floodColor(data.flood_risk.risk) === 'amber'
                     ? 'This area has a medium flood risk. Flood insurance is strongly recommended.'
                     : 'This area has a low or very low risk of flooding from rivers or the sea.'}
               </p>
-              {data.flood_zone && (
-                <p className="text-xs text-[var(--muted)]">Flood {data.flood_zone}</p>
+              {data.flood_risk.zone && (
+                <p className="text-xs text-[var(--muted)]">Flood {data.flood_risk.zone}</p>
               )}
             </div>
           )}
@@ -338,9 +331,9 @@ export default function PropertyIntelligence({ propertyId, postcode, token, isPu
                 </span>
                 <span className="text-[var(--muted)] text-sm font-semibold">Mbps</span>
               </div>
-              {data?.broadband_availability && (
+              {data?.broadband_availability?.technology && (
                 <Badge
-                  label={data.broadband_availability}
+                  label={data.broadband_availability.technology}
                   color={broadbandColor(mbps) === 'grey' ? 'teal' : broadbandColor(mbps)}
                 />
               )}

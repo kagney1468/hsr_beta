@@ -52,9 +52,9 @@ Deno.serve(async (req) => {
     const { data: cached } = await db
       .from('property_intelligence').select('*').eq('property_id', property_id).maybeSingle()
 
-    if (cached?.data_fetched_at) {
-      const hoursOld  = (Date.now() - new Date(cached.data_fetched_at).getTime()) / 3_600_000
-      const hasData   = !!(cached.flood_risk_score || cached.crime_rate || cached.recent_sales?.length)
+    if (cached?.last_updated) {
+      const hoursOld = (Date.now() - new Date(cached.last_updated).getTime()) / 3_600_000
+      const hasData  = !!(cached.flood_risk || cached.crime_statistics || cached.recent_sales?.length)
 
       if (hoursOld < 6 && hasData) {
         console.log(`[pi] Cache hit for ${property_id} (${hoursOld.toFixed(1)}h old)`)
@@ -113,14 +113,13 @@ Deno.serve(async (req) => {
 
     const upsertPayload: Record<string, unknown> = {
       property_id,
-      flood_zone:               flood?.zone ?? null,
-      flood_risk_score:         flood?.risk ?? null,
-      broadband_max_speed_mbps: null,
-      broadband_availability:   null,
-      crime_rate:               crime?.total != null ? String(crime.total) : null,
-      crime_category:           crime?.categories    ? JSON.stringify(crime.categories) : null,
-      recent_sales:             sales ?? null,
-      data_fetched_at:          hasAnyData ? new Date().toISOString() : null,
+      postcode:              cleanPostcode,
+      flood_risk:            flood  ? { zone: flood.zone, risk: flood.risk }                         : null,
+      crime_statistics:      crime  ? { total: crime.total, categories: crime.categories }           : null,
+      broadband_availability: null,   // populated once Ofcom key is configured
+      broadband_max_speed:   null,    // populated once Ofcom key is configured
+      recent_sales:          sales ?? null,
+      last_updated:          hasAnyData ? new Date().toISOString() : null,
     }
 
     const { data: saved, error: upsertErr } = await db
