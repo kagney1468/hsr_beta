@@ -186,7 +186,11 @@ export default function AgentDashboard() {
   // Invite seller
   const handleInviteSeller = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inviteEmail || !publicUserId) return;
+    if (!inviteEmail) return;
+    if (!publicUserId) {
+      setInviteResult({ type: 'error', text: 'Your account is still loading. Please wait a moment and try again.' });
+      return;
+    }
     setInviting(true);
     setInviteResult(null);
     try {
