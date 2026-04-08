@@ -453,10 +453,10 @@ export default function SellerDashboard() {
             <Button
               variant="primary"
               onClick={() => navigate(getContinuePath())}
-              className="h-16 px-10 rounded-2xl flex items-center gap-4 font-heading text-xl group"
+              className="h-12 md:h-16 px-6 md:px-10 rounded-2xl flex items-center gap-3 font-heading text-base md:text-xl group w-full md:w-auto justify-center"
             >
               Continue where I left off
-              <span className="material-symbols-outlined text-2xl group-hover:translate-x-2 transition-transform">
+              <span className="material-symbols-outlined text-xl md:text-2xl group-hover:translate-x-2 transition-transform shrink-0">
                 arrow_forward
               </span>
             </Button>
@@ -464,7 +464,7 @@ export default function SellerDashboard() {
         </Card>
 
         <div className="space-y-8">
-          <div className="flex items-center justify-between px-2">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-2">
             <h4 className="font-heading font-black text-[var(--teal-900)] text-2xl tracking-tight">Information sections</h4>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1.5">
