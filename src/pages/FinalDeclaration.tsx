@@ -130,7 +130,7 @@ export default function FinalDeclaration() {
             const { data: agentData } = await supabase
               .from('users')
               .select('email, full_name')
-              .eq('auth_user_id', agencyData.agent_user_id)
+              .eq('id', agencyData.agent_user_id)
               .maybeSingle();
 
             const { data: propData } = await supabase
