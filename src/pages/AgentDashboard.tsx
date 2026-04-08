@@ -22,6 +22,7 @@ export default function AgentDashboard() {
   const [agentFirstName, setAgentFirstName] = useState<string | null>(null);
 
   // Invite state
+  const [inviteName, setInviteName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviting, setInviting] = useState(false);
   const [inviteResult, setInviteResult] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -200,11 +201,12 @@ export default function AgentDashboard() {
         options: {
           emailRedirectTo: redirectUrl,
           shouldCreateUser: true,
-          data: { role: 'seller' },
+          data: { full_name: inviteName.trim(), role: 'seller' },
         },
       });
       if (error) throw error;
       setInviteResult({ type: 'success', text: `Invitation sent to ${inviteEmail}` });
+      setInviteName('');
       setInviteEmail('');
     } catch (err: any) {
       setInviteResult({ type: 'error', text: err.message || 'Failed to send invitation.' });
@@ -517,6 +519,17 @@ export default function AgentDashboard() {
 
               <form onSubmit={handleInviteSeller} className="space-y-4">
                 <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Seller's Full Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={inviteName}
+                    onChange={e => setInviteName(e.target.value)}
+                    className="w-full"
+                    placeholder="Jane Smith"
+                  />
+                </div>
+                <div className="space-y-2">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Seller Email Address</label>
                   <input
                     type="email"
@@ -527,7 +540,7 @@ export default function AgentDashboard() {
                     placeholder="seller@example.com"
                   />
                 </div>
-                <Button type="submit" variant="primary" disabled={inviting || !inviteEmail} className="h-12 px-8 rounded-xl font-bold">
+                <Button type="submit" variant="primary" disabled={inviting || !inviteEmail || !inviteName} className="h-12 px-8 rounded-xl font-bold">
                   {inviting ? 'Sending…' : 'Send Invitation Email'}
                 </Button>
               </form>
