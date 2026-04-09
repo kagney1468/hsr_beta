@@ -30,9 +30,11 @@ Deno.serve(async (req) => {
     const anonKey      = Deno.env.get('SUPABASE_ANON_KEY')!
     const epcEmail     = Deno.env.get('EPC_EMAIL') ?? null
     const epcApiKey    = Deno.env.get('EPC_API_KEY') ?? null
+    const osKey        = Deno.env.get('OS_DATA_HUB_KEY') ?? null
     const db           = createClient(supabaseUrl, serviceKey)
 
     console.log(`[pi] EPC credentials present: email=${!!epcEmail} key=${!!epcApiKey}`)
+    console.log(`[pi] OS Data Hub key present: ${!!osKey}`)
 
     // ── Auth: verify caller owns the property ─────────────────────────────────
     // The Supabase gateway is deployed with --no-verify-jwt so our own check
@@ -103,28 +105,38 @@ Deno.serve(async (req) => {
     console.log(`[pi] Resolved ${cleanPostcode} → lat=${lat} lng=${lng}`)
 
     // ── Fetch all sources concurrently ────────────────────────────────────────
-    const [floodRes, crimeRes, salesRes, schoolsRes, epcRes] = await Promise.allSettled([
-      fetchFlood(lat, lng),
-      fetchCrime(lat, lng),
-      fetchSales(postcode),
-      fetchSchools(lat, lng),
-      fetchEpc(cleanPostcode, epcEmail, epcApiKey),
-    ])
+    const [floodRes, crimeRes, salesRes, schoolsRes, epcRes, osMapRes, conservationRes, greenSpacesRes] =
+      await Promise.allSettled([
+        fetchFlood(lat, lng),
+        fetchCrime(lat, lng),
+        fetchSales(postcode),
+        fetchSchools(lat, lng),
+        fetchEpc(cleanPostcode, epcEmail, epcApiKey),
+        fetchOsMap(lat, lng, osKey),
+        fetchConservation(lat, lng, osKey),
+        fetchGreenSpaces(lat, lng, osKey),
+      ])
 
-    const flood       = floodRes.status   === 'fulfilled' ? floodRes.value   : null
-    const crime       = crimeRes.status   === 'fulfilled' ? crimeRes.value   : null
-    const sales       = salesRes.status   === 'fulfilled' ? salesRes.value   : null
-    const schoolsData = schoolsRes.status === 'fulfilled' ? schoolsRes.value : []
-    const epc         = epcRes.status     === 'fulfilled' ? epcRes.value     : null
+    const flood        = floodRes.status         === 'fulfilled' ? floodRes.value         : null
+    const crime        = crimeRes.status         === 'fulfilled' ? crimeRes.value         : null
+    const sales        = salesRes.status         === 'fulfilled' ? salesRes.value         : null
+    const schoolsData  = schoolsRes.status       === 'fulfilled' ? schoolsRes.value       : []
+    const epc          = epcRes.status           === 'fulfilled' ? epcRes.value           : null
+    const osMap        = osMapRes.status         === 'fulfilled' ? osMapRes.value         : null
+    const conservation = conservationRes.status  === 'fulfilled' ? conservationRes.value  : null
+    const greenSpaces  = greenSpacesRes.status   === 'fulfilled' ? greenSpacesRes.value   : null
 
-    if (floodRes.status   === 'rejected') console.error('[pi] flood failed:',   floodRes.reason?.message   ?? floodRes.reason)
-    if (crimeRes.status   === 'rejected') console.error('[pi] crime failed:',   crimeRes.reason?.message   ?? crimeRes.reason)
-    if (salesRes.status   === 'rejected') console.error('[pi] sales failed:',   salesRes.reason?.message   ?? salesRes.reason)
-    if (schoolsRes.status === 'rejected') console.error('[pi] schools failed:', schoolsRes.reason?.message ?? schoolsRes.reason)
-    if (epcRes.status     === 'rejected') console.error('[pi] epc failed:',     epcRes.reason?.message     ?? epcRes.reason)
+    if (floodRes.status        === 'rejected') console.error('[pi] flood failed:',        floodRes.reason?.message        ?? floodRes.reason)
+    if (crimeRes.status        === 'rejected') console.error('[pi] crime failed:',        crimeRes.reason?.message        ?? crimeRes.reason)
+    if (salesRes.status        === 'rejected') console.error('[pi] sales failed:',        salesRes.reason?.message        ?? salesRes.reason)
+    if (schoolsRes.status      === 'rejected') console.error('[pi] schools failed:',      schoolsRes.reason?.message      ?? schoolsRes.reason)
+    if (epcRes.status          === 'rejected') console.error('[pi] epc failed:',          epcRes.reason?.message          ?? epcRes.reason)
+    if (osMapRes.status        === 'rejected') console.error('[pi] os_map failed:',       osMapRes.reason?.message        ?? osMapRes.reason)
+    if (conservationRes.status === 'rejected') console.error('[pi] conservation failed:', conservationRes.reason?.message ?? conservationRes.reason)
+    if (greenSpacesRes.status  === 'rejected') console.error('[pi] green_spaces failed:', greenSpacesRes.reason?.message  ?? greenSpacesRes.reason)
 
     console.log(
-      `[pi] Results — flood:${!!flood} crime:${!!crime} sales:${sales?.length ?? 0} schools:${schoolsData?.length ?? 0} epc:${!!epc}`
+      `[pi] Results — flood:${!!flood} crime:${!!crime} sales:${sales?.length ?? 0} schools:${schoolsData?.length ?? 0} epc:${!!epc} os_map:${!!osMap} conservation:${!!conservation} green_spaces:${greenSpaces?.length ?? 0}`
     )
 
     const hasAnyData = !!(flood || crime || (sales && sales.length > 0) || epc)
@@ -138,6 +150,9 @@ Deno.serve(async (req) => {
       broadband_max_speed:    null,
       recent_sales:           sales ?? null,
       epc:                    epc   ?? null,
+      os_map:                 osMap        ?? null,
+      conservation:           conservation ?? null,
+      green_spaces:           greenSpaces  ?? null,
       last_updated:           hasAnyData ? new Date().toISOString() : null,
     }
 
@@ -369,4 +384,275 @@ async function fetchEpc(postcode: string, email: string | null, apiKey: string |
     address:      address || null,
     property_type: propertyType ?? null,
   }
+}
+
+// ── OS Data Hub helpers ────────────────────────────────────────────────────────
+
+/** Convert lat/lng to XYZ tile coords at a given zoom level (Web Mercator / EPSG:3857) */
+function latLngToTile(lat: number, lng: number, zoom: number): { x: number; y: number } {
+  const n   = Math.pow(2, zoom)
+  const x   = Math.floor((lng + 180) / 360 * n)
+  const rad = lat * Math.PI / 180
+  const y   = Math.floor((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2 * n)
+  return { x, y }
+}
+
+/** Inverse tile to NW corner lat/lng */
+function tileToLatLng(x: number, y: number, zoom: number): { lat: number; lng: number } {
+  const n   = Math.pow(2, zoom)
+  const lng = x / n * 360 - 180
+  const rad = Math.atan(Math.sinh(Math.PI * (1 - 2 * y / n)))
+  const lat = rad * 180 / Math.PI
+  return { lat, lng }
+}
+
+/** Haversine distance in metres */
+function haversineMetres(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R    = 6_371_000
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLng = (lng2 - lng1) * Math.PI / 180
+  const a    = Math.sin(dLat / 2) ** 2
+            + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180)
+            * Math.sin(dLng / 2) ** 2
+  return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+// ── OS Map (WMTS raster tile) ─────────────────────────────────────────────────
+
+async function fetchOsMap(lat: number, lng: number, osKey: string | null) {
+  if (!osKey) {
+    console.log('[pi:os_map] OS_DATA_HUB_KEY not configured — skipping')
+    return null
+  }
+
+  const zoom = 15
+  const { x, y } = latLngToTile(lat, lng, zoom)
+
+  // Calculate pin position as percentage within the tile
+  const nw   = tileToLatLng(x,     y,     zoom)
+  const se   = tileToLatLng(x + 1, y + 1, zoom)
+  const pinX = ((lng - nw.lng) / (se.lng - nw.lng)) * 100
+  const pinY = ((lat - nw.lat) / (se.lat - nw.lat)) * 100
+
+  const url = `https://api.os.uk/maps/raster/v1/wmts?key=${osKey}`
+    + `&service=WMTS&request=GetTile&version=1.0.0`
+    + `&layer=Outdoor_3857&style=default`
+    + `&tileMatrixSet=EPSG:3857&tileMatrix=EPSG:3857:${zoom}`
+    + `&tileRow=${y}&tileCol=${x}`
+    + `&format=image/png`
+
+  console.log(`[pi:os_map] GET tile z=${zoom} x=${x} y=${y}`)
+  const res = await fetch(url, { signal: AbortSignal.timeout(15_000) })
+  console.log(`[pi:os_map] status=${res.status}`)
+
+  if (!res.ok) throw new Error(`OS WMTS responded ${res.status}`)
+
+  const arrayBuf = await res.arrayBuffer()
+  const bytes    = new Uint8Array(arrayBuf)
+  let binary     = ''
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+  const base64   = btoa(binary)
+
+  console.log(`[pi:os_map] Tile fetched, ${bytes.length} bytes, base64 length=${base64.length}`)
+
+  return {
+    zoom,
+    tile_x:     x,
+    tile_y:     y,
+    pin_x_pct:  Math.round(pinX * 10) / 10,
+    pin_y_pct:  Math.round(pinY * 10) / 10,
+    image_base64: base64,
+  }
+}
+
+// ── Conservation & Listed Buildings (WFS Zoomstack_Sites) ─────────────────────
+
+async function fetchConservation(lat: number, lng: number, osKey: string | null) {
+  if (!osKey) {
+    console.log('[pi:conservation] OS_DATA_HUB_KEY not configured — skipping')
+    return null
+  }
+
+  // ~700m bounding box
+  const delta  = 0.007
+  const bbox   = `${lng - delta},${lat - delta},${lng + delta},${lat + delta},EPSG:4326`
+  const url    = `https://api.os.uk/features/v1/wfs`
+    + `?key=${osKey}`
+    + `&service=WFS&request=GetFeature`
+    + `&typeNames=Zoomstack_Sites`
+    + `&outputFormat=application/json`
+    + `&bbox=${bbox}`
+    + `&count=100`
+
+  console.log(`[pi:conservation] GET WFS Zoomstack_Sites`)
+  const res = await fetch(url, {
+    headers: { Accept: 'application/json' },
+    signal: AbortSignal.timeout(15_000),
+  })
+  console.log(`[pi:conservation] status=${res.status}`)
+
+  if (!res.ok) throw new Error(`OS WFS (Sites) responded ${res.status}`)
+
+  const data = await res.json()
+  const features: unknown[] = data?.features ?? []
+  console.log(`[pi:conservation] ${features.length} site feature(s) returned`)
+
+  // Identify conservation area and listed buildings from feature properties
+  let conservationArea = false
+  const listedBuildings: { name: string; type: string; distance_m: number }[] = []
+
+  for (const f of features) {
+    const feat  = f as Record<string, unknown>
+    const props = feat.properties as Record<string, unknown> | null
+    if (!props) continue
+
+    // Feature name and type — OS Zoomstack uses 'name' and 'type' properties
+    const name = String(props.name ?? props.Name ?? props.NAME ?? '').trim()
+    const type = String(props.type ?? props.Type ?? props.TYPE ?? props.featureType ?? '').trim().toLowerCase()
+
+    // Coordinates for distance calculation
+    const geom = feat.geometry as Record<string, unknown> | null
+    let featLat = lat
+    let featLng = lng
+    if (geom?.type === 'Point') {
+      const coords = geom.coordinates as number[]
+      featLng = coords[0]
+      featLat = coords[1]
+    }
+    const distM = Math.round(haversineMetres(lat, lng, featLat, featLng))
+
+    // Conservation area detection
+    if (type.includes('conservation')) {
+      conservationArea = true
+    }
+
+    // Listed building detection
+    if (
+      type.includes('listed') ||
+      type.includes('historic') ||
+      type.includes('heritage') ||
+      type.includes('monument') ||
+      type.includes('scheduled')
+    ) {
+      if (name) {
+        listedBuildings.push({ name, type: formatType(type), distance_m: distM })
+      }
+    }
+  }
+
+  // Sort listed buildings by distance
+  listedBuildings.sort((a, b) => a.distance_m - b.distance_m)
+
+  console.log(`[pi:conservation] conservation_area=${conservationArea} listed_buildings=${listedBuildings.length}`)
+
+  return {
+    conservation_area:  conservationArea,
+    listed_buildings:   listedBuildings.slice(0, 10),
+    feature_count:      features.length,
+  }
+}
+
+// ── Green Spaces (WFS Zoomstack_Greenspace) ───────────────────────────────────
+
+async function fetchGreenSpaces(lat: number, lng: number, osKey: string | null) {
+  if (!osKey) {
+    console.log('[pi:green_spaces] OS_DATA_HUB_KEY not configured — skipping')
+    return null
+  }
+
+  // ~800m bounding box
+  const delta  = 0.008
+  const bbox   = `${lng - delta},${lat - delta},${lng + delta},${lat + delta},EPSG:4326`
+  const url    = `https://api.os.uk/features/v1/wfs`
+    + `?key=${osKey}`
+    + `&service=WFS&request=GetFeature`
+    + `&typeNames=Zoomstack_Greenspace`
+    + `&outputFormat=application/json`
+    + `&bbox=${bbox}`
+    + `&count=50`
+
+  console.log(`[pi:green_spaces] GET WFS Zoomstack_Greenspace`)
+  const res = await fetch(url, {
+    headers: { Accept: 'application/json' },
+    signal: AbortSignal.timeout(15_000),
+  })
+  console.log(`[pi:green_spaces] status=${res.status}`)
+
+  if (!res.ok) throw new Error(`OS WFS (Greenspace) responded ${res.status}`)
+
+  const data = await res.json()
+  const features: unknown[] = data?.features ?? []
+  console.log(`[pi:green_spaces] ${features.length} greenspace feature(s) returned`)
+
+  type GreenSpace = { name: string; type: string; distance_m: number }
+  const results: GreenSpace[] = []
+
+  for (const f of features) {
+    const feat  = f as Record<string, unknown>
+    const props = feat.properties as Record<string, unknown> | null
+    if (!props) continue
+
+    const name = String(props.name ?? props.Name ?? props.NAME ?? '').trim()
+    const type = String(props.type ?? props.Type ?? props.TYPE ?? props.function ?? '').trim()
+
+    // Determine a representative point from the geometry
+    const geom = feat.geometry as Record<string, unknown> | null
+    let featLat = lat
+    let featLng = lng
+
+    if (geom?.type === 'Point') {
+      const coords = geom.coordinates as number[]
+      featLng = coords[0]
+      featLat = coords[1]
+    } else if (geom?.type === 'Polygon') {
+      // Use centroid approximation from first ring
+      const ring = (geom.coordinates as number[][][])[0] ?? []
+      if (ring.length > 0) {
+        featLng = ring.reduce((s, c) => s + c[0], 0) / ring.length
+        featLat = ring.reduce((s, c) => s + c[1], 0) / ring.length
+      }
+    } else if (geom?.type === 'MultiPolygon') {
+      const ring = ((geom.coordinates as number[][][][])[0]?.[0]) ?? []
+      if (ring.length > 0) {
+        featLng = ring.reduce((s, c) => s + c[0], 0) / ring.length
+        featLat = ring.reduce((s, c) => s + c[1], 0) / ring.length
+      }
+    }
+
+    const distM = Math.round(haversineMetres(lat, lng, featLat, featLng))
+
+    // Skip unnamed green spaces only if we have enough named ones
+    if (!name && results.length >= 5) continue
+
+    results.push({
+      name:       name || formatType(type) || 'Green Space',
+      type:       formatType(type),
+      distance_m: distM,
+    })
+  }
+
+  // Deduplicate by name, keep closest
+  const seen   = new Map<string, GreenSpace>()
+  for (const gs of results) {
+    const key = gs.name.toLowerCase()
+    if (!seen.has(key) || gs.distance_m < seen.get(key)!.distance_m) {
+      seen.set(key, gs)
+    }
+  }
+
+  const sorted = [...seen.values()]
+    .sort((a, b) => a.distance_m - b.distance_m)
+    .slice(0, 5)
+
+  console.log(`[pi:green_spaces] Returning ${sorted.length} green space(s)`)
+  return sorted
+}
+
+// ── Utility ────────────────────────────────────────────────────────────────────
+
+function formatType(raw: string): string {
+  return raw
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .trim()
 }

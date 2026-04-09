@@ -12,6 +12,33 @@ interface EpcData {
   property_type: string | null;
 }
 
+interface OsMapData {
+  zoom: number;
+  tile_x: number;
+  tile_y: number;
+  pin_x_pct: number;
+  pin_y_pct: number;
+  image_base64: string;
+}
+
+interface ListedBuilding {
+  name: string;
+  type: string;
+  distance_m: number;
+}
+
+interface ConservationData {
+  conservation_area: boolean;
+  listed_buildings: ListedBuilding[];
+  feature_count: number;
+}
+
+interface GreenSpace {
+  name: string;
+  type: string;
+  distance_m: number;
+}
+
 interface IntelligenceData {
   id?: string;
   property_id?: string;
@@ -21,6 +48,9 @@ interface IntelligenceData {
   crime_statistics: { total: number; categories: CrimeCategory[] } | null;
   recent_sales: SaleRecord[] | null;
   epc: EpcData | null;
+  os_map: OsMapData | null;
+  conservation: ConservationData | null;
+  green_spaces: GreenSpace[] | null;
   last_updated: string | null;
   schools: SchoolRecord[];
 }
@@ -255,7 +285,10 @@ export default function PropertyIntelligence({ propertyId, postcode, token, isPu
     data?.crime_statistics ||
     (data?.recent_sales && data.recent_sales.length > 0) ||
     data?.epc ||
-    (data?.schools && data.schools.length > 0)
+    (data?.schools && data.schools.length > 0) ||
+    data?.os_map ||
+    data?.conservation ||
+    (data?.green_spaces && data.green_spaces.length > 0)
   );
   const showErrorBanner = error && !loading && !hasAnyData;
 
@@ -472,6 +505,104 @@ export default function PropertyIntelligence({ propertyId, postcode, token, isPu
                       {sale.type ? ` · ${sale.type}` : ''}
                     </p>
                   </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </IntelligenceCard>
+
+        {/* ── Card 7: Property Map ───────────────────────────────────────────── */}
+        <IntelligenceCard emoji="🗺️" title="Property Map" source="Ordnance Survey" loading={loading}>
+          {!data?.os_map?.image_base64 ? (
+            <p className="text-sm text-[var(--muted)]">No map data available</p>
+          ) : (
+            <div className="space-y-3">
+              <div className="relative w-full overflow-hidden rounded-xl border border-[var(--border)]" style={{ aspectRatio: '1/1' }}>
+                <img
+                  src={`data:image/png;base64,${data.os_map.image_base64}`}
+                  alt="Ordnance Survey map centred on property"
+                  className="w-full h-full object-cover"
+                  draggable={false}
+                />
+                {/* Map pin overlay */}
+                <div
+                  className="absolute pointer-events-none"
+                  style={{
+                    left: `${data.os_map.pin_x_pct}%`,
+                    top:  `${data.os_map.pin_y_pct}%`,
+                    transform: 'translate(-50%, -100%)',
+                  }}
+                >
+                  <div className="flex flex-col items-center">
+                    <div className="w-5 h-5 rounded-full bg-[var(--teal-600)] border-2 border-white shadow-lg" />
+                    <div className="w-0.5 h-2 bg-[var(--teal-600)]" />
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs text-[var(--muted)]">Outdoor map at zoom level {data.os_map.zoom}</p>
+            </div>
+          )}
+        </IntelligenceCard>
+
+        {/* ── Card 8: Conservation & Listed Buildings ────────────────────────── */}
+        <IntelligenceCard emoji="🏛️" title="Conservation & Listed Buildings" source="Ordnance Survey" loading={loading}>
+          {!data?.conservation ? (
+            <p className="text-sm text-[var(--muted)]">No data available</p>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Badge
+                  label={data.conservation.conservation_area ? 'Conservation Area' : 'Not in Conservation Area'}
+                  color={data.conservation.conservation_area ? 'amber' : 'green'}
+                />
+              </div>
+
+              {data.conservation.conservation_area && (
+                <p className="text-sm text-[var(--muted)] leading-relaxed">
+                  This property is within or near a designated conservation area. Additional planning restrictions may apply.
+                </p>
+              )}
+
+              {data.conservation.listed_buildings.length > 0 ? (
+                <div className="space-y-3 pt-1 border-t border-[var(--border)]">
+                  <p className="text-xs font-bold uppercase tracking-widest text-[var(--muted)]">
+                    Nearby Listed Buildings
+                  </p>
+                  {data.conservation.listed_buildings.slice(0, 5).map((b, i) => (
+                    <div key={i} className="space-y-0.5">
+                      <p className="text-sm font-semibold text-[var(--teal-900)] leading-tight">{b.name}</p>
+                      <p className="text-xs text-[var(--muted)]">
+                        {b.type}{b.distance_m != null ? ` · ${b.distance_m}m away` : ''}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-[var(--muted)]">No listed buildings identified nearby.</p>
+              )}
+            </div>
+          )}
+        </IntelligenceCard>
+
+        {/* ── Card 9: Green Spaces Nearby ────────────────────────────────────── */}
+        <IntelligenceCard emoji="🌳" title="Green Spaces Nearby" source="Ordnance Survey" loading={loading}>
+          {!data?.green_spaces || data.green_spaces.length === 0 ? (
+            <p className="text-sm text-[var(--muted)]">No green spaces found within 800m</p>
+          ) : (
+            <div className="space-y-3">
+              {data.green_spaces.slice(0, 5).map((gs, i) => (
+                <div key={i} className="flex items-start justify-between gap-3">
+                  <div className="space-y-0.5 flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-[var(--teal-900)] leading-tight truncate">{gs.name}</p>
+                    {gs.type && gs.type.toLowerCase() !== gs.name.toLowerCase() && (
+                      <p className="text-xs text-[var(--muted)]">{gs.type}</p>
+                    )}
+                  </div>
+                  <span className="text-xs font-bold text-[var(--teal-600)] shrink-0 pt-0.5">
+                    {gs.distance_m < 1000
+                      ? `${gs.distance_m}m`
+                      : `${(gs.distance_m / 1000).toFixed(1)}km`}
+                  </span>
                 </div>
               ))}
             </div>
