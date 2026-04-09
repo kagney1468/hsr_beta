@@ -67,6 +67,18 @@ export default function SellerProfile() {
 
   const handleSave = async () => {
     if (!user) return;
+
+    const missing: string[] = [];
+    if (!formData.full_name.trim())            missing.push('Full Name');
+    if (!formData.phone.trim())                missing.push('Phone Number');
+    if (!formData.home_address_line1.trim())   missing.push('Address Line 1');
+    if (!formData.home_address_town.trim())    missing.push('Town');
+    if (!formData.home_address_postcode.trim()) missing.push('Postcode');
+    if (missing.length > 0) {
+      setMessage({ type: 'error', text: `Please complete the following required fields: ${missing.join(', ')}.` });
+      return;
+    }
+
     setSaving(true);
     setMessage(null);
     
@@ -137,7 +149,7 @@ export default function SellerProfile() {
 
           <div className="space-y-6">
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Full Name</label>
+              <label className="text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Full Name <span className="text-[#dc2626]">*</span></label>
               <input type="text" name="full_name" value={formData.full_name} onChange={handleChange} className="w-full" placeholder="John Doe" />
             </div>
 
@@ -147,7 +159,7 @@ export default function SellerProfile() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Phone Number</label>
+              <label className="text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Phone Number <span className="text-[#dc2626]">*</span></label>
               <input type="tel" name="phone" value={formData.phone} onChange={handleChange} className="w-full" placeholder="07123 456789" />
             </div>
 
@@ -170,7 +182,7 @@ export default function SellerProfile() {
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Address Line 1</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Address Line 1 <span className="text-[#dc2626]">*</span></label>
               <input type="text" name="home_address_line1" value={formData.home_address_line1} onChange={handleChange} className="w-full" placeholder="123 Example Street" />
             </div>
 
@@ -181,7 +193,7 @@ export default function SellerProfile() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Town</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Town <span className="text-[#dc2626]">*</span></label>
                 <input type="text" name="home_address_town" value={formData.home_address_town} onChange={handleChange} className="w-full" placeholder="London" />
               </div>
               <div className="space-y-2">
@@ -196,7 +208,7 @@ export default function SellerProfile() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Postcode</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Postcode <span className="text-[#dc2626]">*</span></label>
               <input type="text" name="home_address_postcode" value={formData.home_address_postcode} onChange={handleChange} className="w-full uppercase tracking-widest font-semibold" placeholder="SW1A 1AA" />
             </div>
 

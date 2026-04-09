@@ -343,11 +343,7 @@ export default function DocumentUpload() {
                     <span className="bg-[#fee2e2] text-[#dc2626] border border-[#fecaca] text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-full flex items-center gap-1 shrink-0">
                       Action Required
                     </span>
-                  ) : (
-                    <span className="bg-[var(--teal-050)] text-[var(--teal-900)] border border-[var(--border)] text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-full flex items-center gap-1 shrink-0">
-                      Optional
-                    </span>
-                  )}
+                  ) : null}
                 </div>
 
                 <div className="space-y-3">

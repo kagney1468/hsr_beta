@@ -4,6 +4,14 @@ import { Card } from './ui/Card';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
+interface EpcData {
+  rating: string;
+  score: number | null;
+  date: string | null;
+  address: string | null;
+  property_type: string | null;
+}
+
 interface IntelligenceData {
   id?: string;
   property_id?: string;
@@ -12,6 +20,7 @@ interface IntelligenceData {
   broadband_availability: { maxSpeed: number | null; technology: string | null } | null;
   crime_statistics: { total: number; categories: CrimeCategory[] } | null;
   recent_sales: SaleRecord[] | null;
+  epc: EpcData | null;
   last_updated: string | null;
   schools: SchoolRecord[];
 }
@@ -127,6 +136,14 @@ function broadbandColor(n: number | null): BadgeColor {
   return 'red';
 }
 
+function epcColor(rating: string | null): BadgeColor {
+  if (!rating) return 'grey';
+  const r = rating.toUpperCase();
+  if (r === 'A' || r === 'B') return 'green';
+  if (r === 'C' || r === 'D') return 'amber';
+  return 'red';
+}
+
 function ofstedColor(rating: string | null): BadgeColor {
   if (!rating) return 'grey';
   if (rating === '1') return 'green';
@@ -147,6 +164,16 @@ function ofstedLabel(rating: string | null, label: string | null): string {
   if (label) return label;
   return rating ? (OFSTED_LABELS[rating] ?? rating) : '—';
 }
+
+const EPC_DESCRIPTIONS: Record<string, string> = {
+  A: 'Highly energy efficient — very low running costs.',
+  B: 'Very energy efficient — low running costs.',
+  C: 'Good energy efficiency — average running costs.',
+  D: 'Fair energy efficiency — moderate running costs.',
+  E: 'Below average energy efficiency — higher running costs.',
+  F: 'Poor energy efficiency — high running costs.',
+  G: 'Very poor energy efficiency — very high running costs.',
+};
 
 const BIG_NUM_CLASSES: Record<BadgeColor, string> = {
   green: 'text-[#059669]',
@@ -169,7 +196,6 @@ export default function PropertyIntelligence({ propertyId, postcode, token, isPu
 
     try {
       if (isPublic && token) {
-        // Public pack: fetch via share-token RPC (bypasses RLS)
         const { data: result, error: rpcErr } = await supabase.rpc(
           'get_property_intelligence_by_token',
           { p_token: token }
@@ -181,18 +207,16 @@ export default function PropertyIntelligence({ propertyId, postcode, token, isPu
           setData(null);
         }
       } else if (propertyId && postcode) {
-        // Seller dashboard: call edge function (fetches fresh / cached data)
         const { data: result, error: fnErr } = await supabase.functions.invoke(
           'property-intelligence',
           { body: { postcode, property_id: propertyId } }
         );
         if (fnErr) {
-          // Try to extract the real error message from the response body
           let errMsg = fnErr.message ?? 'Failed to load property intelligence';
           try {
             const body = await (fnErr as any).context?.json?.();
             if (body?.error) errMsg = body.error;
-          } catch { /* ignore parse errors */ }
+          } catch { /* ignore */ }
           throw new Error(errMsg);
         }
         setData(result as IntelligenceData);
@@ -212,11 +236,20 @@ export default function PropertyIntelligence({ propertyId, postcode, token, isPu
 
   const crimeTotal: number | null = data?.crime_statistics?.total ?? null;
   const crimeCategories: CrimeCategory[] = data?.crime_statistics?.categories ?? [];
-
   const mbps: number | null = data?.broadband_availability?.maxSpeed ?? null;
-  const schools = (data?.schools ?? []).slice(0, 3);
-  const sales   = (Array.isArray(data?.recent_sales) ? data!.recent_sales : []).slice(0, 5);
+  const schools  = (data?.schools ?? []).slice(0, 3);
+  const sales    = (Array.isArray(data?.recent_sales) ? data!.recent_sales : []).slice(0, 5);
   const lastUpdated = data?.last_updated;
+
+  // Only show error banner if we have no data at all
+  const hasAnyData = !!(
+    data?.flood_risk ||
+    data?.crime_statistics ||
+    (data?.recent_sales && data.recent_sales.length > 0) ||
+    data?.epc ||
+    (data?.schools && data.schools.length > 0)
+  );
+  const showErrorBanner = error && !loading && !hasAnyData;
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -252,8 +285,8 @@ export default function PropertyIntelligence({ propertyId, postcode, token, isPu
         )}
       </div>
 
-      {/* Error state — quiet fallback, not a scary red banner */}
-      {error && !loading && (
+      {/* Error banner — only shown when ALL cards have failed */}
+      {showErrorBanner && (
         <div className="p-6 bg-white border border-[var(--border)] rounded-2xl flex items-center gap-4 text-sm text-[var(--muted)]">
           <span className="material-symbols-outlined text-2xl text-[var(--muted)] shrink-0">cloud_off</span>
           <div>
@@ -270,7 +303,7 @@ export default function PropertyIntelligence({ propertyId, postcode, token, isPu
         </div>
       )}
 
-      {/* Cards grid — visible immediately (cards show spinners while loading) */}
+      {/* Cards grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
         {/* ── Card 1: Flood Risk ─────────────────────────────────────────────── */}
@@ -294,7 +327,37 @@ export default function PropertyIntelligence({ propertyId, postcode, token, isPu
           )}
         </IntelligenceCard>
 
-        {/* ── Card 2: Nearby Schools ─────────────────────────────────────────── */}
+        {/* ── Card 2: EPC ───────────────────────────────────────────────────── */}
+        <IntelligenceCard emoji="⚡" title="Energy Performance" source="EPC Register" loading={loading}>
+          {!data?.epc?.rating ? (
+            <p className="text-sm text-[var(--muted)]">No data available</p>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <span className={`font-heading font-black text-5xl leading-none ${BIG_NUM_CLASSES[epcColor(data.epc.rating)]}`}>
+                  {data.epc.rating}
+                </span>
+                {data.epc.score != null && (
+                  <div>
+                    <p className="text-xs text-[var(--muted)] font-semibold uppercase tracking-widest">Score</p>
+                    <p className="font-bold text-[var(--teal-900)] text-lg">{data.epc.score}</p>
+                  </div>
+                )}
+              </div>
+              <Badge label={`Rating ${data.epc.rating}`} color={epcColor(data.epc.rating)} />
+              <p className="text-sm text-[var(--muted)] leading-relaxed">
+                {EPC_DESCRIPTIONS[data.epc.rating.toUpperCase()] ?? ''}
+              </p>
+              {data.epc.date && (
+                <p className="text-xs text-[var(--muted)]">
+                  Lodged {new Date(data.epc.date).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
+                </p>
+              )}
+            </div>
+          )}
+        </IntelligenceCard>
+
+        {/* ── Card 3: Nearby Schools ─────────────────────────────────────────── */}
         <IntelligenceCard emoji="🏫" title="Nearby Schools" source="Get Information About Schools" loading={loading}>
           {schools.length === 0 ? (
             <p className="text-sm text-[var(--muted)]">No data available</p>
@@ -306,8 +369,12 @@ export default function PropertyIntelligence({ propertyId, postcode, token, isPu
                     {school.school_name ?? 'Unknown school'}
                   </p>
                   <div className="flex items-center gap-3 text-xs text-[var(--muted)]">
-                    {school.phase && (
-                      <span>{school.phase}</span>
+                    {school.phase && <span>{school.phase}</span>}
+                    {school.ofsted_rating && (
+                      <Badge
+                        label={ofstedLabel(school.ofsted_rating, school.ofsted_rating_label)}
+                        color={ofstedColor(school.ofsted_rating)}
+                      />
                     )}
                     {school.distance_miles != null && (
                       <span>{Number(school.distance_miles).toFixed(1)} mi away</span>
@@ -319,7 +386,7 @@ export default function PropertyIntelligence({ propertyId, postcode, token, isPu
           )}
         </IntelligenceCard>
 
-        {/* ── Card 3: Broadband ──────────────────────────────────────────────── */}
+        {/* ── Card 4: Broadband ──────────────────────────────────────────────── */}
         <IntelligenceCard emoji="📡" title="Broadband Speeds" source="Ofcom" loading={loading}>
           {mbps === null ? (
             <p className="text-sm text-[var(--muted)]">No data available</p>
@@ -348,7 +415,7 @@ export default function PropertyIntelligence({ propertyId, postcode, token, isPu
           )}
         </IntelligenceCard>
 
-        {/* ── Card 4: Crime ──────────────────────────────────────────────────── */}
+        {/* ── Card 5: Crime ──────────────────────────────────────────────────── */}
         <IntelligenceCard emoji="🚔" title="Local Crime" source="Police UK" loading={loading}>
           {crimeTotal === null ? (
             <p className="text-sm text-[var(--muted)]">No data available</p>
@@ -374,7 +441,7 @@ export default function PropertyIntelligence({ propertyId, postcode, token, isPu
           )}
         </IntelligenceCard>
 
-        {/* ── Card 5: Recent Sales ───────────────────────────────────────────── */}
+        {/* ── Card 6: Recent Sales ───────────────────────────────────────────── */}
         <IntelligenceCard emoji="🏠" title="Recent Sales Nearby" source="Land Registry" loading={loading}>
           {sales.length === 0 ? (
             <p className="text-sm text-[var(--muted)]">No data available</p>
@@ -391,8 +458,7 @@ export default function PropertyIntelligence({ propertyId, postcode, token, isPu
                     <p className="text-xs text-[var(--muted)]">
                       {sale.date
                         ? new Date(sale.date).toLocaleDateString('en-GB', {
-                            month: 'short',
-                            year: 'numeric',
+                            month: 'short', year: 'numeric',
                           })
                         : ''}
                       {sale.type ? ` · ${sale.type}` : ''}
