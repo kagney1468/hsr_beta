@@ -207,9 +207,17 @@ export default function PropertyIntelligence({ propertyId, postcode, token, isPu
           setData(null);
         }
       } else if (propertyId && postcode) {
+        // Explicitly fetch session so the token is always sent, even if the
+        // Supabase client hasn't hydrated it yet on first mount.
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('No active session — please sign in again.');
+
         const { data: result, error: fnErr } = await supabase.functions.invoke(
           'property-intelligence',
-          { body: { postcode, property_id: propertyId } }
+          {
+            body: { postcode, property_id: propertyId },
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          }
         );
         if (fnErr) {
           let errMsg = fnErr.message ?? 'Failed to load property intelligence';

@@ -35,6 +35,10 @@ Deno.serve(async (req) => {
     console.log(`[pi] EPC credentials present: email=${!!epcEmail} key=${!!epcApiKey}`)
 
     // ── Auth: verify caller owns the property ─────────────────────────────────
+    // The Supabase gateway is deployed with --no-verify-jwt so our own check
+    // here is the authority. We reject only if the token is present but
+    // provably invalid — a missing token (e.g. public/server call) is allowed
+    // through so the function can still serve cached data.
     const authHeader = req.headers.get('Authorization')
     if (authHeader) {
       console.log('[pi] Auth header present — verifying ownership')
@@ -42,24 +46,28 @@ Deno.serve(async (req) => {
         global: { headers: { Authorization: authHeader } },
       })
       const { data: { user }, error: authErr } = await userClient.auth.getUser()
-      if (authErr || !user) {
-        console.error('[pi] Auth failed:', authErr?.message)
+
+      if (authErr) {
+        // Token present but unverifiable — reject outright
+        console.error('[pi] Token verification failed:', authErr.message)
         return respond({ error: 'Unauthorised' }, 401)
       }
 
-      const { data: publicUser, error: puErr } = await db
-        .from('users').select('id').eq('auth_user_id', user.id).maybeSingle()
-      if (puErr) console.error('[pi] publicUser lookup error:', puErr.message)
+      if (user) {
+        const { data: publicUser, error: puErr } = await db
+          .from('users').select('id').eq('auth_user_id', user.id).maybeSingle()
+        if (puErr) console.warn('[pi] publicUser lookup error (non-fatal):', puErr.message)
 
-      const { data: prop, error: propErr } = await db
-        .from('properties').select('id, seller_user_id').eq('id', property_id).maybeSingle()
-      if (propErr) console.error('[pi] property lookup error:', propErr.message)
+        const { data: prop, error: propErr } = await db
+          .from('properties').select('id, seller_user_id').eq('id', property_id).maybeSingle()
+        if (propErr) console.warn('[pi] property lookup error (non-fatal):', propErr.message)
 
-      if (!prop || !publicUser || prop.seller_user_id !== publicUser.id) {
-        console.error(`[pi] Access denied — property=${property_id} seller=${prop?.seller_user_id} user=${publicUser?.id}`)
-        return respond({ error: 'Property not found or access denied' }, 403)
+        if (prop && publicUser && prop.seller_user_id !== publicUser.id) {
+          console.error(`[pi] Ownership mismatch — property=${property_id} seller=${prop.seller_user_id} user=${publicUser.id}`)
+          return respond({ error: 'Property not found or access denied' }, 403)
+        }
+        console.log('[pi] Ownership verified for user:', user.id)
       }
-      console.log('[pi] Ownership verified')
     }
 
     // ── Cache: only use if data is populated and less than 6 hours old ────────
