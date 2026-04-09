@@ -70,6 +70,13 @@ export default function AddProperty() {
     setError(null);
 
     try {
+      const cleanPostcode = form.address_postcode.trim().toUpperCase();
+      if (!UK_POSTCODE_REGEX.test(cleanPostcode)) {
+        setError('Please enter a valid UK postcode, e.g. SW1A 1AA');
+        setSaving(false);
+        return;
+      }
+
       const publicUserId = await getPublicUserIdByAuthUserId(user.id);
 
       const { data: existing } = await supabase
@@ -83,18 +90,28 @@ export default function AddProperty() {
         return;
       }
 
+      // Build a clean address string (no postcode — stored separately)
+      const addressString = [
+        form.address_line1.trim(),
+        form.address_line2.trim() || null,
+        form.address_town.trim() || null,
+        form.address_county.trim() || null,
+      ].filter(Boolean).join(', ');
+
       const { error: insertError } = await supabase.from('properties').insert({
         seller_user_id: publicUserId,
-        address_line1: form.address_line1.trim(),
-        address_line2: form.address_line2.trim() || null,
-        address_town: form.address_town.trim() || null,
-        address_county: form.address_county.trim() || null,
-        address_city: form.address_city.trim() || null,
-        address_postcode: form.address_postcode.trim().toUpperCase(),
-        property_type: form.property_type,
-        tenure: form.tenure,
-        bedrooms: form.bedrooms ? parseInt(form.bedrooms) : null,
-        bathrooms: form.bathrooms ? parseInt(form.bathrooms) : null,
+        address:         addressString,
+        postcode:        cleanPostcode,
+        address_line1:   form.address_line1.trim(),
+        address_line2:   form.address_line2.trim() || null,
+        address_town:    form.address_town.trim() || null,
+        address_county:  form.address_county.trim() || null,
+        address_city:    form.address_city.trim() || null,
+        address_postcode: cleanPostcode,
+        property_type:   form.property_type,
+        tenure:          form.tenure,
+        bedrooms:        form.bedrooms ? parseInt(form.bedrooms) : null,
+        bathrooms:       form.bathrooms ? parseInt(form.bathrooms) : null,
         pack_completion_percentage: 0,
         is_link_active: false,
       });

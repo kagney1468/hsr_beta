@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+
+const UK_POSTCODE_REGEX = /^[A-Z]{1,2}[0-9][0-9A-Z]?\s?[0-9][A-Z]{2}$/i;
 import { supabase } from '../lib/supabase';
 import { getPublicUserIdByAuthUserId } from '../lib/publicUser';
 import { useAuth } from '../contexts/AuthContext';
@@ -181,26 +183,47 @@ export default function PropertyProfile() {
 
   const handleSave = async (redirect: boolean = false) => {
     if (!user) return;
-    
+
+    const cleanPostcode = formData.postcode.trim().toUpperCase();
+    if (!cleanPostcode) {
+      setMessage({ type: 'error', text: 'Postcode is required.' });
+      return;
+    }
+    if (!UK_POSTCODE_REGEX.test(cleanPostcode)) {
+      setMessage({ type: 'error', text: 'Please enter a valid UK postcode, e.g. SW1A 1AA.' });
+      return;
+    }
+
     setSaving(true);
     setMessage(null);
-    
+
     try {
       const publicUserId = await getPublicUserIdByAuthUserId(user.id);
+
+      // Build a clean address string (no postcode — stored separately to avoid duplication)
+      const addressString = [
+        formData.address_line1,
+        formData.address_line2 || null,
+        formData.address_town,
+        formData.address_county || null,
+      ].filter(Boolean).join(', ');
+
       const propertyPayload = {
-        seller_user_id: publicUserId,
-        address_line1: formData.address_line1,
-        address_line2: formData.address_line2,
-        address_town: formData.address_town,
-        address_county: formData.address_county,
-        address_city: formData.address_town,
-        address_postcode: formData.postcode,
-        property_type: formData.property_type,
-        bedrooms: formData.bedrooms,
-        bathrooms: formData.bathrooms,
-        tenure: formData.tenure,
+        seller_user_id:  publicUserId,
+        address:         addressString,
+        postcode:        cleanPostcode,
+        address_line1:   formData.address_line1,
+        address_line2:   formData.address_line2 || null,
+        address_town:    formData.address_town,
+        address_county:  formData.address_county || null,
+        address_city:    formData.address_town,
+        address_postcode: cleanPostcode,
+        property_type:   formData.property_type,
+        bedrooms:        formData.bedrooms,
+        bathrooms:       formData.bathrooms,
+        tenure:          formData.tenure,
         council_tax_band: formData.council_tax_band,
-        description: null,
+        description:     null,
       };
 
       // 1. Update existing property or insert a new one for this seller
@@ -305,10 +328,15 @@ export default function PropertyProfile() {
               <div className="space-y-3">
                 <div className="p-4 rounded-xl bg-[var(--teal-050)] border border-[#6dd4d4]">
                   <p className="text-sm font-semibold text-[var(--teal-900)] leading-relaxed">
-                    {[formData.address_line1, formData.address_line2, formData.address_town, formData.address_county, formData.postcode]
+                    {[formData.address_line1, formData.address_line2, formData.address_town, formData.address_county]
                       .filter(Boolean)
                       .join(', ')}
                   </p>
+                  {formData.postcode && (
+                    <p className="text-sm font-semibold text-[var(--teal-900)] mt-0.5">
+                      {formData.postcode.trim().toUpperCase()}
+                    </p>
+                  )}
                 </div>
                 <button
                   type="button"
