@@ -73,12 +73,16 @@ export default function PostcodeLookup({ onAddressSelect }: PostcodeLookupProps)
       const json = await res.json();
       const result = json.result;
 
-      // Map API fields to our address shape
+      // Map API fields to our address shape.
+      // postcodes.io does not return the actual town/post-town name, so we
+      // leave address_line1, address_line2, address_town, and address_city
+      // blank for the user to complete. We do use admin_county for the
+      // county when available.
       const prefilled: AddressData = {
         address_line1: '',
         address_line2: '',
-        address_town: result.admin_district ?? result.parish ?? '',
-        address_county: result.admin_county ?? result.region ?? '',
+        address_town: '',
+        address_county: result.admin_county ?? '',
         address_city: '',
         address_postcode: trimmed,
       };
@@ -169,7 +173,7 @@ export default function PostcodeLookup({ onAddressSelect }: PostcodeLookupProps)
         <div className="flex items-start gap-2 p-3 rounded-xl bg-[var(--teal-050)] border border-[#6dd4d4]">
           <span className="material-symbols-outlined text-[var(--teal-600)] text-base shrink-0 mt-0.5">check_circle</span>
           <p className="text-sm text-[var(--teal-900)]">
-            Postcode found. We've filled in your town and county — please complete the remaining fields below.
+            Postcode found. Please complete your address details below.
           </p>
         </div>
       )}

@@ -86,8 +86,11 @@ export default function Certificate() {
 
         <div className="space-y-2 relative z-10">
           <p className="text-[var(--muted)] italic">This is to certify that the property located at</p>
-          <h3 className="text-3xl font-black font-heading text-[var(--teal-900)]">{property?.address || 'Property Address'}</h3>
-          <p className="text-xl text-[var(--muted)]">{property?.postcode}</p>
+          <h3 className="text-3xl font-black font-heading text-[var(--teal-900)]">
+            {[property?.address_line1, property?.address_line2, property?.address_town, property?.address_county]
+              .filter(Boolean).join(', ') || 'Property Address'}
+          </h3>
+          <p className="text-xl text-[var(--muted)]">{property?.address_postcode}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-10 border-t border-[var(--border)] relative z-10">

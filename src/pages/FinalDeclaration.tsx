@@ -135,14 +135,17 @@ export default function FinalDeclaration() {
 
             const { data: propData } = await supabase
               .from('properties')
-              .select('address')
+              .select('address_line1, address_town, address_postcode')
               .eq('id', propertyId)
               .maybeSingle();
+
+            const propAddress = [propData?.address_line1, propData?.address_town, propData?.address_postcode]
+              .filter(Boolean).join(', ') || 'your property';
 
             if (agentData?.email) {
               const emailPayload = templates.packComplete(
                 agentData.full_name || 'there',
-                propData?.address || 'your property',
+                propAddress,
                 agencyData.agency_name || 'HomeSalesReady'
               );
               await fetch('/api/send-viewer-notification', {

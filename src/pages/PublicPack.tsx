@@ -292,7 +292,9 @@ export default function PublicPack() {
             <div className="text-center space-y-4">
               <h1 className="text-3xl md:text-5xl font-black font-heading leading-tight tracking-tight text-[var(--teal-900)]">
                 Access the property pack for <br />
-                <span className="text-[var(--teal-600)]">{property.address}</span>
+                <span className="text-[var(--teal-600)]">
+                  {[property.address_line1, property.address_town, property.address_postcode].filter(Boolean).join(', ')}
+                </span>
               </h1>
               <p className="text-[var(--muted)] text-lg max-w-xl mx-auto leading-relaxed">
                 Please register your details to view material information and download verified documents.
@@ -407,9 +409,10 @@ export default function PublicPack() {
 
             <div className="space-y-4">
               <h1 className="text-4xl md:text-6xl font-black font-heading tracking-tight leading-none text-[var(--teal-900)]">
-                {property.address}
+                {[property.address_line1, property.address_line2, property.address_town, property.address_county]
+                  .filter(Boolean).join(', ')}
               </h1>
-              <p className="text-xl text-[var(--muted)]">{property.postcode}</p>
+              <p className="text-xl text-[var(--muted)]">{property.address_postcode}</p>
             </div>
 
             <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 print:grid-cols-5">
@@ -570,7 +573,7 @@ export default function PublicPack() {
             </Card>
 
             <footer className="pt-12 text-center text-[11px] text-[var(--muted)] font-semibold uppercase tracking-widest print:pt-6">
-              {brandName} • Prepared for {property.address}
+              {brandName} • Prepared for {[property.address_line1, property.address_town, property.address_postcode].filter(Boolean).join(', ')}
             </footer>
           </div>
         )}

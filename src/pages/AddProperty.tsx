@@ -90,18 +90,8 @@ export default function AddProperty() {
         return;
       }
 
-      // Build a clean address string (no postcode — stored separately)
-      const addressString = [
-        form.address_line1.trim(),
-        form.address_line2.trim() || null,
-        form.address_town.trim() || null,
-        form.address_county.trim() || null,
-      ].filter(Boolean).join(', ');
-
       const { error: insertError } = await supabase.from('properties').insert({
         seller_user_id: publicUserId,
-        address:         addressString,
-        postcode:        cleanPostcode,
         address_line1:   form.address_line1.trim(),
         address_line2:   form.address_line2.trim() || null,
         address_town:    form.address_town.trim() || null,

@@ -28,6 +28,7 @@ export default function PropertyProfile() {
     address_line2: '',
     address_town: '',
     address_county: '',
+    address_city: '',
     postcode: '',
     property_type: 'Detached House',
     bedrooms: 3,
@@ -74,8 +75,9 @@ export default function PropertyProfile() {
           setFormData({
             address_line1: data.address_line1 || '',
             address_line2: data.address_line2 || '',
-            address_town: data.address_town || data.address_city || '',
+            address_town: data.address_town || '',
             address_county: data.address_county || '',
+            address_city: data.address_city || '',
             postcode: data.address_postcode || '',
             property_type: data.property_type || 'Detached House',
             bedrooms: data.bedrooms || 3,
@@ -200,23 +202,13 @@ export default function PropertyProfile() {
     try {
       const publicUserId = await getPublicUserIdByAuthUserId(user.id);
 
-      // Build a clean address string (no postcode — stored separately to avoid duplication)
-      const addressString = [
-        formData.address_line1,
-        formData.address_line2 || null,
-        formData.address_town,
-        formData.address_county || null,
-      ].filter(Boolean).join(', ');
-
       const propertyPayload = {
         seller_user_id:  publicUserId,
-        address:         addressString,
-        postcode:        cleanPostcode,
         address_line1:   formData.address_line1,
         address_line2:   formData.address_line2 || null,
         address_town:    formData.address_town,
         address_county:  formData.address_county || null,
-        address_city:    formData.address_town,
+        address_city:    formData.address_city || null,
         address_postcode: cleanPostcode,
         property_type:   formData.property_type,
         bedrooms:        formData.bedrooms,
@@ -353,9 +345,10 @@ export default function PropertyProfile() {
                     ...prev,
                     address_line1: data.address_line1,
                     address_line2: data.address_line2,
-                    address_town: data.address_town,
+                    address_town:  data.address_town,
                     address_county: data.address_county,
-                    postcode: data.address_postcode,
+                    address_city:  data.address_city,
+                    postcode:      data.address_postcode,
                   }));
                   setAddressLocked(true);
                 }}
