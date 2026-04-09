@@ -13,6 +13,11 @@ interface AgencySettings {
 
 const DEFAULT_COLOUR = '#17afaf';
 
+/** Remove any https:// or http:// prefix so the field only stores the bare domain */
+function stripProtocol(value: string): string {
+  return value.replace(/^https?:\/\//i, '').trim();
+}
+
 export default function AgentBranding() {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -48,7 +53,7 @@ export default function AgentBranding() {
             name: data.agency_name || '',
             logo_url: data.logo_url || '',
             brand_colour: data.brand_colour || DEFAULT_COLOUR,
-            custom_domain: data.custom_domain || '',
+            custom_domain: stripProtocol(data.custom_domain || ''),
           });
           if (data.logo_url) setLogoPreview(data.logo_url);
         }
@@ -109,7 +114,7 @@ export default function AgentBranding() {
         agency_name: settings.name,
         logo_url,
         brand_colour: settings.brand_colour,
-        custom_domain: settings.custom_domain,
+        custom_domain: stripProtocol(settings.custom_domain),
         updated_at: new Date().toISOString(),
       };
 
@@ -214,20 +219,16 @@ export default function AgentBranding() {
                   <input
                     type="text"
                     value={settings.custom_domain}
-                    onChange={e => setSettings(s => ({ ...s, custom_domain: e.target.value }))}
+                    onChange={e => setSettings(s => ({ ...s, custom_domain: stripProtocol(e.target.value) }))}
                     placeholder="portal.youragency.com"
                     className="w-full pl-[4.25rem]"
                   />
                 </div>
-                <div className="pt-1 space-y-1">
-                  <p style={{ color: '#5a7a7c', fontSize: '0.85rem' }}>
-                    Point your domain's CNAME record to{' '}
-                    <span className="font-mono font-semibold">portal.homesalesready.com</span>
-                  </p>
-                  <p style={{ color: '#5a7a7c', fontSize: '0.85rem' }}>
-                    Allow up to 24 hours for DNS changes to take effect.
-                  </p>
-                </div>
+                <p className="pt-1" style={{ color: '#5a7a7c', fontSize: '0.85rem' }}>
+                  Point your domain's CNAME record to{' '}
+                  <span className="font-mono font-semibold">portal.homesalesready.com</span>
+                  {' '}— allow up to 24 hours for DNS changes to take effect.
+                </p>
               </div>
             </div>
 
