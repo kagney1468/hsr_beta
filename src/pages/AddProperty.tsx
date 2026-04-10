@@ -1,12 +1,11 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { getPublicUserIdByAuthUserId } from '../lib/publicUser';
 import Footer from '../components/Footer';
-import PostcodeLookup, { AddressData } from '../components/PostcodeLookup';
 
 const UK_POSTCODE_REGEX = /^[A-Z]{1,2}[0-9][0-9A-Z]?\s?[0-9][A-Z]{2}$/i;
 
@@ -33,16 +32,18 @@ const TENURES = [
 export default function AddProperty() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const prefill = (location.state as any)?.prefillAddress;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [form, setForm] = useState({
-    address_line1: '',
-    address_line2: '',
-    address_town: '',
-    address_county: '',
-    address_city: '',
-    address_postcode: '',
+    address_line1:    prefill?.address_line1    || '',
+    address_line2:    prefill?.address_line2    || '',
+    address_town:     prefill?.address_town     || '',
+    address_county:   prefill?.address_county   || '',
+    address_city:     prefill?.address_city     || '',
+    address_postcode: prefill?.address_postcode || '',
     property_type: '',
     tenure: '',
     bedrooms: '',
@@ -139,17 +140,9 @@ export default function AddProperty() {
 
           {/* Hero */}
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-widest text-[var(--teal-500)]">Step 1 of 5</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-[var(--teal-500)]">Step 2 of 5</p>
             <h1 className="text-4xl font-black font-heading text-[var(--teal-900)] tracking-tight">Add your property</h1>
-            <p className="text-[var(--muted)] leading-relaxed">Enter the address of the property you are selling.</p>
-          </div>
-
-          {/* Amber note */}
-          <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200">
-            <span className="material-symbols-outlined text-amber-600 shrink-0 mt-0.5">info</span>
-            <p className="text-sm text-amber-900 leading-relaxed">
-              <strong>This is the property you are selling</strong> — it may be different from where you currently live.
-            </p>
+            <p className="text-[var(--muted)] leading-relaxed">Confirm the address and details of the property you are selling.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-8">
@@ -163,11 +156,43 @@ export default function AddProperty() {
             {/* Address */}
             <Card className="p-6 md:p-8 space-y-5">
               <h2 className="font-black font-heading text-[var(--teal-900)] text-xl">Property address</h2>
-              <PostcodeLookup
-                onAddressSelect={(data: AddressData) =>
-                  setForm(prev => ({ ...prev, ...data }))
-                }
-              />
+
+              {prefill && (
+                <div className="flex items-start gap-3 p-4 rounded-xl bg-[var(--teal-050)] border border-[var(--teal-600)]">
+                  <span className="material-symbols-outlined text-[var(--teal-600)] shrink-0 mt-0.5">info</span>
+                  <p className="text-sm text-[var(--teal-900)] leading-relaxed">
+                    Address pre-filled from your profile. Please check and correct if needed.
+                  </p>
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Address Line 1 <span className="text-[#dc2626]">*</span></label>
+                  <input type="text" name="address_line1" value={form.address_line1} onChange={handleChange} className="w-full" placeholder="123 Example Street" />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Address Line 2 (Optional)</label>
+                  <input type="text" name="address_line2" value={form.address_line2} onChange={handleChange} className="w-full" placeholder="Apt 4B" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Town <span className="text-[#dc2626]">*</span></label>
+                    <input type="text" name="address_town" value={form.address_town} onChange={handleChange} className="w-full" placeholder="London" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">County (Optional)</label>
+                    <input type="text" name="address_county" value={form.address_county} onChange={handleChange} className="w-full" placeholder="Greater London" />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Postcode <span className="text-[#dc2626]">*</span></label>
+                  <input type="text" name="address_postcode" value={form.address_postcode} onChange={handleChange} className="w-full uppercase tracking-widest font-semibold" placeholder="SW1A 1AA" />
+                </div>
+              </div>
             </Card>
 
             {/* Property details */}
@@ -216,7 +241,7 @@ export default function AddProperty() {
               disabled={saving || !isValid}
               className="w-full h-14 rounded-2xl font-heading font-bold text-lg"
             >
-              {saving ? 'Adding property…' : 'Add property and continue'}
+              {saving ? 'Adding property…' : 'Continue'}
               {!saving && <span className="material-symbols-outlined ml-2">arrow_forward</span>}
             </Button>
           </form>
