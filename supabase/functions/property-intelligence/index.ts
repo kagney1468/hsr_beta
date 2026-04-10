@@ -28,19 +28,17 @@ Deno.serve(async (req) => {
     const supabaseUrl  = Deno.env.get('SUPABASE_URL')!
     const serviceKey   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const anonKey      = Deno.env.get('SUPABASE_ANON_KEY')!
-    const epcEmail     = Deno.env.get('EPC_EMAIL') ?? null
-    const epcApiKey    = Deno.env.get('EPC_API_KEY') ?? null
+    const epcEmail     = Deno.env.get('EPC_EMAIL')    ?? null
+    const epcApiKey    = Deno.env.get('EPC_API_KEY')  ?? null
     const osKey        = Deno.env.get('OS_DATA_HUB_KEY') ?? null
+    const hmlrKey      = Deno.env.get('HMLR_API_KEY') ?? null
     const db           = createClient(supabaseUrl, serviceKey)
 
     console.log(`[pi] EPC credentials present: email=${!!epcEmail} key=${!!epcApiKey}`)
     console.log(`[pi] OS Data Hub key present: ${!!osKey}`)
+    console.log(`[pi] HMLR key present: ${!!hmlrKey}`)
 
     // ── Auth: verify caller owns the property ─────────────────────────────────
-    // The Supabase gateway is deployed with --no-verify-jwt so our own check
-    // here is the authority. We reject only if the token is present but
-    // provably invalid — a missing token (e.g. public/server call) is allowed
-    // through so the function can still serve cached data.
     const authHeader = req.headers.get('Authorization')
     if (authHeader) {
       console.log('[pi] Auth header present — verifying ownership')
@@ -50,7 +48,6 @@ Deno.serve(async (req) => {
       const { data: { user }, error: authErr } = await userClient.auth.getUser()
 
       if (authErr) {
-        // Token present but unverifiable — reject outright
         console.error('[pi] Token verification failed:', authErr.message)
         return respond({ error: 'Unauthorised' }, 401)
       }
@@ -78,7 +75,7 @@ Deno.serve(async (req) => {
 
     if (cached?.last_updated) {
       const hoursOld = (Date.now() - new Date(cached.last_updated).getTime()) / 3_600_000
-      const hasData  = !!(cached.flood_risk || cached.crime_statistics || cached.recent_sales?.length || cached.epc)
+      const hasData  = !!(cached.flood_risk || cached.crime_statistics || cached.epc)
 
       if (hoursOld < 6 && hasData) {
         console.log(`[pi] Cache hit for ${property_id} (${hoursOld.toFixed(1)}h old)`)
@@ -90,8 +87,12 @@ Deno.serve(async (req) => {
     }
 
     // ── Resolve postcode → lat/lng ────────────────────────────────────────────
-    const cleanPostcode = postcode.replace(/\s+/g, '').toUpperCase()
-    console.log(`[pi] Resolving postcode: ${cleanPostcode}`)
+    // Normalise to "AA9 9AA" format (with space) for APIs that require it
+    const cleanPostcode    = postcode.replace(/\s+/g, '').toUpperCase()
+    const formattedPostcode = cleanPostcode.length > 3
+      ? `${cleanPostcode.slice(0, -3)} ${cleanPostcode.slice(-3)}`
+      : cleanPostcode
+    console.log(`[pi] Resolving postcode: ${formattedPostcode}`)
 
     const pcRes = await fetch(
       `https://api.postcodes.io/postcodes/${cleanPostcode}`,
@@ -102,57 +103,65 @@ Deno.serve(async (req) => {
     const pcJson = await pcRes.json()
     if (!pcJson.result) throw new Error(`Could not resolve postcode: ${postcode}`)
     const { latitude: lat, longitude: lng } = pcJson.result
-    console.log(`[pi] Resolved ${cleanPostcode} → lat=${lat} lng=${lng}`)
+    console.log(`[pi] Resolved ${formattedPostcode} → lat=${lat} lng=${lng}`)
 
     // ── Fetch all sources concurrently ────────────────────────────────────────
-    const [floodRes, crimeRes, salesRes, schoolsRes, epcRes, osMapRes, conservationRes, greenSpacesRes] =
-      await Promise.allSettled([
-        fetchFlood(lat, lng),
-        fetchCrime(lat, lng),
-        fetchSales(postcode),
-        fetchSchools(lat, lng),
-        fetchEpc(cleanPostcode, epcEmail, epcApiKey),
-        fetchOsMap(lat, lng, osKey),
-        fetchConservation(lat, lng, osKey),
-        fetchGreenSpaces(lat, lng, osKey),
-      ])
+    const [
+      floodRes,
+      crimeRes,
+      schoolsRes,
+      epcRes,
+      osMapRes,
+      conservationRes,
+      greenSpacesRes,
+      hmlrRes,
+    ] = await Promise.allSettled([
+      fetchFlood(lat, lng),
+      fetchCrime(lat, lng),
+      fetchSchools(lat, lng),
+      fetchEpc(formattedPostcode, epcEmail, epcApiKey),
+      fetchOsMap(lat, lng, osKey),
+      fetchConservation(lat, lng, osKey),
+      fetchGreenSpaces(lat, lng, osKey),
+      fetchRestrictiveCovenants(cleanPostcode, hmlrKey),
+    ])
 
     const flood        = floodRes.status         === 'fulfilled' ? floodRes.value         : null
     const crime        = crimeRes.status         === 'fulfilled' ? crimeRes.value         : null
-    const sales        = salesRes.status         === 'fulfilled' ? salesRes.value         : null
     const schoolsData  = schoolsRes.status       === 'fulfilled' ? schoolsRes.value       : []
     const epc          = epcRes.status           === 'fulfilled' ? epcRes.value           : null
     const osMap        = osMapRes.status         === 'fulfilled' ? osMapRes.value         : null
     const conservation = conservationRes.status  === 'fulfilled' ? conservationRes.value  : null
     const greenSpaces  = greenSpacesRes.status   === 'fulfilled' ? greenSpacesRes.value   : null
+    const covenants    = hmlrRes.status          === 'fulfilled' ? hmlrRes.value          : null
 
     if (floodRes.status        === 'rejected') console.error('[pi] flood failed:',        floodRes.reason?.message        ?? floodRes.reason)
     if (crimeRes.status        === 'rejected') console.error('[pi] crime failed:',        crimeRes.reason?.message        ?? crimeRes.reason)
-    if (salesRes.status        === 'rejected') console.error('[pi] sales failed:',        salesRes.reason?.message        ?? salesRes.reason)
     if (schoolsRes.status      === 'rejected') console.error('[pi] schools failed:',      schoolsRes.reason?.message      ?? schoolsRes.reason)
     if (epcRes.status          === 'rejected') console.error('[pi] epc failed:',          epcRes.reason?.message          ?? epcRes.reason)
     if (osMapRes.status        === 'rejected') console.error('[pi] os_map failed:',       osMapRes.reason?.message        ?? osMapRes.reason)
     if (conservationRes.status === 'rejected') console.error('[pi] conservation failed:', conservationRes.reason?.message ?? conservationRes.reason)
     if (greenSpacesRes.status  === 'rejected') console.error('[pi] green_spaces failed:', greenSpacesRes.reason?.message  ?? greenSpacesRes.reason)
+    if (hmlrRes.status         === 'rejected') console.error('[pi] hmlr failed:',         hmlrRes.reason?.message         ?? hmlrRes.reason)
 
     console.log(
-      `[pi] Results — flood:${!!flood} crime:${!!crime} sales:${sales?.length ?? 0} schools:${schoolsData?.length ?? 0} epc:${!!epc} os_map:${!!osMap} conservation:${!!conservation} green_spaces:${greenSpaces?.length ?? 0}`
+      `[pi] Results — flood:${!!flood} crime:${!!crime} schools:${schoolsData?.length ?? 0} epc:${!!epc} os_map:${!!osMap} conservation:${!!conservation} green_spaces:${greenSpaces?.length ?? 0} covenants:${!!covenants}`
     )
 
-    const hasAnyData = !!(flood || crime || (sales && sales.length > 0) || epc)
+    const hasAnyData = !!(flood || crime || epc)
 
     const upsertPayload: Record<string, unknown> = {
       property_id,
-      postcode:               cleanPostcode,
-      flood_risk:             flood  ? { zone: flood.zone, risk: flood.risk }                       : null,
-      crime_statistics:       crime  ? { total: crime.total, categories: crime.categories }         : null,
+      postcode:               formattedPostcode,
+      flood_risk:             flood  ? { zone: flood.zone, risk: flood.risk }               : null,
+      crime_statistics:       crime  ? { total: crime.total, categories: crime.categories } : null,
       broadband_availability: null,
       broadband_max_speed:    null,
-      recent_sales:           sales ?? null,
-      epc:                    epc   ?? null,
+      epc:                    epc          ?? null,
       os_map:                 osMap        ?? null,
       conservation:           conservation ?? null,
       green_spaces:           greenSpaces  ?? null,
+      restrictive_covenants:  covenants    ?? null,
       last_updated:           hasAnyData ? new Date().toISOString() : null,
     }
 
@@ -248,59 +257,61 @@ async function fetchCrime(lat: number, lng: number) {
   return { total, categories }
 }
 
-async function fetchSales(postcode: string) {
-  const encoded = encodeURIComponent(postcode.trim())
-  const url = `https://landregistry.data.gov.uk/data/ppi/transaction-record.json?propertyAddress.postcode=${encoded}&_pageSize=5&_sort=-transactionDate`
-  console.log(`[pi:sales] GET ${url}`)
+async function fetchSchools(lat: number, lng: number) {
+  // GIAS (Get Information About Schools) — correct API endpoint
+  // radiusInMiles filter via bounding box; statusCode=1 = Open schools only
+  const url = `https://api.get-information-schools.service.gov.uk/Establishments/search`
+    + `?filters.typeOfEstablishment=1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18`
+    + `&filters.statusCode=1`
+    + `&point.lat=${lat}&point.lon=${lng}&point.radius=1609`  // 1 mile in metres
+    + `&take=20`
+  console.log(`[pi:schools] GET GIAS search`)
   const res = await fetch(url, {
-    headers: { Accept: 'application/json' },
+    headers: {
+      Accept:       'application/json',
+      'User-Agent': 'HomeSalesReady/2.0',
+    },
     signal: AbortSignal.timeout(15_000),
   })
-  console.log(`[pi:sales] status=${res.status}`)
-  if (!res.ok) throw new Error(`Land Registry responded ${res.status}`)
-
-  const data = await res.json()
-  console.log(`[pi:sales] top-level keys: ${Object.keys(data ?? {}).join(', ')}`)
-
-  const items: unknown[] =
-    data?.result?.items ??
-    data?.result?.primaryTopic?.items ??
-    data?.items ??
-    []
-
-  console.log(`[pi:sales] ${items.length} transaction(s) found`)
-  if (!Array.isArray(items) || items.length === 0) return []
-
-  return items
-    .slice(0, 5)
-    .map((item: unknown) => {
-      const i       = item as Record<string, unknown>
-      const price   = i.pricePaid
-      const rawDate = (i.transactionDate as Record<string, unknown>)?.['@value'] ?? i.transactionDate
-      const typeObj = i.propertyType as Record<string, unknown> | undefined
-      const type    = typeObj?.label ?? typeObj?.['@id']?.toString().split('/').pop() ?? null
-      return {
-        price: price != null ? Number(price) : null,
-        date:  rawDate ? String(rawDate) : null,
-        type:  type    ? String(type)    : null,
-      }
-    })
-    .filter((s) => s.price != null && s.price > 0)
-}
-
-async function fetchSchools(lat: number, lng: number) {
-  const url = `https://get-information-schools.service.gov.uk/api/schools/search?lat=${lat}&lon=${lng}&radiusInMiles=1&statusCode=1`
-  console.log(`[pi:schools] GET ${url}`)
-  const res = await fetch(url, {
-    headers: { Accept: 'application/json', 'User-Agent': 'HomeSalesReady/2.0' },
-    signal: AbortSignal.timeout(12_000),
-  })
   console.log(`[pi:schools] status=${res.status}`)
-  if (!res.ok) throw new Error(`Schools API responded ${res.status}`)
+
+  if (!res.ok) {
+    // Fallback: try the legacy Edubase-style endpoint
+    console.log(`[pi:schools] Primary endpoint failed (${res.status}), trying fallback`)
+    return await fetchSchoolsFallback(lat, lng)
+  }
 
   const data = await res.json()
   console.log(`[pi:schools] top-level keys: ${Object.keys(data ?? {}).join(', ')}`)
 
+  // GIAS returns { Establishments: [...] }
+  const list: unknown[] =
+    Array.isArray(data?.Establishments)  ? data.Establishments :
+    Array.isArray(data?.establishments)  ? data.establishments :
+    Array.isArray(data?.results)         ? data.results :
+    Array.isArray(data?.data)            ? data.data :
+    Array.isArray(data)                  ? data :
+    []
+
+  console.log(`[pi:schools] ${list.length} school(s) found`)
+  if (list.length === 0) return await fetchSchoolsFallback(lat, lng)
+
+  return mapSchools(list, lat, lng)
+}
+
+async function fetchSchoolsFallback(lat: number, lng: number) {
+  // Fallback: use the open data CSV-style endpoint via API
+  const url = `https://get-information-schools.service.gov.uk/api/schools/search`
+    + `?lat=${lat}&lon=${lng}&radiusInMiles=1&statusCode=1`
+  console.log(`[pi:schools:fallback] GET ${url}`)
+  const res = await fetch(url, {
+    headers: { Accept: 'application/json', 'User-Agent': 'HomeSalesReady/2.0' },
+    signal: AbortSignal.timeout(12_000),
+  })
+  console.log(`[pi:schools:fallback] status=${res.status}`)
+  if (!res.ok) throw new Error(`Schools API responded ${res.status}`)
+
+  const data = await res.json()
   const list: unknown[] =
     Array.isArray(data)                  ? data :
     Array.isArray(data?.schools)         ? data.schools :
@@ -308,43 +319,75 @@ async function fetchSchools(lat: number, lng: number) {
     Array.isArray(data?.data)            ? data.data :
     []
 
-  console.log(`[pi:schools] ${list.length} school(s) found`)
+  console.log(`[pi:schools:fallback] ${list.length} school(s) found`)
+  return mapSchools(list, lat, lng)
+}
 
+function mapSchools(list: unknown[], lat: number, lng: number) {
   return list.slice(0, 10).map((s: unknown) => {
     const school  = s as Record<string, unknown>
+
+    // Distance — GIAS returns metres in Distance field
     const rawDist = school.Distance ?? school.distance ?? null
-    const distMiles = rawDist != null ? Math.round((Number(rawDist) / 1609.34) * 10) / 10 : null
+    let distMiles: number | null = null
+    if (rawDist != null) {
+      const rawNum = Number(rawDist)
+      // If value looks like it's already in miles (< 20) leave it; else convert from metres
+      distMiles = rawNum < 20
+        ? Math.round(rawNum * 10) / 10
+        : Math.round((rawNum / 1609.34) * 10) / 10
+    }
+
+    // Type — may be nested object or string
+    const typeObj    = school.TypeOfEstablishment as Record<string, unknown> | undefined
+    const typeString = typeObj?.DisplayName ?? typeObj?.Name ?? school.type ?? ''
+
+    // Phase — may be nested object or string
+    const phaseObj    = school.PhaseOfEducation as Record<string, unknown> | undefined
+    const phaseString = phaseObj?.DisplayName ?? phaseObj?.Name ?? school.phase ?? ''
+
+    // Address — prefer Street/Town or fallback to address field
+    const addressParts = [
+      school.Street ?? school.address,
+      school.Town   ?? school.town,
+    ].filter(Boolean)
 
     return {
       name:     school.EstablishmentName ?? school.name    ?? 'Unknown School',
-      type:     (school.TypeOfEstablishment as Record<string, unknown>)?.DisplayName ?? school.type  ?? '',
-      phase:    (school.PhaseOfEducation   as Record<string, unknown>)?.DisplayName ?? school.phase ?? '',
+      type:     String(typeString),
+      phase:    String(phaseString),
       distance: distMiles,
-      address:  school.Street   ?? school.address  ?? null,
+      address:  addressParts.join(', ') || null,
       postcode: school.Postcode ?? school.postcode ?? null,
     }
   })
 }
 
-async function fetchEpc(postcode: string, email: string | null, apiKey: string | null) {
+async function fetchEpc(formattedPostcode: string, email: string | null, apiKey: string | null) {
   if (!email || !apiKey) {
     console.log('[pi:epc] Credentials not configured — skipping')
     return null
   }
 
-  const encoded = encodeURIComponent(postcode)
+  // EPC API requires postcode with a space (e.g. "SW1A 1AA")
+  const encoded = encodeURIComponent(formattedPostcode)
   const url = `https://epc.opendatacommunities.org/api/v1/domestic/search?postcode=${encoded}&size=1`
   console.log(`[pi:epc] GET ${url}`)
 
   const credentials = btoa(`${email}:${apiKey}`)
   const res = await fetch(url, {
     headers: {
-      Accept: 'application/json',
+      Accept:        'application/json',
       Authorization: `Basic ${credentials}`,
     },
     signal: AbortSignal.timeout(12_000),
   })
   console.log(`[pi:epc] status=${res.status}`)
+
+  if (res.status === 401) {
+    console.error('[pi:epc] 401 Unauthorised — check EPC_EMAIL and EPC_API_KEY secrets')
+    throw new Error(`EPC API 401 — credentials rejected`)
+  }
   if (!res.ok) throw new Error(`EPC API responded ${res.status}`)
 
   const data = await res.json()
@@ -354,9 +397,12 @@ async function fetchEpc(postcode: string, email: string | null, apiKey: string |
   const columns: string[] = data?.['column-names'] ?? []
   const rows: unknown[][]  = data?.rows ?? []
 
-  console.log(`[pi:epc] ${rows.length} row(s), columns: ${columns.slice(0, 5).join(', ')}...`)
+  console.log(`[pi:epc] ${rows.length} row(s), columns sample: ${columns.slice(0, 8).join(', ')}`)
 
-  if (rows.length === 0) return null
+  if (rows.length === 0) {
+    console.log(`[pi:epc] No EPC records found for postcode: ${formattedPostcode}`)
+    return null
+  }
 
   const row = rows[0] as string[]
   const get = (col: string) => {
@@ -364,14 +410,22 @@ async function fetchEpc(postcode: string, email: string | null, apiKey: string |
     return idx >= 0 ? (row[idx] ?? null) : null
   }
 
-  const rating     = get('current-energy-rating')
-  const score      = get('current-energy-efficiency')
-  const date       = get('lodgement-date') ?? get('inspection-date')
-  const address    = [get('address1'), get('address2'), get('address3')].filter(Boolean).join(', ')
-  const propertyType = get('property-type')
+  const rating        = get('current-energy-rating')
+  const score         = get('current-energy-efficiency')
+  const potentialRating = get('potential-energy-rating')
+  const potentialScore  = get('potential-energy-efficiency')
+  const date          = get('lodgement-date') ?? get('inspection-date')
+  const address       = [get('address1'), get('address2'), get('address3')].filter(Boolean).join(', ')
+  const propertyType  = get('property-type')
+  const builtForm     = get('built-form')
+  const totalFloorArea = get('total-floor-area')
+  const mainFuel      = get('main-fuel')
+  const wallsDesc     = get('walls-description')
+  const roofDesc      = get('roof-description')
+  const windowsDesc   = get('windows-description')
 
   if (!rating) {
-    console.log('[pi:epc] No energy rating in response')
+    console.log('[pi:epc] No energy rating in response — row data:', JSON.stringify(row).slice(0, 200))
     return null
   }
 
@@ -379,10 +433,94 @@ async function fetchEpc(postcode: string, email: string | null, apiKey: string |
 
   return {
     rating,
-    score:        score ? Number(score) : null,
-    date:         date ?? null,
-    address:      address || null,
-    property_type: propertyType ?? null,
+    score:             score          ? Number(score)          : null,
+    potential_rating:  potentialRating ?? null,
+    potential_score:   potentialScore  ? Number(potentialScore) : null,
+    date:              date            ?? null,
+    address:           address         || null,
+    property_type:     propertyType    ?? null,
+    built_form:        builtForm       ?? null,
+    total_floor_area:  totalFloorArea  ? Number(totalFloorArea) : null,
+    main_fuel:         mainFuel        ?? null,
+    walls:             wallsDesc       ?? null,
+    roof:              roofDesc        ?? null,
+    windows:           windowsDesc     ?? null,
+  }
+}
+
+// ── HMLR Restrictive Covenants ────────────────────────────────────────────────
+
+async function fetchRestrictiveCovenants(postcode: string, apiKey: string | null) {
+  if (!apiKey) {
+    console.log('[pi:hmlr] HMLR_API_KEY not configured — skipping')
+    return null
+  }
+
+  // HMLR uses the Land Registry API — restrictive covenants endpoint
+  // The official endpoint is: https://api.landregistry.gov.uk/v1/title_register/{title_number}
+  // We first need to find the title number via the property search endpoint
+  const titlesUrl = `https://api.landregistry.gov.uk/v1/search/postcode/${encodeURIComponent(postcode)}`
+  console.log(`[pi:hmlr] GET title search: ${titlesUrl}`)
+
+  const titlesRes = await fetch(titlesUrl, {
+    headers: {
+      Accept:        'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    signal: AbortSignal.timeout(12_000),
+  })
+  console.log(`[pi:hmlr] title search status=${titlesRes.status}`)
+
+  if (titlesRes.status === 401) {
+    console.error('[pi:hmlr] 401 — check HMLR_API_KEY')
+    throw new Error('HMLR API 401 — credentials rejected')
+  }
+  if (titlesRes.status === 404) {
+    console.log('[pi:hmlr] No titles found for postcode')
+    return { found: false, count: 0, titles: [], note: 'No registered titles found for this postcode.' }
+  }
+  if (!titlesRes.ok) throw new Error(`HMLR titles API responded ${titlesRes.status}`)
+
+  const titlesData = await titlesRes.json()
+  console.log(`[pi:hmlr] titles response keys: ${Object.keys(titlesData ?? {}).join(', ')}`)
+
+  // Response may be { data: [...] } or a direct array
+  const titles: unknown[] =
+    Array.isArray(titlesData?.data)    ? titlesData.data :
+    Array.isArray(titlesData?.results) ? titlesData.results :
+    Array.isArray(titlesData)          ? titlesData :
+    []
+
+  console.log(`[pi:hmlr] ${titles.length} title(s) found`)
+
+  if (titles.length === 0) {
+    return { found: false, count: 0, titles: [], note: 'No registered titles found for this postcode.' }
+  }
+
+  // Map titles to summary — full covenant detail requires a per-title fetch
+  // which is expensive; return the title numbers and basic tenure for display
+  type TitleSummary = {
+    title_number: string
+    tenure:       string | null
+    address:      string | null
+    has_covenants: boolean | null
+  }
+
+  const summaries: TitleSummary[] = titles.slice(0, 5).map((t: unknown) => {
+    const title = t as Record<string, unknown>
+    return {
+      title_number:  String(title.title_number ?? title.titleNumber ?? title.id ?? ''),
+      tenure:        String(title.tenure ?? title.estateInterest ?? ''),
+      address:       String(title.address ?? title.propertyAddress ?? ''),
+      has_covenants: null, // Would require individual title register fetch
+    }
+  })
+
+  return {
+    found:   true,
+    count:   titles.length,
+    titles:  summaries,
+    note:    'Restrictive covenants, if any, are recorded in the individual title register. Your conveyancer will review these.',
   }
 }
 
@@ -434,9 +572,11 @@ async function fetchOsMap(lat: number, lng: number, osKey: string | null) {
   const pinX = ((lng - nw.lng) / (se.lng - nw.lng)) * 100
   const pinY = ((lat - nw.lat) / (se.lat - nw.lat)) * 100
 
+  // OS Data Hub WMTS — Road_3857 is more reliable for general use than Outdoor_3857
+  // Both use the same EPSG:3857 tile matrix set
   const url = `https://api.os.uk/maps/raster/v1/wmts?key=${osKey}`
     + `&service=WMTS&request=GetTile&version=1.0.0`
-    + `&layer=Outdoor_3857&style=default`
+    + `&layer=Road_3857&style=default`
     + `&tileMatrixSet=EPSG:3857&tileMatrix=EPSG:3857:${zoom}`
     + `&tileRow=${y}&tileCol=${x}`
     + `&format=image/png`
@@ -445,6 +585,10 @@ async function fetchOsMap(lat: number, lng: number, osKey: string | null) {
   const res = await fetch(url, { signal: AbortSignal.timeout(15_000) })
   console.log(`[pi:os_map] status=${res.status}`)
 
+  if (res.status === 401 || res.status === 403) {
+    console.error(`[pi:os_map] ${res.status} — check OS_DATA_HUB_KEY and WMTS plan`)
+    throw new Error(`OS WMTS responded ${res.status} — check API key and plan`)
+  }
   if (!res.ok) throw new Error(`OS WMTS responded ${res.status}`)
 
   const arrayBuf = await res.arrayBuffer()
@@ -457,10 +601,10 @@ async function fetchOsMap(lat: number, lng: number, osKey: string | null) {
 
   return {
     zoom,
-    tile_x:     x,
-    tile_y:     y,
-    pin_x_pct:  Math.round(pinX * 10) / 10,
-    pin_y_pct:  Math.round(pinY * 10) / 10,
+    tile_x:       x,
+    tile_y:       y,
+    pin_x_pct:    Math.round(pinX * 10) / 10,
+    pin_y_pct:    Math.round(pinY * 10) / 10,
     image_base64: base64,
   }
 }
@@ -491,13 +635,16 @@ async function fetchConservation(lat: number, lng: number, osKey: string | null)
   })
   console.log(`[pi:conservation] status=${res.status}`)
 
+  if (res.status === 401 || res.status === 403) {
+    console.error(`[pi:conservation] ${res.status} — check OS_DATA_HUB_KEY and Features API plan`)
+    throw new Error(`OS WFS responded ${res.status} — check API key`)
+  }
   if (!res.ok) throw new Error(`OS WFS (Sites) responded ${res.status}`)
 
   const data = await res.json()
   const features: unknown[] = data?.features ?? []
   console.log(`[pi:conservation] ${features.length} site feature(s) returned`)
 
-  // Identify conservation area and listed buildings from feature properties
   let conservationArea = false
   const listedBuildings: { name: string; type: string; distance_m: number }[] = []
 
@@ -506,11 +653,9 @@ async function fetchConservation(lat: number, lng: number, osKey: string | null)
     const props = feat.properties as Record<string, unknown> | null
     if (!props) continue
 
-    // Feature name and type — OS Zoomstack uses 'name' and 'type' properties
     const name = String(props.name ?? props.Name ?? props.NAME ?? '').trim()
     const type = String(props.type ?? props.Type ?? props.TYPE ?? props.featureType ?? '').trim().toLowerCase()
 
-    // Coordinates for distance calculation
     const geom = feat.geometry as Record<string, unknown> | null
     let featLat = lat
     let featLng = lng
@@ -521,12 +666,10 @@ async function fetchConservation(lat: number, lng: number, osKey: string | null)
     }
     const distM = Math.round(haversineMetres(lat, lng, featLat, featLng))
 
-    // Conservation area detection
     if (type.includes('conservation')) {
       conservationArea = true
     }
 
-    // Listed building detection
     if (
       type.includes('listed') ||
       type.includes('historic') ||
@@ -540,15 +683,14 @@ async function fetchConservation(lat: number, lng: number, osKey: string | null)
     }
   }
 
-  // Sort listed buildings by distance
   listedBuildings.sort((a, b) => a.distance_m - b.distance_m)
 
   console.log(`[pi:conservation] conservation_area=${conservationArea} listed_buildings=${listedBuildings.length}`)
 
   return {
-    conservation_area:  conservationArea,
-    listed_buildings:   listedBuildings.slice(0, 10),
-    feature_count:      features.length,
+    conservation_area: conservationArea,
+    listed_buildings:  listedBuildings.slice(0, 10),
+    feature_count:     features.length,
   }
 }
 
@@ -578,6 +720,10 @@ async function fetchGreenSpaces(lat: number, lng: number, osKey: string | null) 
   })
   console.log(`[pi:green_spaces] status=${res.status}`)
 
+  if (res.status === 401 || res.status === 403) {
+    console.error(`[pi:green_spaces] ${res.status} — check OS_DATA_HUB_KEY and Features API plan`)
+    throw new Error(`OS WFS responded ${res.status} — check API key`)
+  }
   if (!res.ok) throw new Error(`OS WFS (Greenspace) responded ${res.status}`)
 
   const data = await res.json()
@@ -595,7 +741,6 @@ async function fetchGreenSpaces(lat: number, lng: number, osKey: string | null) 
     const name = String(props.name ?? props.Name ?? props.NAME ?? '').trim()
     const type = String(props.type ?? props.Type ?? props.TYPE ?? props.function ?? '').trim()
 
-    // Determine a representative point from the geometry
     const geom = feat.geometry as Record<string, unknown> | null
     let featLat = lat
     let featLng = lng
@@ -605,7 +750,6 @@ async function fetchGreenSpaces(lat: number, lng: number, osKey: string | null) 
       featLng = coords[0]
       featLat = coords[1]
     } else if (geom?.type === 'Polygon') {
-      // Use centroid approximation from first ring
       const ring = (geom.coordinates as number[][][])[0] ?? []
       if (ring.length > 0) {
         featLng = ring.reduce((s, c) => s + c[0], 0) / ring.length
@@ -621,7 +765,6 @@ async function fetchGreenSpaces(lat: number, lng: number, osKey: string | null) 
 
     const distM = Math.round(haversineMetres(lat, lng, featLat, featLng))
 
-    // Skip unnamed green spaces only if we have enough named ones
     if (!name && results.length >= 5) continue
 
     results.push({
