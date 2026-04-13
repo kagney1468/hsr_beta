@@ -193,10 +193,10 @@ export default function AgentDashboard() {
     { label: 'Pack Views This Month', value: packViewsThisMonth, icon: 'visibility', color: 'text-blue-500' },
   ];
 
-  // Invite seller
+  // Invite seller — sends branded email via send-invite Edge Function
   const handleInviteSeller = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inviteEmail) return;
+    if (!inviteEmail || !inviteName) return;
     if (!publicUserId) {
       setInviteResult({ type: 'error', text: 'Your account is still loading. Please wait a moment and try again.' });
       return;
@@ -204,16 +204,28 @@ export default function AgentDashboard() {
     setInviting(true);
     setInviteResult(null);
     try {
-      const redirectUrl = `${getAuthRedirectUrl()}?agent_ref=${publicUserId}`;
-      const { error } = await supabase.auth.signInWithOtp({
-        email: inviteEmail,
-        options: {
-          emailRedirectTo: redirectUrl,
-          shouldCreateUser: true,
-          data: { full_name: inviteName.trim(), role: 'seller' },
-        },
-      });
-      if (error) throw error;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Session expired — please log in again.');
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-invite`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            seller_name:  inviteName.trim(),
+            seller_email: inviteEmail.trim(),
+            agent_ref:    publicUserId,
+          }),
+        }
+      );
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result?.error || 'Failed to send invitation.');
+
       setInviteResult({ type: 'success', text: `Invitation sent to ${inviteEmail}` });
       setInviteName('');
       setInviteEmail('');
