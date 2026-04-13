@@ -40,8 +40,8 @@ export default function AgentLayout() {
 
   const navItems = [
     { label: 'Pipeline',      icon: 'home_work',  path: '/agent/dashboard' },
-    { label: 'Leads',         icon: 'group',      path: '/agent/dashboard?tab=leads' },
-    { label: 'Invite Seller', icon: 'person_add', path: '/agent/dashboard?tab=invite' },
+    { label: 'Leads',         icon: 'group',      path: '/agent/dashboard#leads' },
+    { label: 'Invite Seller', icon: 'person_add', path: '/agent/dashboard#invite' },
     { label: 'Branding',      icon: 'palette',    path: '/agent/branding' },
   ];
 

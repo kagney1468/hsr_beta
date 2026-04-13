@@ -12,7 +12,12 @@ type Tab = 'pipeline' | 'leads' | 'invite';
 
 export default function AgentDashboard() {
   const { user } = useAuth();
-  const [tab, setTab] = useState<Tab>('pipeline');
+  const getInitialTab = (): Tab => {
+    const hash = window.location.hash.replace('#', '');
+    if (hash === 'leads' || hash === 'invite') return hash;
+    return 'pipeline';
+  };
+  const [tab, setTab] = useState<Tab>(getInitialTab);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [properties, setProperties] = useState<any[]>([]);
@@ -44,6 +49,10 @@ export default function AgentDashboard() {
         .maybeSingle();
 
       if (!agencyData) {
+        // Agent has no agency yet — send them to complete onboarding
+        if (!silent) {
+          window.location.replace('/agent/onboarding');
+        }
         setProperties([]);
         setLeads([]);
         return;

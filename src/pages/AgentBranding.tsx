@@ -118,12 +118,23 @@ export default function AgentBranding() {
         updated_at: new Date().toISOString(),
       };
 
-      if (settings.id) {
+      // Always fetch the live agency id before saving to prevent duplicate rows
+      const freshPubId = await getPublicUserIdByAuthUserId(user.id);
+      const { data: liveAgency } = await supabase
+        .from('agencies')
+        .select('id')
+        .eq('agent_user_id', freshPubId)
+        .maybeSingle();
+
+      const liveId = liveAgency?.id || settings.id;
+
+      if (liveId) {
         const { error } = await supabase
           .from('agencies')
           .update(payload)
-          .eq('id', settings.id);
+          .eq('id', liveId);
         if (error) throw error;
+        setSettings(s => ({ ...s, id: liveId, logo_url }));
       } else {
         const { data, error } = await supabase
           .from('agencies')

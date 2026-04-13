@@ -74,11 +74,15 @@ export default function AgentPropertyDetail() {
         const declarationComplete = !!(declData?.confirms_accuracy && declData?.confirms_ai_review);
         const sellerProfileComplete = !!(sellerData?.full_name && sellerData?.phone);
 
-        let score = 0;
-        if (sellerProfileComplete) score += 25;
-        if (propertyComplete) score += 25;
-        if (documentsComplete) score += 25;
-        if (declarationComplete) score += 25;
+        // Use the stored pack_completion_percentage if available (set by seller journey)
+        // so dashboard and property detail always show the same number
+        let score = propData?.pack_completion_percentage || 0;
+        if (score === 0) {
+          if (sellerProfileComplete) score += 25;
+          if (propertyComplete) score += 25;
+          if (documentsComplete) score += 25;
+          if (declarationComplete) score += 25;
+        }
 
         setReadiness({ score, propertyComplete, documentsComplete, declarationComplete, sellerProfileComplete });
       } catch (err) {
