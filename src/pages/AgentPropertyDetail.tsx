@@ -150,11 +150,25 @@ export default function AgentPropertyDetail() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" className="h-12 px-6 rounded-xl font-bold">
+          <Button
+            variant="outline"
+            className="h-12 px-6 rounded-xl font-bold"
+            onClick={() => alert('Edit details — ask your seller to update their property profile, or contact HomeSalesReady support.')}
+          >
             Edit Details
           </Button>
-          <Button variant="primary" className="h-12 px-6 rounded-xl font-black font-heading">
-            Download Pack
+          <Button
+            variant="primary"
+            className="h-12 px-6 rounded-xl font-black font-heading"
+            onClick={() => {
+              if (shareToken) {
+                window.open(`${window.location.origin}/pack/${shareToken}`, '_blank', 'noopener,noreferrer');
+              } else {
+                alert('No shareable pack available yet. The seller must activate sharing from their dashboard first.');
+              }
+            }}
+          >
+            View Pack
           </Button>
         </div>
       </div>

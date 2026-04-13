@@ -492,7 +492,7 @@ export default function AgentOnboarding() {
                 </div>
                 <div>
                   <h3 className="font-black font-heading text-[var(--teal-900)]">Data Processing Agreement</h3>
-                  <Link to="/dpa" target="_blank" className="text-[10px] text-[var(--teal-600)] font-bold uppercase tracking-widest hover:underline">
+                  <Link to="/terms-of-service" target="_blank" className="text-[10px] text-[var(--teal-600)] font-bold uppercase tracking-widest hover:underline">
                     Read full DPA →
                   </Link>
                 </div>
