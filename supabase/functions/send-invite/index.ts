@@ -19,6 +19,7 @@ Deno.serve(async (req) => {
     const serviceKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const anonKey     = Deno.env.get('SUPABASE_ANON_KEY')!
     const resendKey   = Deno.env.get('RESEND_API_KEY')!
+    const siteUrl = (Deno.env.get('SITE_URL') ?? 'https://homesalesready.com').replace(/\/$/, '')
 
     if (!resendKey) return respond({ error: 'RESEND_API_KEY not configured' }, 500)
 
@@ -47,7 +48,7 @@ Deno.serve(async (req) => {
     const agencyName = agencyRow?.agency_name || 'HomeSalesReady'
     const logoUrl    = agencyRow?.logo_url    || 'https://vjpkwwhqbvivaxdnydbx.supabase.co/storage/v1/object/public/brand/hsr-logo-white.png'
 
-    const redirectTo = `https://portal.homesalesready.com/auth/callback?agent_ref=${agent_ref}`
+    const redirectTo = `${siteUrl}/auth/callback?agent_ref=${agent_ref}`
 
     const { data: otpData, error: otpErr } = await db.auth.admin.generateLink({
       type: 'magiclink',

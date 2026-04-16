@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { getPublicUserIdByAuthUserId } from '../lib/publicUser';
@@ -18,6 +18,12 @@ export default function AgentDashboard() {
     return 'pipeline';
   };
   const [tab, setTab] = useState<Tab>(getInitialTab);
+  const location = useLocation();
+  useEffect(() => {
+    const hash = location.hash.replace('#', '');
+    if (hash === 'leads' || hash === 'invite') setTab(hash);
+    else if (hash === '' || hash === 'pipeline') setTab('pipeline');
+  }, [location.hash]);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [properties, setProperties] = useState<any[]>([]);
@@ -204,27 +210,11 @@ export default function AgentDashboard() {
     setInviting(true);
     setInviteResult(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Session expired — please log in again.');
-
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-invite`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            seller_name:  inviteName.trim(),
-            seller_email: inviteEmail.trim(),
-            agent_ref:    publicUserId,
-          }),
-        }
-      );
-
-      const result = await res.json();
-      if (!res.ok) throw new Error(result?.error || 'Failed to send invitation.');
+      const { data: result, error: fnError } = await supabase.functions.invoke('send-invite', {
+        body: { seller_name: inviteName.trim(), seller_email: inviteEmail.trim(), agent_ref: publicUserId },
+      });
+      if (fnError) throw new Error((fnError as any)?.message || 'Failed to send invitation.');
+      if (result?.error) throw new Error(result.error);
 
       setInviteResult({ type: 'success', text: `Invitation sent to ${inviteEmail}` });
       setInviteName('');

@@ -17,6 +17,8 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [loginMethod, setLoginMethod] = useState<'magic-link' | 'password'>('magic-link');
+  const [password, setPassword] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isLoading: authLoading } = useAuth();
@@ -86,6 +88,12 @@ export default function Login() {
     setError(null);
 
     try {
+      if (loginMethod === 'password') {
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInError) setError(formatAuthError(signInError));
+        return;
+      }
+
       const redirectTo = getAuthRedirectUrl();
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email,
@@ -110,7 +118,7 @@ export default function Login() {
       }
       setSuccess(true);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Could not send login link.');
+      setError(err instanceof Error ? err.message : 'Could not sign in.');
     } finally {
       setLoading(false);
     }
@@ -227,7 +235,7 @@ export default function Login() {
           <h1 className="text-4xl font-black font-heading text-[var(--teal-900)] tracking-tight">
             {role === 'seller' ? 'Seller Login' : 'Agent Login'}
           </h1>
-          <p className="text-[var(--muted)]">Enter your email and we’ll send you a secure link.</p>
+          <p className="text-[var(--muted)]">{loginMethod === ‘password’ ? "Enter your email and password to sign in." : "Enter your email and we’ll send you a secure link."}</p>
         </div>
 
         <Card className="p-8 space-y-6">
@@ -245,6 +253,31 @@ export default function Login() {
             <div className="flex-1 h-px bg-[var(--border)]" />
           </div>
 
+          <div className="flex rounded-xl border border-[var(--border)] p-1 gap-1">
+            <button
+              type="button"
+              onClick={() => setLoginMethod('magic-link')}
+              className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
+                loginMethod === 'magic-link'
+                  ? 'bg-[var(--teal-600)] text-white'
+                  : 'text-[var(--muted)] hover:text-[var(--teal-900)]'
+              }`}
+            >
+              Magic link
+            </button>
+            <button
+              type="button"
+              onClick={() => setLoginMethod('password')}
+              className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
+                loginMethod === 'password'
+                  ? 'bg-[var(--teal-600)] text-white'
+                  : 'text-[var(--muted)] hover:text-[var(--teal-900)]'
+              }`}
+            >
+              Password
+            </button>
+          </div>
+
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)]">Email address</label>
@@ -258,13 +291,29 @@ export default function Login() {
               />
             </div>
 
+            {loginMethod === 'password' && (
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)]">Password</label>
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full"
+                  placeholder="Your password"
+                />
+              </div>
+            )}
+
             <Button
               type="submit"
               variant="primary"
               className="w-full h-14 rounded-2xl font-heading font-bold text-lg mt-4"
               disabled={loading}
             >
-              {loading ? 'Sending…' : 'Send My Login Link'}
+              {loading
+                ? (loginMethod === 'password' ? 'Signing in…' : 'Sending…')
+                : (loginMethod === 'password' ? 'Sign In' : 'Send My Login Link')}
             </Button>
           </form>
 
