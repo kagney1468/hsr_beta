@@ -158,7 +158,7 @@ export default function Login() {
                         <span className="material-symbols-outlined text-3xl">person</span>
                     </div>
                     <div className="space-y-2">
-                        <h3 className="text-2xl font-black font-heading text-[var(--teal-900)]">I’m a seller</h3>
+                        <h3 className="text-2xl font-black font-heading text-[var(--teal-900)]">I'm a seller</h3>
                         <p className="text-[var(--muted)] text-sm leading-relaxed">Access your property pack, upload documents, and track your sale readiness.</p>
                     </div>
                     <div className="pt-4 flex items-center gap-2 text-[var(--teal-600)] font-semibold text-xs uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
@@ -175,7 +175,7 @@ export default function Login() {
                         <span className="material-symbols-outlined text-3xl">corporate_fare</span>
                     </div>
                     <div className="space-y-2">
-                        <h3 className="text-2xl font-black font-heading text-[var(--teal-900)]">I’m an estate agent</h3>
+                        <h3 className="text-2xl font-black font-heading text-[var(--teal-900)]">I'm an estate agent</h3>
                         <p className="text-[var(--muted)] text-sm leading-relaxed">Manage your agency pipeline, view leads, and access property packs.</p>
                     </div>
                     <div className="pt-4 flex items-center gap-2 text-[var(--teal-600)] font-semibold text-xs uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
@@ -235,7 +235,7 @@ export default function Login() {
           <h1 className="text-4xl font-black font-heading text-[var(--teal-900)] tracking-tight">
             {role === 'seller' ? 'Seller Login' : 'Agent Login'}
           </h1>
-          <p className="text-[var(--muted)]">{loginMethod === ‘password’ ? "Enter your email and password to sign in." : "Enter your email and we’ll send you a secure link."}</p>
+          <p className="text-[var(--muted)]">{loginMethod === 'password' ? "Enter your email and password to sign in." : "Enter your email and we'll send you a secure link."}</p>
         </div>
 
         <Card className="p-8 space-y-6">
