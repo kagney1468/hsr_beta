@@ -39,10 +39,11 @@ export default function AgentLayout() {
   }
 
   const navItems = [
-    { label: 'Pipeline',      icon: 'home_work',  path: '/agent/dashboard' },
-    { label: 'Leads',         icon: 'group',      path: '/agent/dashboard#leads' },
-    { label: 'Invite Seller', icon: 'person_add', path: '/agent/dashboard#invite' },
-    { label: 'Branding',      icon: 'palette',    path: '/agent/branding' },
+    { label: 'Pipeline',      icon: 'home_work',       path: '/agent/dashboard' },
+    { label: 'Leads',         icon: 'group',           path: '/agent/dashboard#leads' },
+    { label: 'Invite Seller', icon: 'person_add',      path: '/agent/dashboard#invite' },
+    { label: 'Branding',      icon: 'palette',         path: '/agent/branding' },
+    { label: 'My Profile',    icon: 'manage_accounts', path: '/agent/profile' },
   ];
 
   const SidebarContents = () => (

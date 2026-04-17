@@ -46,7 +46,12 @@ export default function PropertyProfile() {
     parking: 'Driveway',
     restrictions: '',
     rights_easements: '',
-    flood_risk: 'Low',
+    gas_supply: '',
+    drainage: '',
+    water_heating: '',
+    flood_risk_surface_water: '',
+    flood_risk_rivers_sea: '',
+    flood_risk_groundwater: '',
     coastal_erosion: 'No',
     planning_permissions: '',
     coalfield_area: 'No',
@@ -94,7 +99,12 @@ export default function PropertyProfile() {
             parking: mi?.parking || 'Driveway',
             restrictions: mi?.restrictions || '',
             rights_easements: mi?.rights_easements || '',
-            flood_risk: mi?.flood_risk || 'Low',
+            gas_supply: mi?.gas_supply || '',
+            drainage: mi?.drainage || '',
+            water_heating: mi?.water_heating || '',
+            flood_risk_surface_water: mi?.flood_risk_surface_water || '',
+            flood_risk_rivers_sea: mi?.flood_risk_rivers_sea || '',
+            flood_risk_groundwater: mi?.flood_risk_groundwater || '',
             coastal_erosion: mi?.coastal_erosion || 'No',
             planning_permissions: mi?.planning_permissions || '',
             coalfield_area: mi?.coalfield_area || 'No',
@@ -254,12 +264,17 @@ export default function PropertyProfile() {
           property_id: property.id,
           water_supply: formData.water_supply,
           electricity_supply: formData.electricity_supply,
+          gas_supply: formData.gas_supply,
+          drainage: formData.drainage,
+          water_heating: formData.water_heating,
           broadband_speed: formData.broadband_speed,
           mobile_signal: formData.mobile_signal,
           parking: formData.parking,
           restrictions: formData.restrictions,
           rights_easements: formData.rights_easements,
-          flood_risk: formData.flood_risk,
+          flood_risk_surface_water: formData.flood_risk_surface_water,
+          flood_risk_rivers_sea: formData.flood_risk_rivers_sea,
+          flood_risk_groundwater: formData.flood_risk_groundwater,
           coastal_erosion: formData.coastal_erosion,
           planning_permissions: formData.planning_permissions,
           coalfield_area: formData.coalfield_area,
@@ -478,6 +493,46 @@ export default function PropertyProfile() {
             </div>
 
             <div className="space-y-2">
+              <label className="text-sm font-semibold">Gas Supply</label>
+              <select name="gas_supply" value={formData.gas_supply} onChange={handleChange} className="w-full">
+                <option value="">Select...</option>
+                <option value="Mains">Mains</option>
+                <option value="LPG">LPG</option>
+                <option value="Oil">Oil</option>
+                <option value="None">None</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-semibold">Drainage</label>
+              <select name="drainage" value={formData.drainage} onChange={handleChange} className="w-full">
+                <option value="">Select...</option>
+                <option value="Mains">Mains</option>
+                <option value="Septic Tank">Septic Tank</option>
+                <option value="Cesspit">Cesspit</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-semibold">Water Heating</label>
+              <select name="water_heating" value={formData.water_heating} onChange={handleChange} className="w-full">
+                <option value="">Select...</option>
+                <option value="Combi Boiler">Combi Boiler</option>
+                <option value="Water Tank">Water Tank</option>
+                <option value="Megaflow">Megaflow</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-semibold">Water Supply</label>
+              <select name="water_supply" value={formData.water_supply} onChange={handleChange} className="w-full">
+                <option value="Mains">Mains</option>
+                <option value="Private Supply">Private Supply</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
               <label className="text-sm font-semibold">Broadband</label>
               <select name="broadband_speed" value={formData.broadband_speed} onChange={handleChange} className="w-full">
                 <option value="Standard">Standard (Up to 24Mbps)</option>
@@ -499,19 +554,36 @@ export default function PropertyProfile() {
           </div>
           
           <div className="space-y-6">
-            <div className="space-y-2">
+            <div className="space-y-3">
               <label className="text-sm font-semibold flex items-center gap-2">
                 Flood Risk
-                <Tooltip content="Does the property have a history of flooding or is it in a high-risk zone?">
+                <Tooltip content="Check the government flood risk service and enter the risk level for each category below.">
                   <span className="material-symbols-outlined text-slate-400 text-xs">help</span>
                 </Tooltip>
               </label>
-              <select name="flood_risk" value={formData.flood_risk} onChange={handleChange} className="w-full">
-                <option value="Very Low">Very Low</option>
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
-              </select>
+              <a
+                href="https://www.gov.uk/check-long-term-flood-risk"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--teal-050)] border border-[var(--border)] text-[var(--teal-900)] text-xs font-bold hover:bg-[var(--teal-100)] transition-colors"
+              >
+                <span className="material-symbols-outlined text-sm text-[var(--teal-600)]">open_in_new</span>
+                Check Long-Term Flood Risk (gov.uk)
+              </a>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-[var(--muted)]">Surface Water</label>
+                  <input type="text" name="flood_risk_surface_water" value={formData.flood_risk_surface_water} onChange={handleChange} className="w-full" placeholder="e.g. Low / Medium / High" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-[var(--muted)]">Rivers &amp; Sea</label>
+                  <input type="text" name="flood_risk_rivers_sea" value={formData.flood_risk_rivers_sea} onChange={handleChange} className="w-full" placeholder="e.g. Low / Medium / High" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-[var(--muted)]">Groundwater</label>
+                  <input type="text" name="flood_risk_groundwater" value={formData.flood_risk_groundwater} onChange={handleChange} className="w-full" placeholder="e.g. Low / Medium / High" />
+                </div>
+              </div>
             </div>
 
             <div className="space-y-2">

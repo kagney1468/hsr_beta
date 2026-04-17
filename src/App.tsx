@@ -24,6 +24,7 @@ import AgentDashboard from './pages/AgentDashboard';
 import AgentBranding from './pages/AgentBranding';
 import AgentPropertyDetail from './pages/AgentPropertyDetail';
 import AgentOnboarding from './pages/AgentOnboarding';
+import AgentProfile from './pages/AgentProfile';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import PublicPack from './pages/PublicPack';
@@ -81,6 +82,7 @@ export default function App() {
               <Route index element={<Navigate to="/agent/dashboard" replace />} />
               <Route path="dashboard" element={<AgentDashboard />} />
               <Route path="branding" element={<AgentBranding />} />
+              <Route path="profile" element={<AgentProfile />} />
               <Route path="property/:id" element={<AgentPropertyDetail />} />
             </Route>
           </Route>

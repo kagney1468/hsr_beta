@@ -178,6 +178,10 @@ export default function AgentPropertyDetail() {
       </div>
 
       <main className="max-w-7xl mx-auto p-6 md:p-12">
+        <div className="mb-6 flex items-center gap-3 px-4 py-3 rounded-xl bg-[var(--teal-050)] border border-[var(--border)] text-[var(--teal-900)]">
+          <span className="material-symbols-outlined text-[var(--teal-600)] shrink-0">verified</span>
+          <p className="text-sm font-semibold">All information on this pack has been declared and verified by the seller.</p>
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Column */}
           <div className="lg:col-span-2 space-y-8">
