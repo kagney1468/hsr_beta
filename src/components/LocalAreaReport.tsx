@@ -75,23 +75,50 @@ export default function LocalAreaReport({ propertyId, postcode, address }: Props
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fetched, setFetched] = useState(false);
+  const [cachedAt, setCachedAt] = useState<string | null>(null);
+  const [fromCache, setFromCache] = useState(false);
 
-  const fetchReport = useCallback(async () => {
+  // On mount — check Supabase for a cached report before calling the Edge Function
+  useEffect(() => {
+    async function loadCache() {
+      if (!propertyId) return;
+      try {
+        const { data } = await supabase
+          .from('properties')
+          .select('local_area_report, local_area_report_cached_at')
+          .eq('id', propertyId)
+          .maybeSingle() as { data: { local_area_report: unknown; local_area_report_cached_at: string | null } | null };
+
+        if (data?.local_area_report) {
+          setReport(data.local_area_report as AreaReport);
+          setCachedAt(data.local_area_report_cached_at);
+          setFromCache(true);
+          setFetched(true);
+        }
+      } catch {
+        // silently fall through to full fetch
+      }
+    }
+    loadCache();
+  }, [propertyId]);
+
+  const fetchReport = useCallback(async (forceRefresh = false) => {
     if (loading) return;
     setLoading(true); setError(null);
     try {
       const { data, error: fnErr } = await supabase.functions.invoke('local-area-report', {
-        body: { postcode, address, propertyId },
+        body: { postcode, address, propertyId, forceRefresh },
       });
       if (fnErr) throw new Error(fnErr.message || 'Failed to load area report');
       if (data?.error) throw new Error(data.error);
-      setReport(data.report); setFetched(true);
+      setReport(data.report);
+      setCachedAt(data.cachedAt ?? null);
+      setFromCache(data.cached ?? false);
+      setFetched(true);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load area report');
     } finally { setLoading(false); }
   }, [postcode, address, propertyId, loading]);
-
-  useEffect(() => { fetchReport(); }, []); // eslint-disable-line
 
   if (loading) return (
     <div className="space-y-4">
@@ -112,7 +139,7 @@ export default function LocalAreaReport({ propertyId, postcode, address }: Props
     <Card className="p-6 text-center space-y-3">
       <span className="material-symbols-outlined text-3xl text-[#dc2626]">error_outline</span>
       <p className="text-sm text-[var(--muted)]">{error}</p>
-      <button onClick={fetchReport} className="text-sm font-semibold text-[var(--teal-600)] hover:text-[var(--teal-900)] transition-colors">Try again</button>
+      <button onClick={() => fetchReport(false)} className="text-sm font-semibold text-[var(--teal-600)] hover:text-[var(--teal-900)] transition-colors">Try again</button>
     </Card>
   );
 
@@ -120,7 +147,7 @@ export default function LocalAreaReport({ propertyId, postcode, address }: Props
     <Card className="p-6 text-center space-y-3">
       <span className="text-3xl">🏘️</span>
       <p className="text-sm font-semibold text-[var(--teal-900)]">No area report yet</p>
-      <button onClick={fetchReport} className="inline-flex items-center gap-2 bg-[var(--teal-600)] text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-[var(--teal-900)] transition-colors">
+      <button onClick={() => fetchReport(false)} className="inline-flex items-center gap-2 bg-[var(--teal-600)] text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-[var(--teal-900)] transition-colors">
         <span className="material-symbols-outlined text-base">search</span>Generate Report
       </button>
     </Card>
@@ -131,9 +158,21 @@ export default function LocalAreaReport({ propertyId, postcode, address }: Props
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between px-1">
-        <p className="text-xs text-[var(--muted)]">{report.postcode}</p>
-        <button onClick={fetchReport} className="flex items-center gap-1.5 text-xs font-semibold text-[var(--muted)] hover:text-[var(--teal-900)] transition-colors border border-[var(--border)] rounded-lg px-3 py-1.5">
-          <span className="material-symbols-outlined text-sm">refresh</span>Refresh
+        <div className="flex items-center gap-2">
+          <p className="text-xs text-[var(--muted)]">{report.postcode}</p>
+          {fromCache && cachedAt && (
+            <span className="text-[10px] font-semibold text-[var(--muted)] bg-[var(--teal-050)] border border-[var(--border)] px-2 py-0.5 rounded-full">
+              Cached · {new Date(cachedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+            </span>
+          )}
+        </div>
+        <button
+          onClick={() => fetchReport(true)}
+          disabled={loading}
+          className="flex items-center gap-1.5 text-xs font-semibold text-[var(--muted)] hover:text-[var(--teal-900)] transition-colors border border-[var(--border)] rounded-lg px-3 py-1.5 disabled:opacity-50"
+        >
+          <span className={`material-symbols-outlined text-sm ${loading ? 'animate-spin' : ''}`}>refresh</span>
+          {loading ? 'Refreshing…' : 'Refresh'}
         </button>
       </div>
 

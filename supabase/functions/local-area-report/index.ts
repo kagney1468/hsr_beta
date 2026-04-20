@@ -1,3 +1,5 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -9,16 +11,32 @@ const respond = (data: unknown, status = 200) =>
     headers: { ...CORS, 'Content-Type': 'application/json' },
   })
 
-// ── Main handler ──────────────────────────────────────────────────────────────
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
   try {
-    const { postcode, address, propertyId } = await req.json()
-    console.log(`[lar] Request — postcode=${postcode} propertyId=${propertyId}`)
+    const { postcode, address, propertyId, forceRefresh } = await req.json()
+    console.log(`[lar] Request — postcode=${postcode} propertyId=${propertyId} forceRefresh=${forceRefresh}`)
 
     if (!postcode) return respond({ error: 'postcode is required' }, 400)
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabase    = createClient(supabaseUrl, supabaseKey)
+
+    // Check cache
+    if (propertyId && !forceRefresh) {
+      const { data: cached } = await supabase
+        .from('properties')
+        .select('local_area_report, local_area_report_cached_at')
+        .eq('id', propertyId)
+        .maybeSingle()
+
+      if (cached?.local_area_report) {
+        console.log(`[lar] Cache hit for propertyId=${propertyId}`)
+        return respond({ report: cached.local_area_report, cached: true, cachedAt: cached.local_area_report_cached_at })
+      }
+    }
 
     const geminiKey = Deno.env.get('HOME_CHECK')
     if (!geminiKey) {
@@ -26,15 +44,9 @@ Deno.serve(async (req) => {
       return respond({ error: 'Area report service is not configured' }, 500)
     }
 
-    // Normalise postcode to "AA9 9AA" format
     const clean     = postcode.replace(/\s+/g, '').toUpperCase()
-    const formatted = clean.length > 3
-      ? `${clean.slice(0, -3)} ${clean.slice(-3)}`
-      : clean
-
+    const formatted = clean.length > 3 ? `${clean.slice(0, -3)} ${clean.slice(-3)}` : clean
     const addressLine = address ? `${address}, ${formatted}` : formatted
-
-    // ── Build Gemini prompt ───────────────────────────────────────────────────
 
     const prompt = `You are a UK property research assistant with expert knowledge of local areas.
 Generate a detailed local area report for the property at: ${addressLine}
@@ -87,10 +99,7 @@ Rules:
 - broadband speeds should reflect what is realistically available in that type of UK area
 - Be positive but accurate — this is a buyer-facing report`
 
-    // ── Call Gemini ───────────────────────────────────────────────────────────
-
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`
-
     console.log(`[lar] Calling Gemini for ${formatted}`)
 
     const geminiRes = await fetch(geminiUrl, {
@@ -98,10 +107,7 @@ Rules:
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature:      0.2,
-          responseMimeType: 'application/json',
-        },
+        generationConfig: { temperature: 0.2, responseMimeType: 'application/json' },
       }),
       signal: AbortSignal.timeout(30_000),
     })
@@ -113,21 +119,18 @@ Rules:
       console.error('[lar] Gemini auth error:', JSON.stringify(body))
       return respond({ error: 'HOME_CHECK API key is invalid or unauthorised' }, 500)
     }
-
     if (geminiRes.status === 400) {
       const body = await geminiRes.json().catch(() => ({}))
       console.error('[lar] Gemini 400:', JSON.stringify(body))
       return respond({ error: 'Area report request invalid: ' + (body?.error?.message ?? 'unknown') }, 500)
     }
-
     if (!geminiRes.ok) {
       console.error(`[lar] Gemini unexpected status ${geminiRes.status}`)
       return respond({ error: `Area report service responded ${geminiRes.status}` }, 500)
     }
 
     const geminiData = await geminiRes.json()
-    const rawText   = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-
+    const rawText    = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
     console.log(`[lar] Raw response length=${rawText.length}`)
 
     if (!rawText) {
@@ -136,16 +139,9 @@ Rules:
       return respond({ error: 'Area report service returned an empty response' }, 500)
     }
 
-    // ── Parse JSON ────────────────────────────────────────────────────────────
-    // responseMimeType: application/json should give clean JSON, but strip any
-    // accidental markdown fences defensively.
-
     let report: unknown
     try {
-      const cleaned = rawText
-        .replace(/^```(?:json)?\s*/i, '')
-        .replace(/\s*```\s*$/i, '')
-        .trim()
+      const cleaned = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
       report = JSON.parse(cleaned)
     } catch {
       console.error('[lar] JSON parse failed. First 300 chars:', rawText.slice(0, 300))
@@ -154,7 +150,18 @@ Rules:
 
     console.log(`[lar] Report generated successfully for ${formatted}`)
 
-    return respond({ report })
+    // Write to cache
+    if (propertyId) {
+      const { error: cacheErr } = await supabase
+        .from('properties')
+        .update({ local_area_report: report, local_area_report_cached_at: new Date().toISOString() })
+        .eq('id', propertyId)
+
+      if (cacheErr) console.warn('[lar] Cache write failed (non-fatal):', cacheErr.message)
+      else console.log(`[lar] Cache written for propertyId=${propertyId}`)
+    }
+
+    return respond({ report, cached: false, cachedAt: new Date().toISOString() })
 
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Internal error'
