@@ -88,7 +88,6 @@ export default function App() {
           </Route>
 
           {/* Legacy redirects */}
-          <Route path="/seller/onboarding" element={<Navigate to="/welcome" replace />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>
