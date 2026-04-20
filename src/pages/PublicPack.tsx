@@ -16,7 +16,7 @@ function EpcGraphic({ rating }: { rating: string | null | undefined }) {
   return (
     <div className="rounded-2xl border border-[var(--border)] overflow-hidden bg-white shadow-soft max-w-md">
       <div className="px-4 py-3 bg-[var(--teal-900)] text-white font-heading font-bold text-sm">Energy Performance Certificate</div>
-      <div className="p-6 space-y-4">
+      <div className="p-4 sm:p-6 space-y-4">
         <div className="flex gap-1 h-36 items-end justify-center">
           {bands.map((b, i) => {
             const colors = ['#22c55e', '#84cc16', '#eab308', '#f59e0b', '#f97316', '#ef4444', '#b91c1c'];
@@ -54,11 +54,14 @@ export default function PublicPack() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
   const [registering, setRegistering] = useState(false);
+  const [showBuyerModal, setShowBuyerModal] = useState(false);
 
   const [viewerForm, setViewerForm] = useState({
     name: '',
     email: '',
     phone: '',
+    viewer_type: 'buyer' as 'buyer' | 'professional',
+    company_name: '',
     is_selling: false,
     selling_location: '',
   });
@@ -156,8 +159,10 @@ export default function PublicPack() {
         p_viewer_name: viewerForm.name,
         p_viewer_email: viewerForm.email,
         p_viewer_phone: viewerForm.phone,
-        p_is_selling: viewerForm.is_selling,
-        p_selling_location: viewerForm.is_selling ? viewerForm.selling_location : null,
+        p_is_selling: viewerForm.viewer_type === 'buyer' ? viewerForm.is_selling : false,
+        p_selling_location: viewerForm.viewer_type === 'buyer' && viewerForm.is_selling ? viewerForm.selling_location : null,
+        p_viewer_type: viewerForm.viewer_type,
+        p_company_name: viewerForm.viewer_type === 'professional' ? viewerForm.company_name : null,
       });
 
       if (regErr) throw regErr;
@@ -200,6 +205,15 @@ export default function PublicPack() {
       setIsRegistered(true);
       await loadPackDetails(token);
       window.scrollTo(0, 0);
+
+      // Show Buyer Intelligence Report modal for buyers only, once per session
+      if (viewerForm.viewer_type === 'buyer') {
+        const modalKey = `hsr-bir-shown-${token}`;
+        if (!sessionStorage.getItem(modalKey)) {
+          setTimeout(() => setShowBuyerModal(true), 2000);
+          sessionStorage.setItem(modalKey, '1');
+        }
+      }
     } catch (err) {
       console.error('Registration failed:', err);
       alert('Failed to register. Please try again.');
@@ -274,9 +288,9 @@ export default function PublicPack() {
                 <Button
                   onClick={handlePrint}
                   variant="outline"
-                  className="h-10 px-4 rounded-xl text-xs font-semibold uppercase tracking-widest flex items-center gap-2 print:hidden"
+                  className="h-10 px-3 sm:px-4 rounded-xl text-xs font-semibold uppercase tracking-widest flex items-center gap-2 print:hidden"
                 >
-                  Print / PDF
+                  <span className="hidden sm:inline">Print / PDF</span>
                   <span className="material-symbols-outlined text-sm">print</span>
                 </Button>
               </>
@@ -285,13 +299,13 @@ export default function PublicPack() {
         </div>
       </header>
 
-      <main className="pt-28 pb-24 px-6 max-w-4xl mx-auto print:pt-8">
+      <main className="pt-24 pb-24 px-4 sm:px-6 max-w-4xl mx-auto print:pt-8">
         {!isRegistered ? (
           <div className="space-y-12 animate-in fade-in slide-in-from-bottom-6 duration-700">
             <div className="text-center space-y-4">
-              <h1 className="text-3xl md:text-5xl font-black font-heading leading-tight tracking-tight text-[var(--teal-900)]">
-                Access the property pack for <br />
-                <span className="text-[var(--teal-600)]">
+              <h1 className="text-2xl sm:text-3xl md:text-5xl font-black font-heading leading-tight tracking-tight text-[var(--teal-900)]">
+                Access the property pack for{' '}
+                <span className="text-[var(--teal-600)] break-words">
                   {[property.address_line1, property.address_town, property.address_postcode].filter(Boolean).join(', ')}
                 </span>
               </h1>
@@ -300,10 +314,38 @@ export default function PublicPack() {
               </p>
             </div>
 
-            <Card className="p-10 md:p-12 rounded-[28px] relative overflow-hidden border-[var(--border)] shadow-soft">
+            <Card className="p-6 sm:p-10 md:p-12 rounded-[28px] relative overflow-hidden border-[var(--border)] shadow-soft">
               <div className="absolute top-0 right-0 size-64 bg-[var(--teal-050)] blur-[100px] pointer-events-none" />
               <form onSubmit={handleRegister} className="space-y-8 relative z-10">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+                {/* Step 1 — Viewer type */}
+                <div className="space-y-3">
+                  <p className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-[0.2em]">I am a…</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    {([
+                      { value: 'buyer', label: 'Buyer', icon: 'home', sub: 'Looking to purchase' },
+                      { value: 'professional', label: 'Professional', icon: 'badge', sub: 'Solicitor, surveyor, agent' },
+                    ] as const).map(({ value, label, icon, sub }) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setViewerForm({ ...viewerForm, viewer_type: value })}
+                        className={`p-5 rounded-2xl border text-left transition-all flex flex-col gap-1 ${
+                          viewerForm.viewer_type === value
+                            ? 'bg-[var(--teal-600)] text-white border-[var(--teal-600)] shadow-soft'
+                            : 'bg-white text-[var(--text)] border-[var(--border)] hover:border-[var(--teal-500)]'
+                        }`}
+                      >
+                        <span className={`material-symbols-outlined text-2xl mb-1 ${viewerForm.viewer_type === value ? 'text-white' : 'text-[var(--teal-600)]'}`}>{icon}</span>
+                        <span className="font-black font-heading text-base leading-tight">{label}</span>
+                        <span className={`text-[11px] font-medium leading-snug ${viewerForm.viewer_type === value ? 'text-white/80' : 'text-[var(--muted)]'}`}>{sub}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Step 2 — Contact details */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-[0.2em]">Full name</label>
                     <input
@@ -340,41 +382,54 @@ export default function PublicPack() {
                   />
                 </div>
 
-                <div className="space-y-4 pt-4 border-t border-[var(--border)]">
-                  <p className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-[0.2em]">
-                    Are you selling?
-                  </p>
-                  <div className="flex gap-4">
-                    {[true, false].map((val) => (
-                      <button
-                        key={val ? 'yes' : 'no'}
-                        type="button"
-                        onClick={() => setViewerForm({ ...viewerForm, is_selling: val })}
-                        className={`flex-1 h-14 rounded-2xl border text-sm font-bold font-heading transition-all ${
-                          viewerForm.is_selling === val
-                            ? 'bg-[var(--teal-600)] text-white border-[var(--teal-600)]'
-                            : 'bg-white text-[var(--muted)] border-[var(--border)] hover:border-[var(--teal-500)]'
-                        }`}
-                      >
-                        {val ? 'Yes' : 'No'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {viewerForm.is_selling && (
+                {/* Professional: company name */}
+                {viewerForm.viewer_type === 'professional' && (
                   <div className="space-y-2 animate-in fade-in duration-300">
-                    <label className="text-[10px] font-semibold text-[var(--teal-600)] uppercase tracking-[0.2em]">
-                      Where is your property?
-                    </label>
+                    <label className="text-[10px] font-semibold text-[var(--teal-600)] uppercase tracking-[0.2em]">Company / firm name</label>
                     <input
-                      required={viewerForm.is_selling}
+                      required
                       type="text"
-                      value={viewerForm.selling_location}
-                      onChange={(e) => setViewerForm({ ...viewerForm, selling_location: e.target.value })}
+                      value={viewerForm.company_name}
+                      onChange={(e) => setViewerForm({ ...viewerForm, company_name: e.target.value })}
                       className="w-full"
-                      placeholder="Town or area"
+                      placeholder="e.g. Smith & Co Solicitors"
                     />
+                  </div>
+                )}
+
+                {/* Buyer: also selling? */}
+                {viewerForm.viewer_type === 'buyer' && (
+                  <div className="space-y-4 pt-4 border-t border-[var(--border)] animate-in fade-in duration-300">
+                    <p className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-[0.2em]">Do you also have a property to sell?</p>
+                    <div className="flex gap-4">
+                      {([true, false] as const).map((val) => (
+                        <button
+                          key={val ? 'yes' : 'no'}
+                          type="button"
+                          onClick={() => setViewerForm({ ...viewerForm, is_selling: val })}
+                          className={`flex-1 h-12 rounded-2xl border text-sm font-bold font-heading transition-all ${
+                            viewerForm.is_selling === val
+                              ? 'bg-[var(--teal-600)] text-white border-[var(--teal-600)]'
+                              : 'bg-white text-[var(--muted)] border-[var(--border)] hover:border-[var(--teal-500)]'
+                          }`}
+                        >
+                          {val ? 'Yes' : 'No'}
+                        </button>
+                      ))}
+                    </div>
+                    {viewerForm.is_selling && (
+                      <div className="space-y-2 animate-in fade-in duration-300">
+                        <label className="text-[10px] font-semibold text-[var(--teal-600)] uppercase tracking-[0.2em]">Where is your property?</label>
+                        <input
+                          required={viewerForm.is_selling}
+                          type="text"
+                          value={viewerForm.selling_location}
+                          onChange={(e) => setViewerForm({ ...viewerForm, selling_location: e.target.value })}
+                          className="w-full"
+                          placeholder="Town or area"
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -407,25 +462,25 @@ export default function PublicPack() {
             </div>
 
             <div className="space-y-4">
-              <h1 className="text-4xl md:text-6xl font-black font-heading tracking-tight leading-none text-[var(--teal-900)]">
+              <h1 className="text-3xl sm:text-4xl md:text-6xl font-black font-heading tracking-tight leading-tight text-[var(--teal-900)] break-words">
                 {[property.address_line1, property.address_line2, property.address_town, property.address_county]
                   .filter(Boolean).join(', ')}
               </h1>
               <p className="text-xl text-[var(--muted)]">{property.address_postcode}</p>
             </div>
 
-            <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 print:grid-cols-5">
+            <section className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 print:grid-cols-5">
               {[
                 { label: 'Type', value: property.property_type, icon: 'home' },
                 { label: 'Tenure', value: property.tenure, icon: 'vpn_key' },
-                { label: 'Bedrooms', value: property.bedrooms, icon: 'bed' },
-                { label: 'Bathrooms', value: property.bathrooms, icon: 'bathtub' },
+                { label: 'Beds', value: property.bedrooms, icon: 'bed' },
+                { label: 'Baths', value: property.bathrooms, icon: 'bathtub' },
                 { label: 'Council tax', value: property.council_tax_band ? `Band ${property.council_tax_band}` : '—', icon: 'receipt_long' },
               ].map((item) => (
-                <Card key={item.label} className="p-5 border-[var(--border)] shadow-soft bg-white">
-                  <span className="material-symbols-outlined text-[var(--teal-600)] text-2xl mb-2">{item.icon}</span>
-                  <p className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-widest">{item.label}</p>
-                  <p className="font-heading font-bold text-[var(--teal-900)] text-lg leading-tight">{item.value ?? '—'}</p>
+                <Card key={item.label} className="p-3 sm:p-5 border-[var(--border)] shadow-soft bg-white">
+                  <span className="material-symbols-outlined text-[var(--teal-600)] text-xl sm:text-2xl mb-1 sm:mb-2">{item.icon}</span>
+                  <p className="text-[9px] sm:text-[10px] font-bold text-[var(--muted)] uppercase tracking-widest">{item.label}</p>
+                  <p className="font-heading font-bold text-[var(--teal-900)] text-sm sm:text-lg leading-tight">{item.value ?? '—'}</p>
                 </Card>
               ))}
             </section>
@@ -551,7 +606,7 @@ export default function PublicPack() {
               )}
             </section>
 
-            <Card className="p-8 border-[var(--border)] bg-[var(--teal-050)] rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6 print:hidden">
+            <Card className="p-6 sm:p-8 border-[var(--border)] bg-[var(--teal-050)] rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6 print:hidden">
               <div>
                 <p className="text-[10px] font-bold text-[var(--teal-600)] uppercase tracking-[0.2em] mb-1">Estate agent</p>
                 <h3 className="text-xl font-black font-heading text-[var(--teal-900)]">{brandName}</h3>
@@ -566,6 +621,76 @@ export default function PublicPack() {
         )}
       </main>
       <Footer />
+
+      {/* ── Buyer Intelligence Report Modal ── */}
+      {showBuyerModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 sm:p-6"
+          style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
+        >
+          <div className="w-full max-w-md bg-white rounded-[28px] shadow-2xl overflow-hidden animate-in slide-in-from-bottom-8 duration-500">
+
+            {/* Header band */}
+            <div className="bg-[var(--teal-900)] px-8 py-6 relative overflow-hidden">
+              <div className="absolute -top-8 -right-8 size-32 bg-[var(--teal-600)] rounded-full opacity-30" />
+              <div className="absolute -bottom-4 -left-4 size-20 bg-[var(--teal-600)] rounded-full opacity-20" />
+              <div className="relative z-10 flex items-center gap-3 mb-3">
+                <div className="size-10 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-white text-xl">lock_open</span>
+                </div>
+                <span className="text-[10px] font-black text-white/70 uppercase tracking-[0.25em]">Buyer Exclusive</span>
+              </div>
+              <h2 className="relative z-10 font-heading font-black text-2xl text-white leading-tight">
+                You've unlocked your<br />
+                <span className="text-[var(--teal-300)]">Buyer Intelligence Report</span>
+              </h2>
+            </div>
+
+            {/* Body */}
+            <div className="px-8 py-6 space-y-5">
+              <p className="text-sm text-[var(--muted)] leading-relaxed">
+                As a registered buyer, you have exclusive access to <strong className="text-[var(--teal-900)]">NestCheck</strong> — our private AI research tool. Get a full area intelligence report for{' '}
+                <span className="font-bold text-[var(--teal-900)]">{property?.address_postcode}</span>{' '}
+                covering schools, transport, crime, broadband, and more.
+              </p>
+
+              <div className="space-y-2">
+                {[
+                  { icon: 'school', text: 'Nearby schools & Ofsted ratings' },
+                  { icon: 'train', text: 'Transport links & commute times' },
+                  { icon: 'security', text: 'Local crime statistics' },
+                  { icon: 'wifi', text: 'Broadband speeds & providers' },
+                ].map(({ icon, text }) => (
+                  <div key={icon} className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[var(--teal-600)] text-lg shrink-0">{icon}</span>
+                    <span className="text-sm text-[var(--text)] font-medium">{text}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="pt-2 space-y-3">
+                <a
+                  href={`https://nestcheck-uk-142701338125.us-west1.run.app/?address=${encodeURIComponent(property?.address_postcode || '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full h-14 rounded-2xl bg-[var(--teal-600)] text-white font-black font-heading text-base flex items-center justify-center gap-3 hover:bg-[var(--teal-900)] transition-colors shadow-soft"
+                >
+                  <span className="material-symbols-outlined text-xl">open_in_new</span>
+                  View My Intelligence Report
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setShowBuyerModal(false)}
+                  className="w-full h-10 rounded-xl text-xs font-semibold text-[var(--muted)] hover:text-[var(--teal-900)] transition-colors uppercase tracking-widest"
+                >
+                  No thanks, continue to pack
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }

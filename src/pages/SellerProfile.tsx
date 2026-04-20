@@ -180,7 +180,7 @@ export default function SellerProfile() {
   return (
     <div className="max-w-4xl mx-auto space-y-10 py-6 md:py-10">
       <div className="flex flex-col gap-2 px-4 md:px-0">
-        <h1 className="text-4xl font-black font-heading text-[var(--teal-900)] tracking-tight">Seller Profile</h1>
+        <h1 className="text-3xl font-black font-heading text-[var(--teal-900)] tracking-tight">Seller Profile</h1>
         <p className="text-[var(--muted)]">Complete your personal details to begin your property sale.</p>
       </div>
 
@@ -196,7 +196,7 @@ export default function SellerProfile() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-4 md:px-0">
         {/* Personal Information */}
-        <Card className="p-8 space-y-8">
+        <Card className="p-6 sm:p-8 space-y-8">
           <div className="space-y-1">
             <h3 className="text-xl font-bold font-heading text-[var(--teal-900)]">Personal Information</h3>
             <p className="text-xs text-[var(--muted)]">Your core contact details.</p>
@@ -230,7 +230,7 @@ export default function SellerProfile() {
         </Card>
 
         {/* Home Address */}
-        <Card className="p-8 space-y-8">
+        <Card className="p-6 sm:p-8 space-y-8">
           <div className="space-y-1">
             <h3 className="text-xl font-bold font-heading text-[var(--teal-900)]">Home Address</h3>
             <p className="text-xs text-[var(--muted)]">Where you currently reside.</p>
@@ -307,7 +307,7 @@ export default function SellerProfile() {
       {/* Selling address card — shown when toggle is off */}
       {!sellingAddressSame && (
         <div className="px-4 md:px-0">
-          <Card className="p-8 space-y-6 border-2 border-[var(--teal-600)]">
+          <Card className="p-6 sm:p-8 space-y-6 border-2 border-[var(--teal-600)]">
             <div className="flex items-center gap-3">
               <div className="size-10 bg-[var(--teal-050)] rounded-xl border border-[var(--border)] flex items-center justify-center text-[var(--teal-600)]">
                 <span className="material-symbols-outlined text-lg">sell</span>

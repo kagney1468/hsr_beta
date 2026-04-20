@@ -318,14 +318,14 @@ export default function SellerDashboard() {
         </div>
       )}
 
-      <div className="px-6 md:px-10 pt-10 pb-2">
+      <div className="px-4 md:px-10 pt-10 pb-2">
         <h1 className="text-3xl font-black font-heading tracking-tight text-[var(--teal-900)]">
           {getGreeting(firstName)}
         </h1>
         <p className="text-[var(--muted)] mt-1 text-sm">Here's where your property pack is today</p>
       </div>
 
-      <div className="px-6 md:px-10 pt-6 pb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div className="px-4 md:px-10 pt-6 pb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-3">
             <span
@@ -348,7 +348,7 @@ export default function SellerDashboard() {
               {data.share?.active ? 'Disable Link' : 'Enable Link'}
             </button>
           </div>
-          <h1 className="text-4xl md:text-6xl font-black font-heading tracking-tight leading-none">
+          <h1 className="text-3xl sm:text-4xl md:text-6xl font-black font-heading tracking-tight leading-tight break-words">
             {data.property.address_line1}
           </h1>
           <p className="text-lg text-[var(--muted)] font-medium tracking-tight">
@@ -406,11 +406,11 @@ export default function SellerDashboard() {
         </div>
       </div>
 
-      <div className="p-6 md:p-10 space-y-16 max-w-7xl mx-auto w-full pb-32">
-        <Card className="p-10 md:p-14 rounded-[28px] flex flex-col lg:flex-row items-center gap-14 relative overflow-hidden group">
+      <div className="p-4 md:p-10 space-y-16 max-w-7xl mx-auto w-full pb-32">
+        <Card className="p-6 sm:p-10 md:p-14 rounded-[28px] flex flex-col lg:flex-row items-center gap-8 sm:gap-14 relative overflow-hidden group">
           <div className="absolute top-0 right-0 size-[600px] bg-[var(--teal-050)] blur-[150px] rounded-full pointer-events-none" />
 
-          <div className="relative size-56 flex-shrink-0">
+          <div className="relative size-40 sm:size-56 flex-shrink-0">
             <svg className="size-full -rotate-90" viewBox="0 0 100 100" aria-hidden>
               <circle cx="50" cy="50" r="44" fill="none" stroke="var(--border)" strokeWidth="10" />
               <circle
@@ -427,14 +427,14 @@ export default function SellerDashboard() {
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="font-heading font-black text-6xl text-[var(--teal-900)] tracking-tighter">{pct}%</span>
+              <span className="font-heading font-black text-4xl sm:text-6xl text-[var(--teal-900)] tracking-tighter">{pct}%</span>
               <span className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-widest mt-1">Complete</span>
             </div>
           </div>
 
           <div className="flex-1 text-center lg:text-left space-y-8 relative z-10">
             <div className="space-y-3">
-              <h3 className="text-3xl md:text-5xl font-black font-heading tracking-tight leading-tight text-[var(--teal-900)]">
+              <h3 className="text-2xl sm:text-3xl md:text-5xl font-black font-heading tracking-tight leading-tight text-[var(--teal-900)]">
                 {pct === 100
                   ? 'Pack complete'
                   : pct >= 70
@@ -519,7 +519,7 @@ export default function SellerDashboard() {
                         : '/seller/documents'
                   )
                 }
-                className="p-8 transition-colors group flex flex-col justify-between h-[240px] rounded-[24px] cursor-pointer hover:bg-[var(--teal-050)]"
+                className="p-6 sm:p-8 transition-colors group flex flex-col justify-between min-h-[180px] sm:h-[240px] rounded-[24px] cursor-pointer hover:bg-[var(--teal-050)]"
               >
                 <div className="space-y-4">
                   <div
@@ -587,14 +587,14 @@ export default function SellerDashboard() {
                 {data.viewers.map((viewer, idx) => (
                   <div
                     key={idx}
-                    className="p-10 flex flex-col md:flex-row md:items-center justify-between gap-8 hover:bg-[var(--teal-050)] transition-colors group"
+                    className="p-5 sm:p-10 flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-8 hover:bg-[var(--teal-050)] transition-colors group"
                   >
                     <div className="flex items-center gap-6">
                       <div className="size-16 rounded-3xl bg-white flex items-center justify-center text-[var(--teal-600)] border border-[var(--border)] group-hover:scale-105 transition-transform">
                         <span className="material-symbols-outlined text-4xl">person_pin</span>
                       </div>
                       <div className="space-y-1">
-                        <h5 className="font-black text-[var(--teal-900)] text-2xl font-heading tracking-tight">
+                        <h5 className="font-black text-[var(--teal-900)] text-lg sm:text-2xl font-heading tracking-tight">
                           {viewer.viewer_name}
                         </h5>
                         <div className="flex items-center gap-4 text-xs font-semibold text-[var(--muted)] uppercase tracking-widest">
@@ -631,7 +631,7 @@ export default function SellerDashboard() {
                 ))}
               </div>
             ) : (
-              <div className="p-24 text-center space-y-6">
+              <div className="p-10 sm:p-24 text-center space-y-6">
                 <div className="size-24 rounded-[32px] bg-white border border-[var(--border)] flex items-center justify-center mx-auto text-[var(--muted)]">
                   <span className="material-symbols-outlined text-6xl">visibility_off</span>
                 </div>

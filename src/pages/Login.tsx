@@ -145,40 +145,40 @@ export default function Login() {
             </div>
             
             <div className="space-y-4">
-                <h1 className="text-5xl md:text-6xl font-black font-heading tracking-tighter text-[var(--teal-900)]">{getGreeting(null)}</h1>
+                <h1 className="text-4xl sm:text-5xl md:text-6xl font-black font-heading tracking-tighter text-[var(--teal-900)]">{getGreeting(null)}</h1>
                 <p className="text-[var(--muted)] text-lg">Please select your account type to continue.</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">
-                <Card 
-                    className="p-10 group transition-all cursor-pointer text-left space-y-6 hover:bg-[var(--teal-050)]"
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8 mt-12">
+                <Card
+                    className="p-6 sm:p-10 group transition-all cursor-pointer text-left space-y-4 sm:space-y-6 hover:bg-[var(--teal-050)]"
                     onClick={() => setRole('seller')}
                 >
-                    <div className="size-16 bg-[var(--teal-050)] text-[var(--teal-600)] border border-[var(--border)] flex items-center justify-center rounded-2xl group-hover:scale-110 transition-transform">
-                        <span className="material-symbols-outlined text-3xl">person</span>
+                    <div className="size-14 sm:size-16 bg-[var(--teal-050)] text-[var(--teal-600)] border border-[var(--border)] flex items-center justify-center rounded-2xl group-hover:scale-110 transition-transform">
+                        <span className="material-symbols-outlined text-2xl sm:text-3xl">person</span>
                     </div>
                     <div className="space-y-2">
-                        <h3 className="text-2xl font-black font-heading text-[var(--teal-900)]">I'm a seller</h3>
+                        <h3 className="text-xl sm:text-2xl font-black font-heading text-[var(--teal-900)]">I'm a seller</h3>
                         <p className="text-[var(--muted)] text-sm leading-relaxed">Access your property pack, upload documents, and track your sale readiness.</p>
                     </div>
-                    <div className="pt-4 flex items-center gap-2 text-[var(--teal-600)] font-semibold text-xs uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="pt-2 sm:pt-4 flex items-center gap-2 text-[var(--teal-600)] font-semibold text-xs uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
                         Continue to Login
                         <span className="material-symbols-outlined text-sm">arrow_forward</span>
                     </div>
                 </Card>
 
-                <Card 
-                    className="p-10 group transition-all cursor-pointer text-left space-y-6 hover:bg-[var(--teal-050)]"
+                <Card
+                    className="p-6 sm:p-10 group transition-all cursor-pointer text-left space-y-4 sm:space-y-6 hover:bg-[var(--teal-050)]"
                     onClick={() => setRole('agent')}
                 >
-                    <div className="size-16 bg-[var(--teal-050)] text-[var(--teal-600)] border border-[var(--border)] flex items-center justify-center rounded-2xl group-hover:scale-110 transition-transform">
-                        <span className="material-symbols-outlined text-3xl">corporate_fare</span>
+                    <div className="size-14 sm:size-16 bg-[var(--teal-050)] text-[var(--teal-600)] border border-[var(--border)] flex items-center justify-center rounded-2xl group-hover:scale-110 transition-transform">
+                        <span className="material-symbols-outlined text-2xl sm:text-3xl">corporate_fare</span>
                     </div>
                     <div className="space-y-2">
-                        <h3 className="text-2xl font-black font-heading text-[var(--teal-900)]">I'm an estate agent</h3>
+                        <h3 className="text-xl sm:text-2xl font-black font-heading text-[var(--teal-900)]">I'm an estate agent</h3>
                         <p className="text-[var(--muted)] text-sm leading-relaxed">Manage your agency pipeline, view leads, and access property packs.</p>
                     </div>
-                    <div className="pt-4 flex items-center gap-2 text-[var(--teal-600)] font-semibold text-xs uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="pt-2 sm:pt-4 flex items-center gap-2 text-[var(--teal-600)] font-semibold text-xs uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
                         Continue to Login
                         <span className="material-symbols-outlined text-sm">arrow_forward</span>
                     </div>
@@ -191,7 +191,7 @@ export default function Login() {
 
             <div className="pt-8 flex flex-col items-center gap-4">
                 <p className="text-[var(--muted)] text-xs font-semibold uppercase tracking-widest">or create a new account</p>
-                <div className="flex gap-4">
+                <div className="flex flex-wrap justify-center gap-3">
                     <Link to="/signup/seller" className="px-6 py-2 rounded-xl border border-[var(--border)] hover:bg-[var(--teal-050)] text-[var(--teal-900)] text-xs font-semibold uppercase tracking-widest transition-colors">Sign up as seller</Link>
                     <Link to="/signup/agent" className="px-6 py-2 rounded-xl border border-[var(--border)] hover:bg-[var(--teal-050)] text-[var(--teal-900)] text-xs font-semibold uppercase tracking-widest transition-colors">Sign up as agent</Link>
                 </div>
@@ -238,7 +238,7 @@ export default function Login() {
           <p className="text-[var(--muted)]">{loginMethod === 'password' ? "Enter your email and password to sign in." : "Enter your email and we'll send you a secure link."}</p>
         </div>
 
-        <Card className="p-8 space-y-6">
+        <Card className="p-6 sm:p-8 space-y-6">
           {error && (
             <div className="p-4 bg-[#fee2e2] border border-[#fecaca] text-[#b91c1c] rounded-xl text-sm font-semibold animate-in fade-in slide-in-from-top-2">
               {error}

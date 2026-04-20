@@ -281,18 +281,18 @@ export default function AgentDashboard() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1">
+        <div className="flex gap-1 overflow-x-auto scrollbar-none">
           {tabs.map(t => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex items-center gap-2 px-5 py-3 text-sm font-bold transition-all border-b-2 -mb-px ${
+              className={`flex items-center gap-1.5 px-3 sm:px-5 py-3 text-xs sm:text-sm font-bold transition-all border-b-2 -mb-px whitespace-nowrap ${
                 tab === t.id
                   ? 'border-[var(--teal-600)] text-[var(--teal-900)]'
                   : 'border-transparent text-[var(--muted)] hover:text-[var(--teal-900)]'
               }`}
             >
-              <span className="material-symbols-outlined text-[18px]">{t.icon}</span>
+              <span className="material-symbols-outlined text-[16px] sm:text-[18px]">{t.icon}</span>
               {t.label}
             </button>
           ))}
@@ -317,12 +317,51 @@ export default function AgentDashboard() {
               ))}
             </div>
 
-            {/* Property Table */}
+            {/* Property Pipeline — mobile cards */}
             <Card className="overflow-hidden">
-              <div className="px-6 py-5 border-b border-[var(--border)] bg-[var(--teal-050)]/40">
+              <div className="px-4 sm:px-6 py-5 border-b border-[var(--border)] bg-[var(--teal-050)]/40">
                 <h2 className="font-black font-heading text-[var(--teal-900)]">Property Pipeline</h2>
               </div>
-              <div className="overflow-x-auto">
+
+              {/* Mobile card list (hidden on sm+) */}
+              <div className="sm:hidden divide-y divide-[var(--border)]">
+                {properties.length === 0 ? (
+                  <div className="p-10 text-center flex flex-col items-center gap-3 text-[var(--muted)]">
+                    <span className="material-symbols-outlined text-4xl text-[var(--border)]">inventory_2</span>
+                    <p className="font-medium italic text-sm">No properties yet. Invite sellers to get started.</p>
+                    <button onClick={() => setTab('invite')} className="mt-2 text-[var(--teal-600)] font-bold text-sm hover:underline">Invite a seller →</button>
+                  </div>
+                ) : properties.map(prop => (
+                  <Link key={prop.id} to={`/agent/property/${prop.id}`} className="block p-4 hover:bg-[var(--teal-050)] transition-colors">
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div>
+                        <div className="font-bold text-[var(--teal-900)] text-sm">{prop.address_line1}</div>
+                        <div className="text-[10px] text-[var(--muted)] uppercase tracking-wider">{prop.address_postcode}</div>
+                      </div>
+                      <span className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border ${
+                        prop.status === 'Pack Complete' ? 'bg-[var(--teal-050)] text-[var(--teal-600)] border-[var(--teal-050)]'
+                        : prop.status === 'In Progress' ? 'bg-amber-50 text-amber-600 border-amber-100'
+                        : 'bg-red-50 text-red-500 border-red-100'
+                      }`}>
+                        <span className={`size-1.5 rounded-full ${prop.status === 'Pack Complete' ? 'bg-[var(--teal-600)]' : prop.status === 'In Progress' ? 'bg-amber-500' : 'bg-red-500'}`} />
+                        {prop.status}
+                      </span>
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="h-1.5 w-full bg-[var(--teal-050)] border border-[var(--border)] rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full transition-all duration-700 ${prop.status === 'Pack Complete' ? 'bg-[var(--teal-600)]' : prop.status === 'In Progress' ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${prop.score}%` }} />
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] font-semibold text-[var(--muted)]">
+                        <span>{prop.score}% complete</span>
+                        <span>{prop.sellerName}</span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+
+              {/* Desktop table (hidden on mobile) */}
+              <div className="hidden sm:block overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-[var(--border)] bg-[var(--teal-050)]">
@@ -342,12 +381,7 @@ export default function AgentDashboard() {
                           <div className="flex flex-col items-center gap-3 text-[var(--muted)]">
                             <span className="material-symbols-outlined text-4xl text-[var(--border)]">inventory_2</span>
                             <p className="font-medium italic text-sm">No properties yet. Invite sellers to get started.</p>
-                            <button
-                              onClick={() => setTab('invite')}
-                              className="mt-2 text-[var(--teal-600)] font-bold text-sm hover:underline"
-                            >
-                              Invite a seller →
-                            </button>
+                            <button onClick={() => setTab('invite')} className="mt-2 text-[var(--teal-600)] font-bold text-sm hover:underline">Invite a seller →</button>
                           </div>
                         </td>
                       </tr>
@@ -376,16 +410,11 @@ export default function AgentDashboard() {
                         </td>
                         <td className="px-6 py-5">
                           <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
-                            prop.status === 'Pack Complete'
-                              ? 'bg-[var(--teal-050)] text-[var(--teal-600)] border-[var(--teal-050)]'
-                              : prop.status === 'In Progress'
-                              ? 'bg-amber-50 text-amber-600 border-amber-100'
-                              : 'bg-red-50 text-red-500 border-red-100'
+                            prop.status === 'Pack Complete' ? 'bg-[var(--teal-050)] text-[var(--teal-600)] border-[var(--teal-050)]'
+                            : prop.status === 'In Progress' ? 'bg-amber-50 text-amber-600 border-amber-100'
+                            : 'bg-red-50 text-red-500 border-red-100'
                           }`}>
-                            <span className={`size-1.5 rounded-full ${
-                              prop.status === 'Pack Complete' ? 'bg-[var(--teal-600)]' :
-                              prop.status === 'In Progress' ? 'bg-amber-500' : 'bg-red-500'
-                            }`} />
+                            <span className={`size-1.5 rounded-full ${prop.status === 'Pack Complete' ? 'bg-[var(--teal-600)]' : prop.status === 'In Progress' ? 'bg-amber-500' : 'bg-red-500'}`} />
                             {prop.status}
                           </span>
                         </td>
@@ -432,7 +461,39 @@ export default function AgentDashboard() {
             </div>
 
             <Card className="overflow-hidden">
-              <div className="overflow-x-auto">
+              {/* Mobile card list */}
+              <div className="sm:hidden divide-y divide-[var(--border)]">
+                {leads.length === 0 ? (
+                  <p className="px-6 py-12 text-center text-[var(--muted)] italic text-sm">No viewer registrations yet.</p>
+                ) : leads.map((lead: any) => (
+                  <div key={lead.id} className={`p-4 space-y-2 ${lead.is_selling ? 'bg-[var(--teal-050)]/60' : ''}`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {lead.is_selling && <div className="size-2 rounded-full bg-[var(--teal-500)] animate-pulse shrink-0 mt-1" />}
+                        <div className="min-w-0">
+                          <div className={`font-bold text-sm truncate ${lead.is_selling ? 'text-[var(--teal-900)]' : 'text-[var(--text)]'}`}>{lead.viewer_name || '—'}</div>
+                          <div className="text-[10px] text-[var(--muted)] font-mono truncate">{lead.viewer_email || '—'}</div>
+                        </div>
+                      </div>
+                      {lead.is_selling
+                        ? <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--teal-050)] text-[var(--teal-600)] text-[9px] font-black uppercase tracking-wider border border-[var(--border)]">Priority</span>
+                        : <span className="shrink-0 text-[10px] font-medium text-[var(--muted)]">Buyer</span>
+                      }
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-[var(--muted)] font-medium">
+                      <span>{lead.propertyAddress}</span>
+                      <span>{new Date(lead.viewed_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+                    </div>
+                    {lead.viewer_phone && <div className="text-[10px] text-[var(--muted)]">{lead.viewer_phone}</div>}
+                    {lead.is_selling && lead.selling_location && (
+                      <div className="text-[10px] text-[var(--teal-600)] font-semibold">Selling in {lead.selling_location}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden sm:block overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-[var(--border)] bg-[var(--teal-050)]">
@@ -451,23 +512,12 @@ export default function AgentDashboard() {
                         </td>
                       </tr>
                     ) : leads.map((lead: any) => (
-                      <tr
-                        key={lead.id}
-                        className={`transition-colors ${
-                          lead.is_selling
-                            ? 'bg-[var(--teal-050)]/60 hover:bg-[var(--teal-050)]'
-                            : 'hover:bg-gray-50'
-                        }`}
-                      >
+                      <tr key={lead.id} className={`transition-colors ${lead.is_selling ? 'bg-[var(--teal-050)]/60 hover:bg-[var(--teal-050)]' : 'hover:bg-gray-50'}`}>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            {lead.is_selling && (
-                              <div className="size-2 rounded-full bg-[var(--teal-500)] animate-pulse shrink-0" />
-                            )}
+                            {lead.is_selling && <div className="size-2 rounded-full bg-[var(--teal-500)] animate-pulse shrink-0" />}
                             <div>
-                              <div className={`font-bold text-sm ${lead.is_selling ? 'text-[var(--teal-900)]' : 'text-[var(--text)]'}`}>
-                                {lead.viewer_name || '—'}
-                              </div>
+                              <div className={`font-bold text-sm ${lead.is_selling ? 'text-[var(--teal-900)]' : 'text-[var(--text)]'}`}>{lead.viewer_name || '—'}</div>
                               <div className="text-[10px] text-[var(--muted)] font-mono">{lead.viewer_email || '—'}</div>
                             </div>
                           </div>
@@ -480,12 +530,8 @@ export default function AgentDashboard() {
                         <td className="px-6 py-4">
                           {lead.is_selling ? (
                             <div className="space-y-0.5">
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--teal-050)] text-[var(--teal-600)] text-[10px] font-black uppercase tracking-wider border border-[var(--border)]">
-                                Priority Lead
-                              </span>
-                              {lead.selling_location && (
-                                <div className="text-[10px] text-[var(--muted)] pl-1">Selling in {lead.selling_location}</div>
-                              )}
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--teal-050)] text-[var(--teal-600)] text-[10px] font-black uppercase tracking-wider border border-[var(--border)]">Priority Lead</span>
+                              {lead.selling_location && <div className="text-[10px] text-[var(--muted)] pl-1">Selling in {lead.selling_location}</div>}
                             </div>
                           ) : (
                             <span className="text-[11px] font-medium text-[var(--muted)]">Buyer only</span>
