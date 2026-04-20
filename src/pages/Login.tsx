@@ -12,7 +12,7 @@ import { getGreeting } from '../lib/greeting';
 import GoogleLoginButton from '../components/GoogleLoginButton';
 
 export default function Login() {
-  const [role, setRole] = useState<'seller' | 'agent' | null>(null);
+  const [role, setRole] = useState<'seller' | 'agent' | 'buyer' | null>(null);
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +53,11 @@ export default function Login() {
       }
 
       const userType = (data.user_type ?? '').toLowerCase();
+
+      if (userType === 'buyer') {
+        navigate('/buyer/dashboard');
+        return;
+      }
 
       if (userType === 'agent') {
         navigate('/agent/dashboard');
@@ -149,7 +154,7 @@ export default function Login() {
                 <p className="text-[var(--muted)] text-lg">Please select your account type to continue.</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8 mt-12">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-8 mt-12">
                 <Card
                     className="p-6 sm:p-10 group transition-all cursor-pointer text-left space-y-4 sm:space-y-6 hover:bg-[var(--teal-050)]"
                     onClick={() => setRole('seller')}
@@ -183,6 +188,23 @@ export default function Login() {
                         <span className="material-symbols-outlined text-sm">arrow_forward</span>
                     </div>
                 </Card>
+
+                <Card
+                    className="p-6 sm:p-10 group transition-all cursor-pointer text-left space-y-4 sm:space-y-6 hover:bg-[var(--teal-050)]"
+                    onClick={() => setRole('buyer')}
+                >
+                    <div className="size-14 sm:size-16 bg-[var(--teal-050)] text-[var(--teal-600)] border border-[var(--border)] flex items-center justify-center rounded-2xl group-hover:scale-110 transition-transform">
+                        <span className="material-symbols-outlined text-2xl sm:text-3xl">search</span>
+                    </div>
+                    <div className="space-y-2">
+                        <h3 className="text-xl sm:text-2xl font-black font-heading text-[var(--teal-900)]">I'm a buyer</h3>
+                        <p className="text-[var(--muted)] text-sm leading-relaxed">View property packs you've registered for.</p>
+                    </div>
+                    <div className="pt-2 sm:pt-4 flex items-center gap-2 text-[var(--teal-600)] font-semibold text-xs uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                        Continue to Login
+                        <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                    </div>
+                </Card>
             </div>
 
             <div style={{ paddingTop: '40px', paddingBottom: '40px' }}>
@@ -194,6 +216,7 @@ export default function Login() {
                 <div className="flex flex-wrap justify-center gap-3">
                     <Link to="/signup/seller" className="px-6 py-2 rounded-xl border border-[var(--border)] hover:bg-[var(--teal-050)] text-[var(--teal-900)] text-xs font-semibold uppercase tracking-widest transition-colors">Sign up as seller</Link>
                     <Link to="/signup/agent" className="px-6 py-2 rounded-xl border border-[var(--border)] hover:bg-[var(--teal-050)] text-[var(--teal-900)] text-xs font-semibold uppercase tracking-widest transition-colors">Sign up as agent</Link>
+                    <Link to="/signup/buyer" className="px-6 py-2 rounded-xl border border-[var(--border)] hover:bg-[var(--teal-050)] text-[var(--teal-900)] text-xs font-semibold uppercase tracking-widest transition-colors">Sign up as buyer</Link>
                 </div>
             </div>
         </div>
@@ -233,7 +256,7 @@ export default function Login() {
             Back to selection
           </button>
           <h1 className="text-4xl font-black font-heading text-[var(--teal-900)] tracking-tight">
-            {role === 'seller' ? 'Seller Login' : 'Agent Login'}
+            {role === 'seller' ? 'Seller Login' : role === 'agent' ? 'Agent Login' : 'Buyer Login'}
           </h1>
           <p className="text-[var(--muted)]">{loginMethod === 'password' ? "Enter your email and password to sign in." : "Enter your email and we'll send you a secure link."}</p>
         </div>
@@ -319,7 +342,7 @@ export default function Login() {
 
           <div className="text-center pt-4">
             <p className="text-[var(--muted)] text-sm">
-              New to HomeSalesReady? <Link to={role === 'seller' ? "/signup/seller" : "/signup/agent"} className="text-[var(--teal-600)] font-semibold hover:underline">Create an account</Link>
+              New to HomeSalesReady? <Link to={role === 'seller' ? "/signup/seller" : role === 'agent' ? "/signup/agent" : "/signup/buyer"} className="text-[var(--teal-600)] font-semibold hover:underline">Create an account</Link>
             </p>
           </div>
         </Card>

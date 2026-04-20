@@ -20,6 +20,10 @@ import Certificate from './pages/Certificate';
 import Help from './pages/Help';
 import SellerLayout from './layouts/SellerLayout';
 import AgentLayout from './layouts/AgentLayout';
+import BuyerLayout from './layouts/BuyerLayout';
+import BuyerSignup from './pages/BuyerSignup';
+import BuyerDashboard from './pages/BuyerDashboard';
+import BuyerProfile from './pages/BuyerProfile';
 import AgentDashboard from './pages/AgentDashboard';
 import AgentBranding from './pages/AgentBranding';
 import AgentPropertyDetail from './pages/AgentPropertyDetail';
@@ -45,6 +49,7 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup/seller" element={<SellerSignup />} />
           <Route path="/signup/agent" element={<AgentSignup />} />
+          <Route path="/signup/buyer" element={<BuyerSignup />} />
 
           {/* Legal pages — public, no auth */}
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
@@ -75,6 +80,13 @@ export default function App() {
               <Route path="readiness" element={<ReadinessDashboard />} />
               <Route path="certificate" element={<Certificate />} />
               <Route path="help" element={<Help />} />
+            </Route>
+
+            {/* Buyer Routes */}
+            <Route path="/buyer" element={<BuyerLayout />}>
+              <Route index element={<Navigate to="/buyer/dashboard" replace />} />
+              <Route path="dashboard" element={<BuyerDashboard />} />
+              <Route path="profile" element={<BuyerProfile />} />
             </Route>
 
             {/* Agent Routes */}
