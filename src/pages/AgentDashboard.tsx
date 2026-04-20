@@ -228,11 +228,13 @@ export default function AgentDashboard() {
 
   // CSV export
   const handleExportLeads = () => {
-    const headers = ['Name', 'Email', 'Phone', 'Property', 'Date', 'Is Selling', 'Selling Location'];
+    const headers = ['Name', 'Email', 'Phone', 'Type', 'Company', 'Property', 'Date', 'Is Selling', 'Selling Location'];
     const rows = leads.map((l: any) => [
       l.viewer_name || '',
       l.viewer_email || '',
       l.viewer_phone || '',
+      l.viewer_type || 'buyer',
+      l.company_name || '',
       l.propertyAddress || '',
       new Date(l.viewed_at).toLocaleDateString('en-GB'),
       l.is_selling ? 'Yes' : 'No',
@@ -466,26 +468,32 @@ export default function AgentDashboard() {
                 {leads.length === 0 ? (
                   <p className="px-6 py-12 text-center text-[var(--muted)] italic text-sm">No viewer registrations yet.</p>
                 ) : leads.map((lead: any) => (
-                  <div key={lead.id} className={`p-4 space-y-2 ${lead.is_selling ? 'bg-[var(--teal-050)]/60' : ''}`}>
+                  <div key={lead.id} className={`p-4 space-y-2 ${lead.viewer_type === 'professional' ? 'bg-blue-50/60' : lead.is_selling ? 'bg-[var(--teal-050)]/60' : ''}`}>
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
-                        {lead.is_selling && <div className="size-2 rounded-full bg-[var(--teal-500)] animate-pulse shrink-0 mt-1" />}
+                        {lead.is_selling && lead.viewer_type !== 'professional' && <div className="size-2 rounded-full bg-[var(--teal-500)] animate-pulse shrink-0 mt-1" />}
                         <div className="min-w-0">
-                          <div className={`font-bold text-sm truncate ${lead.is_selling ? 'text-[var(--teal-900)]' : 'text-[var(--text)]'}`}>{lead.viewer_name || '—'}</div>
+                          <div className={`font-bold text-sm truncate ${lead.viewer_type === 'professional' ? 'text-blue-900' : lead.is_selling ? 'text-[var(--teal-900)]' : 'text-[var(--text)]'}`}>{lead.viewer_name || '—'}</div>
                           <div className="text-[10px] text-[var(--muted)] font-mono truncate">{lead.viewer_email || '—'}</div>
                         </div>
                       </div>
-                      {lead.is_selling
-                        ? <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--teal-050)] text-[var(--teal-600)] text-[9px] font-black uppercase tracking-wider border border-[var(--border)]">Priority</span>
-                        : <span className="shrink-0 text-[10px] font-medium text-[var(--muted)]">Buyer</span>
-                      }
+                      {lead.viewer_type === 'professional' ? (
+                        <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[9px] font-black uppercase tracking-wider border border-blue-200">Pro</span>
+                      ) : lead.is_selling ? (
+                        <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--teal-050)] text-[var(--teal-600)] text-[9px] font-black uppercase tracking-wider border border-[var(--border)]">Priority</span>
+                      ) : (
+                        <span className="shrink-0 text-[10px] font-medium text-[var(--muted)]">Buyer</span>
+                      )}
                     </div>
+                    {lead.viewer_type === 'professional' && lead.company_name && (
+                      <div className="text-[10px] text-blue-700 font-semibold">{lead.company_name}</div>
+                    )}
                     <div className="flex items-center justify-between text-[10px] text-[var(--muted)] font-medium">
                       <span>{lead.propertyAddress}</span>
                       <span>{new Date(lead.viewed_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
                     </div>
                     {lead.viewer_phone && <div className="text-[10px] text-[var(--muted)]">{lead.viewer_phone}</div>}
-                    {lead.is_selling && lead.selling_location && (
+                    {lead.viewer_type !== 'professional' && lead.is_selling && lead.selling_location && (
                       <div className="text-[10px] text-[var(--teal-600)] font-semibold">Selling in {lead.selling_location}</div>
                     )}
                   </div>
@@ -498,29 +506,43 @@ export default function AgentDashboard() {
                   <thead>
                     <tr className="border-b border-[var(--border)] bg-[var(--teal-050)]">
                       <th className="px-6 py-4 text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.15em]">Viewer</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.15em]">Type</th>
                       <th className="px-6 py-4 text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.15em]">Phone</th>
                       <th className="px-6 py-4 text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.15em]">Property Viewed</th>
                       <th className="px-6 py-4 text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.15em]">Date</th>
-                      <th className="px-6 py-4 text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.15em]">Also Selling?</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.15em]">Notes</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--border)]">
                     {leads.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="px-6 py-16 text-center text-[var(--muted)] italic text-sm">
+                        <td colSpan={6} className="px-6 py-16 text-center text-[var(--muted)] italic text-sm">
                           No viewer registrations yet. Share property packs to generate leads.
                         </td>
                       </tr>
                     ) : leads.map((lead: any) => (
-                      <tr key={lead.id} className={`transition-colors ${lead.is_selling ? 'bg-[var(--teal-050)]/60 hover:bg-[var(--teal-050)]' : 'hover:bg-gray-50'}`}>
+                      <tr key={lead.id} className={`transition-colors ${lead.viewer_type === 'professional' ? 'bg-blue-50/40 hover:bg-blue-50' : lead.is_selling ? 'bg-[var(--teal-050)]/60 hover:bg-[var(--teal-050)]' : 'hover:bg-gray-50'}`}>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            {lead.is_selling && <div className="size-2 rounded-full bg-[var(--teal-500)] animate-pulse shrink-0" />}
+                            {lead.is_selling && lead.viewer_type !== 'professional' && <div className="size-2 rounded-full bg-[var(--teal-500)] animate-pulse shrink-0" />}
                             <div>
-                              <div className={`font-bold text-sm ${lead.is_selling ? 'text-[var(--teal-900)]' : 'text-[var(--text)]'}`}>{lead.viewer_name || '—'}</div>
+                              <div className={`font-bold text-sm ${lead.viewer_type === 'professional' ? 'text-blue-900' : lead.is_selling ? 'text-[var(--teal-900)]' : 'text-[var(--text)]'}`}>{lead.viewer_name || '—'}</div>
                               <div className="text-[10px] text-[var(--muted)] font-mono">{lead.viewer_email || '—'}</div>
                             </div>
                           </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          {lead.viewer_type === 'professional' ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-[10px] font-black uppercase tracking-wider border border-blue-200">
+                              <span className="material-symbols-outlined text-[12px]">badge</span>
+                              Professional
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--teal-050)] text-[var(--teal-600)] text-[10px] font-black uppercase tracking-wider border border-[var(--border)]">
+                              <span className="material-symbols-outlined text-[12px]">home</span>
+                              Buyer
+                            </span>
+                          )}
                         </td>
                         <td className="px-6 py-4 text-sm text-[var(--muted)]">{lead.viewer_phone || '—'}</td>
                         <td className="px-6 py-4 text-sm text-[var(--text)] font-medium">{lead.propertyAddress}</td>
@@ -528,13 +550,20 @@ export default function AgentDashboard() {
                           {new Date(lead.viewed_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </td>
                         <td className="px-6 py-4">
-                          {lead.is_selling ? (
+                          {lead.viewer_type === 'professional' ? (
+                            <div className="space-y-0.5">
+                              {lead.company_name && (
+                                <div className="font-semibold text-sm text-blue-900">{lead.company_name}</div>
+                              )}
+                              <span className="text-[10px] text-[var(--muted)]">Professional enquiry</span>
+                            </div>
+                          ) : lead.is_selling ? (
                             <div className="space-y-0.5">
                               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--teal-050)] text-[var(--teal-600)] text-[10px] font-black uppercase tracking-wider border border-[var(--border)]">Priority Lead</span>
                               {lead.selling_location && <div className="text-[10px] text-[var(--muted)] pl-1">Selling in {lead.selling_location}</div>}
                             </div>
                           ) : (
-                            <span className="text-[11px] font-medium text-[var(--muted)]">Buyer only</span>
+                            <span className="text-[11px] font-medium text-[var(--muted)]">Chain-free buyer</span>
                           )}
                         </td>
                       </tr>
