@@ -670,7 +670,7 @@ export default function PublicPack() {
 
               <div className="pt-2 space-y-3">
                 <a
-                  href={`https://nestcheck-uk-142701338125.us-west1.run.app/?address=${encodeURIComponent(property?.address_postcode || '')}`}
+                  href={`https://home-notes-khaki.vercel.app/?address=${encodeURIComponent(property?.address_postcode || '')}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full h-14 rounded-2xl bg-[var(--teal-600)] text-white font-black font-heading text-base flex items-center justify-center gap-3 hover:bg-[var(--teal-900)] transition-colors shadow-soft"
