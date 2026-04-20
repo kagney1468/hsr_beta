@@ -187,9 +187,10 @@ export default function PropertyProfile() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
-    setFormData(prev => ({ 
-      ...prev, 
-      [name]: type === 'number' ? parseInt(value) || 0 : value 
+    const checked = (e.target as HTMLInputElement).checked;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : type === 'number' ? parseInt(value) || 0 : value
     }));
   };
 
@@ -279,7 +280,7 @@ export default function PropertyProfile() {
           planning_permissions: formData.planning_permissions,
           coalfield_area: formData.coalfield_area,
           disputes: formData.disputes,
-          building_regs_required: formData.building_regs_required,
+          building_regs_required: Boolean(formData.building_regs_required),
           epc_rating: formData.epc_rating,
           epc_expiry: formData.epc_expiry,
           construction_age_band: formData.construction_age_band,
