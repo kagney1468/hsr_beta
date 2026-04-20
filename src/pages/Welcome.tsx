@@ -128,7 +128,7 @@ export default function Welcome() {
             <Button
               variant="primary"
               className="h-14 px-10 text-base font-heading font-bold rounded-2xl"
-              onClick={() => navigate('/add-property')}
+              onClick={() => navigate('/seller/profile')}
             >
               <span className="material-symbols-outlined mr-2">add_home</span>
               Add your property to get started
