@@ -73,7 +73,7 @@ export default function Login() {
 
       if (propError) throw propError;
 
-      navigate(prop ? '/seller/dashboard' : '/welcome');
+      navigate(prop ? '/seller/dashboard' : '/seller/profile');
     } catch (err: unknown) {
       console.error('Error fetching role:', err);
       setError(err instanceof Error ? err.message : 'Failed to determine user role. Please try again.');
