@@ -9,7 +9,6 @@ import { formatAuthError } from '../lib/authErrors';
 import Footer from '../components/Footer';
 import DisclaimerBox from '../components/DisclaimerBox';
 import { getGreeting } from '../lib/greeting';
-import GoogleLoginButton from '../components/GoogleLoginButton';
 
 export default function Login() {
   const [role, setRole] = useState<'seller' | 'agent' | 'buyer' | null>(null);
@@ -269,13 +268,6 @@ export default function Login() {
             </div>
           )}
 
-          <GoogleLoginButton onError={(msg) => setError(msg)} />
-
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-[var(--border)]" />
-            <span className="text-xs font-semibold text-[#5a7a7c]">or</span>
-            <div className="flex-1 h-px bg-[var(--border)]" />
-          </div>
 
           <div className="flex rounded-xl border border-[var(--border)] p-1 gap-1">
             <button
