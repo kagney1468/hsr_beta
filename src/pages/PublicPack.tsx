@@ -154,6 +154,8 @@ export default function PublicPack() {
     try {
       if (!token) throw new Error('Missing link token');
 
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+
       const { data: reg, error: regErr } = await supabase.rpc('register_public_pack_viewer', {
         p_token: token,
         p_viewer_name: viewerForm.name,
@@ -163,6 +165,7 @@ export default function PublicPack() {
         p_selling_location: viewerForm.viewer_type === 'buyer' && viewerForm.is_selling ? viewerForm.selling_location : null,
         p_viewer_type: viewerForm.viewer_type,
         p_company_name: viewerForm.viewer_type === 'professional' ? viewerForm.company_name : null,
+        p_auth_user_id: currentUser?.id ?? null,
       });
 
       if (regErr) throw regErr;
