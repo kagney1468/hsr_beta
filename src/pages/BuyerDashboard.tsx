@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../components/ui/Card';
@@ -64,6 +65,7 @@ export default function BuyerDashboard() {
   const [loading, setLoading] = useState(true);
   const [buyerFirstName, setBuyerFirstName] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!user) return;
@@ -142,12 +144,26 @@ export default function BuyerDashboard() {
   return (
     <div className="min-h-screen bg-[var(--page)] text-[var(--text)]">
       <div className="px-6 md:px-10 pt-10 pb-6 border-b border-[var(--border)] bg-white">
-        <h1 className="text-3xl font-black font-heading tracking-tight text-[var(--teal-900)]">
-          {getGreeting(buyerFirstName)}
-        </h1>
-        <p className="text-[var(--muted)] mt-1 text-sm">
-          Here are the property packs you have registered for.
-        </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-black font-heading tracking-tight text-[var(--teal-900)]">
+              {getGreeting(buyerFirstName)}
+            </h1>
+            <p className="text-[var(--muted)] mt-1 text-sm">
+              Here are the property packs you have registered for.
+            </p>
+          </div>
+          {packs.length >= 2 && (
+            <Button
+              variant="outline"
+              className="shrink-0 h-10 px-4 rounded-xl font-bold text-sm flex items-center gap-2"
+              onClick={() => navigate('/buyer/compare')}
+            >
+              <span className="material-symbols-outlined text-[16px]">compare</span>
+              Compare packs
+            </Button>
+          )}
+        </div>
       </div>
 
       <main className="p-6 md:p-10">

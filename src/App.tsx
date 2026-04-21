@@ -24,6 +24,7 @@ import BuyerLayout from './layouts/BuyerLayout';
 import BuyerSignup from './pages/BuyerSignup';
 import BuyerDashboard from './pages/BuyerDashboard';
 import BuyerProfile from './pages/BuyerProfile';
+import BuyerCompare from './pages/BuyerCompare';
 import AgentDashboard from './pages/AgentDashboard';
 import AgentBranding from './pages/AgentBranding';
 import AgentPropertyDetail from './pages/AgentPropertyDetail';
@@ -87,6 +88,7 @@ export default function App() {
               <Route index element={<Navigate to="/buyer/dashboard" replace />} />
               <Route path="dashboard" element={<BuyerDashboard />} />
               <Route path="profile" element={<BuyerProfile />} />
+              <Route path="compare" element={<BuyerCompare />} />
             </Route>
 
             {/* Agent Routes */}
