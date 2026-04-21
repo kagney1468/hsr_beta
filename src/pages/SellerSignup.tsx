@@ -6,7 +6,6 @@ import { Button } from '../components/ui/Button';
 import { getAuthRedirectUrl } from '../lib/ensureUserProfile';
 import { formatAuthError } from '../lib/authErrors';
 import Footer from '../components/Footer';
-import GoogleLoginButton from '../components/GoogleLoginButton';
 
 export default function SellerSignup() {
   const [formData, setFormData] = useState({
@@ -95,13 +94,6 @@ export default function SellerSignup() {
             </div>
           )}
 
-          <GoogleLoginButton onError={(msg) => setError(msg)} />
-
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-[var(--border)]" />
-            <span className="text-xs font-semibold text-[#5a7a7c]">or</span>
-            <div className="flex-1 h-px bg-[var(--border)]" />
-          </div>
 
           <form onSubmit={handleSignup} className="space-y-4">
             <div className="space-y-2">

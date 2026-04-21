@@ -6,7 +6,6 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { getAuthRedirectUrl } from '../lib/ensureUserProfile';
 import { formatAuthError } from '../lib/authErrors';
-import GoogleLoginButton from '../components/GoogleLoginButton';
 import AgentRegistrationForm, { AgentFirmData, AgentSignatoryData, AgentTermsData } from '../components/AgentRegistrationForm';
 
 export default function AgentSignup() {
@@ -101,14 +100,6 @@ export default function AgentSignup() {
         onSubmit={handleSubmit}
         isSubmitting={isSubmitting}
         submitError={submitError}
-        step1TopSlot={
-          <>
-            <GoogleLoginButton
-              beforeAuth={() => localStorage.setItem('hsr_pending_signup_role', 'agent')}
-              onError={(msg) => setSubmitError(msg)}
-            />
-          </>
-        }
       />
       <div className="mt-6 text-center relative z-10">
         <p className="text-sm text-[var(--muted)]">
