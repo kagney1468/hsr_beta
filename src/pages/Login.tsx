@@ -35,10 +35,9 @@ export default function Login() {
     }
   }, [user, authLoading]);
 
-  const checkRoleAndRedirect = async (authUserId: string) => {
+  const checkRoleAndRedirect = async (authUserId: string, attempt = 0) => {
     setLoading(true);
     try {
-      // Read user_type — the authoritative routing field
       const { data, error: fetchError } = await supabase
         .from('users')
         .select('id, user_type, onboarding_complete')
@@ -48,6 +47,10 @@ export default function Login() {
       if (fetchError) throw fetchError;
 
       if (!data) {
+        if (attempt < 3) {
+          setTimeout(() => checkRoleAndRedirect(authUserId, attempt + 1), 500);
+          return;
+        }
         setError('No account found for this email. Please sign up first.');
         return;
       }
@@ -58,13 +61,11 @@ export default function Login() {
         navigate('/buyer/dashboard');
         return;
       }
-
       if (userType === 'agent') {
         navigate('/agent/dashboard');
         return;
       }
 
-      // Seller: use onboarding_complete flag, fall back to property check
       if (data.onboarding_complete === true) {
         navigate('/seller/dashboard');
         return;
@@ -77,11 +78,11 @@ export default function Login() {
         .maybeSingle();
 
       if (propError) throw propError;
-
       navigate(prop ? '/seller/dashboard' : '/seller/profile');
+
     } catch (err: unknown) {
       console.error('Error fetching role:', err);
-      setError(err instanceof Error ? err.message : 'Failed to determine user role. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to determine your account type. Please try again.');
     } finally {
       setLoading(false);
     }
