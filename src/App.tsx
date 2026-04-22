@@ -37,6 +37,7 @@ import AuthCallback from './pages/AuthCallback';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import CookiePolicy from './pages/CookiePolicy';
+import FindPack from './pages/FindPack';
 import CookieBanner from './components/CookieBanner';
 
 export default function App() {
@@ -56,6 +57,9 @@ export default function App() {
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-of-service" element={<TermsOfService />} />
           <Route path="/cookie-policy" element={<CookiePolicy />} />
+
+          {/* Public pack finder */}
+          <Route path="/find" element={<FindPack />} />
 
           {/* Public Property Pack */}
           <Route path="/pack/:token" element={<PublicPack />} />
