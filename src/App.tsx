@@ -38,6 +38,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import CookiePolicy from './pages/CookiePolicy';
 import FindPack from './pages/FindPack';
+import ProfessionalSignup from './pages/ProfessionalSignup';
 import CookieBanner from './components/CookieBanner';
 
 export default function App() {
@@ -52,6 +53,7 @@ export default function App() {
           <Route path="/signup/seller" element={<SellerSignup />} />
           <Route path="/signup/agent" element={<AgentSignup />} />
           <Route path="/signup/buyer" element={<BuyerSignup />} />
+          <Route path="/signup/professional" element={<ProfessionalSignup />} />
 
           {/* Legal pages — public, no auth */}
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />

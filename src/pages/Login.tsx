@@ -217,6 +217,7 @@ export default function Login() {
                     <Link to="/signup/seller" className="px-6 py-2 rounded-xl border border-[var(--border)] hover:bg-[var(--teal-050)] text-[var(--teal-900)] text-xs font-semibold uppercase tracking-widest transition-colors">Sign up as seller</Link>
                     <Link to="/signup/agent" className="px-6 py-2 rounded-xl border border-[var(--border)] hover:bg-[var(--teal-050)] text-[var(--teal-900)] text-xs font-semibold uppercase tracking-widest transition-colors">Sign up as agent</Link>
                     <Link to="/signup/buyer" className="px-6 py-2 rounded-xl border border-[var(--border)] hover:bg-[var(--teal-050)] text-[var(--teal-900)] text-xs font-semibold uppercase tracking-widest transition-colors">Sign up as buyer</Link>
+                    <Link to="/signup/professional" className="px-6 py-2 rounded-xl border border-[var(--border)] hover:bg-[var(--teal-050)] text-[var(--teal-900)] text-xs font-semibold uppercase tracking-widest transition-colors">Sign up as professional</Link>
                 </div>
             </div>
         </div>
