@@ -97,7 +97,7 @@ export default function AgentDashboard() {
       const [{ data: docsData }, { data: declData }, { data: viewersData }] = await Promise.all([
         supabase.from('documents').select('property_id, document_type').in('property_id', propIds),
         supabase.from('seller_declarations').select('property_id, confirms_accuracy').in('property_id', propIds),
-        supabase.from('pack_viewers').select('*').in('property_id', propIds).order('viewed_at', { ascending: false }),
+        supabase.from('pack_viewers').select('*, users(full_name, profession_type, regulatory_body, regulatory_number, firms(firm_name, company_number))').in('property_id', propIds).order('viewed_at', { ascending: false }),
       ]);
 
       // Views this month
@@ -149,10 +149,21 @@ export default function AgentDashboard() {
       );
 
       setLeads(
-        (viewersData || []).map((v: any) => ({
-          ...v,
-          propertyAddress: propAddressMap.get(v.property_id) || 'Unknown Property',
-        }))
+        (viewersData || []).map((v: any) => {
+          const verifiedUser = v.users;
+          const verifiedFirm = verifiedUser?.firms;
+          return {
+            ...v,
+            propertyAddress: propAddressMap.get(v.property_id) || 'Unknown Property',
+            // Verified data from accounts — takes precedence over registration-time data
+            verified_firm_name: verifiedFirm?.firm_name || null,
+            verified_company_number: verifiedFirm?.company_number || null,
+            verified_profession_type: verifiedUser?.profession_type || null,
+            verified_regulatory_body: verifiedUser?.regulatory_body || null,
+            verified_regulatory_number: verifiedUser?.regulatory_number || null,
+            is_verified_professional: !!verifiedUser && verifiedUser.profession_type != null,
+          };
+        })
       );
     } catch (err) {
       console.error('Error loading dashboard:', err);
@@ -228,13 +239,17 @@ export default function AgentDashboard() {
 
   // CSV export
   const handleExportLeads = () => {
-    const headers = ['Name', 'Email', 'Phone', 'Type', 'Company', 'Property', 'Date', 'Is Selling', 'Selling Location'];
+    const headers = ['Name', 'Email', 'Phone', 'Type', 'Firm Name', 'Company Number', 'Profession', 'Reg Body', 'Reg Number', 'Property', 'Date', 'Is Selling', 'Selling Location'];
     const rows = leads.map((l: any) => [
       l.viewer_name || '',
       l.viewer_email || '',
       l.viewer_phone || '',
       l.viewer_type || 'buyer',
-      l.company_name || '',
+      l.verified_firm_name || l.company_name || '',
+      l.verified_company_number || '',
+      l.verified_profession_type ? l.verified_profession_type.replace('_', ' ') : '',
+      l.verified_regulatory_body || '',
+      l.verified_regulatory_number || '',
       l.propertyAddress || '',
       new Date(l.viewed_at).toLocaleDateString('en-GB'),
       l.is_selling ? 'Yes' : 'No',
@@ -485,8 +500,27 @@ export default function AgentDashboard() {
                         <span className="shrink-0 text-[10px] font-medium text-[var(--muted)]">Buyer</span>
                       )}
                     </div>
-                    {lead.viewer_type === 'professional' && lead.company_name && (
-                      <div className="text-[10px] text-blue-700 font-semibold">{lead.company_name}</div>
+                    {lead.viewer_type === 'professional' && (
+                      <div className="space-y-0.5">
+                        {(lead.verified_firm_name || lead.company_name) && (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] text-blue-700 font-bold">
+                              {lead.verified_firm_name || lead.company_name}
+                            </span>
+                            {lead.is_verified_professional && (
+                              <span className="material-symbols-outlined text-[10px] text-blue-500" title="Verified account">verified</span>
+                            )}
+                          </div>
+                        )}
+                        {lead.verified_profession_type && (
+                          <div className="text-[10px] text-blue-600 capitalize">
+                            {lead.verified_profession_type.replace('_', ' ')}
+                            {lead.verified_regulatory_body && lead.verified_regulatory_number && (
+                              <span className="text-blue-400"> · {lead.verified_regulatory_body}: {lead.verified_regulatory_number}</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     )}
                     <div className="flex items-center justify-between text-[10px] text-[var(--muted)] font-medium">
                       <span>{lead.propertyAddress}</span>
@@ -551,11 +585,29 @@ export default function AgentDashboard() {
                         </td>
                         <td className="px-6 py-4">
                           {lead.viewer_type === 'professional' ? (
-                            <div className="space-y-0.5">
-                              {lead.company_name && (
-                                <div className="font-semibold text-sm text-blue-900">{lead.company_name}</div>
+                            <div className="space-y-1">
+                              {(lead.verified_firm_name || lead.company_name) && (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-bold text-sm text-blue-900">
+                                    {lead.verified_firm_name || lead.company_name}
+                                  </span>
+                                  {lead.is_verified_professional && (
+                                    <span className="material-symbols-outlined text-[13px] text-blue-500" title="Verified HomeSalesReady account">verified</span>
+                                  )}
+                                </div>
                               )}
-                              <span className="text-[10px] text-[var(--muted)]">Professional enquiry</span>
+                              {lead.verified_profession_type ? (
+                                <div className="text-[10px] text-blue-700 font-semibold capitalize">
+                                  {lead.verified_profession_type.replace('_', ' ')}
+                                </div>
+                              ) : (
+                                <span className="text-[10px] text-[var(--muted)]">Professional enquiry</span>
+                              )}
+                              {lead.verified_regulatory_body && lead.verified_regulatory_number && (
+                                <div className="text-[10px] text-[var(--muted)]">
+                                  {lead.verified_regulatory_body}: {lead.verified_regulatory_number}
+                                </div>
+                              )}
                             </div>
                           ) : lead.is_selling ? (
                             <div className="space-y-0.5">
