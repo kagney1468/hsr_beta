@@ -9,6 +9,7 @@ import { updatePackCompletion } from '../lib/completion';
 import { getPackShareUrl } from '../lib/siteUrl';
 import { getPublicUserIdByAuthUserId } from '../lib/publicUser';
 import { getGreeting } from '../lib/greeting';
+import { QRCodeSVG } from 'qrcode.react';
 
 export default function SellerDashboard() {
   const { user } = useAuth();
@@ -195,6 +196,7 @@ export default function SellerDashboard() {
   };
 
   const [copying, setCopying] = useState(false);
+  const [copyingRef, setCopyingRef] = useState(false);
   const [firstName, setFirstName] = useState<string | null>(null);
 
   useEffect(() => {
@@ -243,6 +245,46 @@ export default function SellerDashboard() {
     } catch (err) {
       console.error('Error copying share link:', err);
     }
+  };
+
+  const handleCopyReference = async () => {
+    const ref = data.property?.pack_reference;
+    if (!ref) return;
+    await navigator.clipboard.writeText(ref);
+    setCopyingRef(true);
+    setTimeout(() => setCopyingRef(false), 2000);
+  };
+
+  const handleDownloadQR = () => {
+    const share = data.share;
+    if (!share?.token) return;
+    const svg = document.getElementById('hsr-qr-code');
+    if (!svg) return;
+    const serialiser = new XMLSerializer();
+    const svgStr = serialiser.serializeToString(svg);
+    const canvas = document.createElement('canvas');
+    canvas.width = 400;
+    canvas.height = 460;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const img = new Image();
+    img.onload = () => {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 400, 460);
+      ctx.drawImage(img, 40, 40, 320, 320);
+      ctx.fillStyle = '#0d4a4a';
+      ctx.font = 'bold 18px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('homesalesready.com/find', 200, 400);
+      ctx.fillStyle = '#17afaf';
+      ctx.font = 'bold 16px sans-serif';
+      ctx.fillText(data.property?.pack_reference || '', 200, 430);
+      const link = document.createElement('a');
+      link.download = `${data.property?.pack_reference || 'hsr-pack'}-qr.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    };
+    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
   };
 
   const toggleLinkStatus = async () => {
@@ -405,6 +447,77 @@ export default function SellerDashboard() {
           </Tooltip>
         </div>
       </div>
+
+      {data.property && (
+        <div className="px-4 md:px-10 pt-6 max-w-7xl mx-auto w-full">
+          <Card className="p-6 sm:p-10 rounded-[24px] space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="size-10 bg-[var(--teal-050)] text-[var(--teal-600)] border border-[var(--border)] flex items-center justify-center rounded-xl">
+                <span className="material-symbols-outlined text-xl">qr_code_2</span>
+              </div>
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-[var(--muted)]">Pack reference &amp; sharing</p>
+                <p className="text-lg font-black font-heading text-[var(--teal-900)]">{data.property.pack_reference || '—'}</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleCopyReference}
+                className="ml-auto flex items-center gap-2 px-4 py-2 rounded-xl border border-[var(--border)] text-xs font-semibold text-[var(--teal-900)] hover:bg-[var(--teal-050)] transition-colors"
+              >
+                <span className="material-symbols-outlined text-base">{copyingRef ? 'check' : 'content_copy'}</span>
+                {copyingRef ? 'Copied!' : 'Copy reference'}
+              </button>
+            </div>
+
+            <div className="flex flex-col lg:flex-row gap-8 items-start">
+              <div className="flex-1 space-y-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)]">Direct pack link</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={data.share?.token ? getPackShareUrl(data.share.token) : ''}
+                      className="w-full bg-[var(--page)] text-sm text-[var(--muted)] rounded-xl border border-[var(--border)] px-4 py-3"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCopyLink}
+                      disabled={!data.share?.token}
+                      className="flex items-center gap-2 px-4 py-3 rounded-xl border border-[var(--border)] text-xs font-semibold text-[var(--teal-900)] hover:bg-[var(--teal-050)] transition-colors disabled:opacity-40"
+                    >
+                      <span className="material-symbols-outlined text-base">{copying ? 'check' : 'content_copy'}</span>
+                      {copying ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+                <p className="text-[11px] text-[var(--muted)]">Share this link with buyers or your estate agent to give them access to your property pack.</p>
+              </div>
+
+              {data.share?.token && (
+                <div className="flex flex-col items-center gap-4">
+                  <div className="p-4 bg-white border border-[var(--border)] rounded-2xl">
+                    <QRCodeSVG
+                      id="hsr-qr-code"
+                      value={getPackShareUrl(data.share.token)}
+                      size={180}
+                      level="H"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleDownloadQR}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[var(--border)] text-xs font-semibold text-[var(--teal-900)] hover:bg-[var(--teal-050)] transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-base">download</span>
+                    Download QR
+                  </button>
+                </div>
+              )}
+            </div>
+          </Card>
+        </div>
+      )}
 
       <div className="p-4 md:p-10 space-y-16 max-w-7xl mx-auto w-full pb-32">
         <Card className="p-6 sm:p-10 md:p-14 rounded-[28px] flex flex-col lg:flex-row items-center gap-8 sm:gap-14 relative overflow-hidden group">
