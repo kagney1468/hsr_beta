@@ -39,6 +39,9 @@ import TermsOfService from './pages/TermsOfService';
 import CookiePolicy from './pages/CookiePolicy';
 import FindPack from './pages/FindPack';
 import ProfessionalSignup from './pages/ProfessionalSignup';
+import ProfessionalLayout from './layouts/ProfessionalLayout';
+import ProfessionalDashboard from './pages/ProfessionalDashboard';
+import ProfessionalProfile from './pages/ProfessionalProfile';
 import CookieBanner from './components/CookieBanner';
 
 export default function App() {
@@ -95,6 +98,13 @@ export default function App() {
               <Route path="dashboard" element={<BuyerDashboard />} />
               <Route path="profile" element={<BuyerProfile />} />
               <Route path="compare" element={<BuyerCompare />} />
+            </Route>
+
+            {/* Professional Routes */}
+            <Route path="/professional" element={<ProfessionalLayout />}>
+              <Route index element={<Navigate to="/professional/dashboard" replace />} />
+              <Route path="dashboard" element={<ProfessionalDashboard />} />
+              <Route path="profile" element={<ProfessionalProfile />} />
             </Route>
 
             {/* Agent Routes */}

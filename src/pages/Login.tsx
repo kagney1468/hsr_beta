@@ -60,6 +60,10 @@ export default function Login() {
         navigate('/buyer/dashboard');
         return;
       }
+      if (userType === 'professional') {
+        navigate('/professional/dashboard');
+        return;
+      }
       if (userType === 'agent') {
         navigate('/agent/dashboard');
         return;
