@@ -107,7 +107,11 @@ export const templates = {
         <p style="margin: 0; color: #ffffff; font-size: 16px;"><strong>Name:</strong> ${viewerData.full_name}</p>
         <p style="margin: 8px 0; color: #ffffff; font-size: 16px;"><strong>Email:</strong> ${viewerData.email}</p>
         <p style="margin: 8px 0; color: #ffffff; font-size: 16px;"><strong>Phone:</strong> ${viewerData.phone}</p>
-        <p style="margin: 8px 0; color: #ffffff; font-size: 16px;"><strong>Selling:</strong> ${viewerData.is_selling ? 'Yes - ' + viewerData.selling_location : 'No'}</p>
+        ${viewerData.viewer_type === 'professional'
+    ? `<p style="margin: 8px 0; color: #a5f3fc; font-size: 16px;"><strong>Type:</strong> Professional</p>
+       ${viewerData.company_name ? `<p style="margin: 8px 0; color: #a5f3fc; font-size: 16px;"><strong>Firm:</strong> ${viewerData.company_name}</p>` : ''}`
+    : `<p style="margin: 8px 0; color: #ffffff; font-size: 16px;"><strong>Selling:</strong> ${viewerData.is_selling ? 'Yes — ' + viewerData.selling_location : 'No'}</p>`
+  }
       </div>
       <p class="text">Follow up with them to gauge interest!</p>
     `, { name: agencyName })

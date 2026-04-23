@@ -189,6 +189,8 @@ export default function PublicPack() {
           phone: viewerForm.phone,
           is_selling: viewerForm.is_selling,
           selling_location: viewerForm.selling_location,
+          viewer_type: viewerForm.viewer_type,
+          company_name: viewerForm.company_name,
         },
         propertyAddress,
         agencyName
