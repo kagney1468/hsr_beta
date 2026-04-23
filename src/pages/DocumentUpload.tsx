@@ -26,9 +26,10 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const categories = [
   {
     id: 'title_deeds',
-    label: 'Title Deeds',
-    tooltip: 'Proves you legally own the property and have the right to sell it. Solicitors need this on day one — having it ready prevents weeks of delay.',
+    label: 'Title Deeds / Title Register',
+    tooltip: 'Proves you legally own the property and have the right to sell it. Most sellers no longer hold physical title deeds — instead you can download your official Title Register and Title Plan from HM Land Registry for £6 each. Solicitors need this on day one.',
     required: true,
+    landRegistryLink: true,
   },
   {
     id: 'epc',
@@ -39,7 +40,7 @@ const categories = [
   {
     id: 'building_regs',
     label: 'Building Regulations Certificates',
-    tooltip: 'Confirms any extensions, conversions or structural works were approved by the local authority. Missing certificates can delay or kill a sale.',
+    tooltip: 'Only needed if extensions, conversions or structural works have been carried out. If no works have been done this document is not required and will not affect your pack completion score.',
     required: false,
   },
   {
@@ -58,13 +59,13 @@ const categories = [
   {
     id: 'planning',
     label: 'Planning Permissions',
-    tooltip: 'Shows that extensions or changes to the property were legally approved by the council. Buyers\'s solicitors will request these.',
+    tooltip: 'Only needed if planning permission was obtained for extensions or changes to the property. If no such works have been done this is not required and will not affect your pack completion score.',
     required: false,
   },
   {
     id: 'gas_safety',
-    label: 'Gas Safety Certificate',
-    tooltip: 'Shows the boiler and all gas appliances are safe and have been maintained. Reassures buyers about ongoing safety and costs.',
+    label: 'Heating System Safety Certificate',
+    tooltip: 'Covers gas boiler safety (Gas Safe certificate), oil-fired systems (OFTEC certificate), or LPG appliances. Upload whichever is relevant to your heating system. Reassures buyers about safety and ongoing maintenance costs.',
     required: false,
   },
   {
@@ -343,7 +344,11 @@ export default function DocumentUpload() {
                     <span className="bg-[#fee2e2] text-[#dc2626] border border-[#fecaca] text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-full flex items-center gap-1 shrink-0">
                       Action Required
                     </span>
-                  ) : null}
+                  ) : (
+                    <span className="bg-[var(--teal-050)] text-[var(--teal-700)] border border-[var(--border)] text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-full flex items-center gap-1 shrink-0">
+                      Optional
+                    </span>
+                  )}
                 </div>
 
                 <div className="space-y-3">
@@ -401,6 +406,23 @@ export default function DocumentUpload() {
                       accept=".pdf,.jpg,.jpeg,.png"
                       onChange={e => handleFileUpload(e, category.id)}
                     />
+                    {(category as any).landRegistryLink && (
+                      <div className="mb-3 p-3 rounded-xl bg-[var(--teal-050)] border border-[var(--border)] space-y-1">
+                        <p className="text-[11px] font-bold text-[var(--teal-900)] uppercase tracking-widest">Don't have your title deeds?</p>
+                        <p className="text-[11px] text-[var(--muted)] leading-relaxed">
+                          Most sellers no longer hold physical deeds. You can download your official Title Register and Title Plan from HM Land Registry for £6 each.
+                        </p>
+                        <a
+                          href="https://www.gov.uk/search-property-information-land-registry"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[var(--teal-600)] hover:underline mt-1"
+                        >
+                          <span className="material-symbols-outlined text-sm">open_in_new</span>
+                          Search Land Registry (gov.uk)
+                        </a>
+                      </div>
+                    )}
                     <label
                       htmlFor={`file-${category.id}`}
                       className="w-full flex items-center justify-center h-12 rounded-xl border border-dashed border-[var(--border)] text-[var(--muted)] text-sm font-semibold hover:border-[var(--teal-500)] hover:text-[var(--teal-600)] hover:bg-[var(--teal-050)] transition-colors cursor-pointer"
