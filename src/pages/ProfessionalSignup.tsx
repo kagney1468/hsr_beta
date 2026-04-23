@@ -5,6 +5,14 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import Footer from '../components/Footer';
 
+function validatePassword(password: string): string | null {
+  if (password.length < 10) return 'Password must be at least 10 characters.';
+  if (!/[A-Z]/.test(password)) return 'Password must include at least one capital letter.';
+  if (!/[0-9]/.test(password)) return 'Password must include at least one number.';
+  if (!/[^A-Za-z0-9]/.test(password)) return 'Password must include at least one special character (e.g. ! @ # $).';
+  return null;
+}
+
 const PROFESSION_OPTIONS = [
   { value: 'solicitor',        label: 'Solicitor',              regBody: 'SRA',   regLabel: 'SRA Number' },
   { value: 'surveyor',         label: 'Surveyor',               regBody: 'RICS',  regLabel: 'RICS Membership Number' },
@@ -49,7 +57,8 @@ export default function ProfessionalSignup() {
     if (!form.profession_type) { setError('Please select your profession type.'); return; }
     if (!form.full_name.trim()) { setError('Please enter your full name.'); return; }
     if (!form.email.trim()) { setError('Please enter your email address.'); return; }
-    if (form.password.length < 8) { setError('Password must be at least 8 characters.'); return; }
+    const passwordError = validatePassword(form.password);
+    if (passwordError) { setError(passwordError); return; }
     if (!form.company_number.trim()) { setError('Please enter your company registration number.'); return; }
 
     setLoading(true);
@@ -250,7 +259,10 @@ export default function ProfessionalSignup() {
                   <label className="text-xs font-bold uppercase tracking-widest text-[var(--muted)]">
                     Password <span className="text-[#dc2626]">*</span>
                   </label>
-                  <input type="password" name="password" value={form.password} onChange={handleChange} className="w-full" placeholder="At least 8 characters" required minLength={8} />
+                  <input type="password" name="password" value={form.password} onChange={handleChange} className="w-full" placeholder="Create a password" required minLength={10} />
+                  <p className="text-[11px] text-[var(--muted)] leading-relaxed">
+                    Must be at least 10 characters and include one capital letter, one number, and one special character (e.g. ! @ # $).
+                  </p>
                 </div>
 
                 <div className="space-y-2">
