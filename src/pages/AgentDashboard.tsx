@@ -501,23 +501,30 @@ export default function AgentDashboard() {
                       )}
                     </div>
                     {lead.viewer_type === 'professional' && (
-                      <div className="space-y-0.5">
-                        {(lead.verified_firm_name || lead.company_name) && (
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] text-blue-700 font-bold">
-                              {lead.verified_firm_name || lead.company_name}
+                      <div className="space-y-1">
+                        {lead.is_verified_professional ? (
+                          <div className="space-y-1">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[9px] font-black uppercase tracking-wider border border-blue-200">
+                              <span className="material-symbols-outlined text-[10px]">verified</span>
+                              Verified account
                             </span>
-                            {lead.is_verified_professional && (
-                              <span className="material-symbols-outlined text-[10px] text-blue-500" title="Verified account">verified</span>
+                            <div className="font-bold text-[10px] text-blue-900">{lead.verified_firm_name}</div>
+                            {lead.verified_profession_type && (
+                              <div className="text-[10px] text-blue-700 capitalize">
+                                {lead.verified_profession_type.replace('_', ' ')}
+                              </div>
                             )}
                           </div>
-                        )}
-                        {lead.verified_profession_type && (
-                          <div className="text-[10px] text-blue-600 capitalize">
-                            {lead.verified_profession_type.replace('_', ' ')}
-                            {lead.verified_regulatory_body && lead.verified_regulatory_number && (
-                              <span className="text-blue-400"> · {lead.verified_regulatory_body}: {lead.verified_regulatory_number}</span>
+                        ) : (
+                          <div className="space-y-1">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[9px] font-black uppercase tracking-wider border border-amber-200">
+                              <span className="material-symbols-outlined text-[10px]">help</span>
+                              Unverified
+                            </span>
+                            {lead.company_name && (
+                              <div className="text-[10px] text-[var(--muted)] font-medium">{lead.company_name}</div>
                             )}
+                            <div className="text-[10px] text-[var(--muted)]">No HSR account</div>
                           </div>
                         )}
                       </div>
@@ -586,26 +593,36 @@ export default function AgentDashboard() {
                         <td className="px-6 py-4">
                           {lead.viewer_type === 'professional' ? (
                             <div className="space-y-1">
-                              {(lead.verified_firm_name || lead.company_name) && (
-                                <div className="flex items-center gap-1.5">
-                                  <span className="font-bold text-sm text-blue-900">
-                                    {lead.verified_firm_name || lead.company_name}
-                                  </span>
-                                  {lead.is_verified_professional && (
-                                    <span className="material-symbols-outlined text-[13px] text-blue-500" title="Verified HomeSalesReady account">verified</span>
+                              {lead.is_verified_professional ? (
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[9px] font-black uppercase tracking-wider border border-blue-200">
+                                      <span className="material-symbols-outlined text-[10px]">verified</span>
+                                      Verified account
+                                    </span>
+                                  </div>
+                                  <div className="font-bold text-sm text-blue-900">{lead.verified_firm_name}</div>
+                                  {lead.verified_profession_type && (
+                                    <div className="text-[10px] text-blue-700 font-semibold capitalize">
+                                      {lead.verified_profession_type.replace('_', ' ')}
+                                    </div>
+                                  )}
+                                  {lead.verified_regulatory_body && lead.verified_regulatory_number && (
+                                    <div className="text-[10px] text-[var(--muted)]">
+                                      {lead.verified_regulatory_body}: {lead.verified_regulatory_number}
+                                    </div>
                                   )}
                                 </div>
-                              )}
-                              {lead.verified_profession_type ? (
-                                <div className="text-[10px] text-blue-700 font-semibold capitalize">
-                                  {lead.verified_profession_type.replace('_', ' ')}
-                                </div>
                               ) : (
-                                <span className="text-[10px] text-[var(--muted)]">Professional enquiry</span>
-                              )}
-                              {lead.verified_regulatory_body && lead.verified_regulatory_number && (
-                                <div className="text-[10px] text-[var(--muted)]">
-                                  {lead.verified_regulatory_body}: {lead.verified_regulatory_number}
+                                <div className="space-y-1">
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[9px] font-black uppercase tracking-wider border border-amber-200">
+                                    <span className="material-symbols-outlined text-[10px]">help</span>
+                                    Unverified
+                                  </span>
+                                  {lead.company_name && (
+                                    <div className="text-sm text-[var(--muted)] font-medium">{lead.company_name}</div>
+                                  )}
+                                  <div className="text-[10px] text-[var(--muted)]">No HSR account — self-declared details only</div>
                                 </div>
                               )}
                             </div>
