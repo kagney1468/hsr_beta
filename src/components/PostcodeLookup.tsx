@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from './ui/Button';
 
 export interface AddressData {
@@ -32,6 +32,13 @@ export default function PostcodeLookup({ onAddressSelect }: PostcodeLookupProps)
   const [postcodeError, setPostcodeError] = useState<string | null>(null);
   const [lookupState, setLookupState] = useState<LookupState>('idle');
   const [address, setAddress] = useState<AddressData>(EMPTY_ADDRESS);
+  const addressLine1Ref = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (lookupState === 'found' || lookupState === 'not_found') {
+      setTimeout(() => addressLine1Ref.current?.focus(), 100);
+    }
+  }, [lookupState]);
 
   const handlePostcodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPostcode(e.target.value);
@@ -173,7 +180,7 @@ export default function PostcodeLookup({ onAddressSelect }: PostcodeLookupProps)
         <div className="flex items-start gap-2 p-3 rounded-xl bg-[var(--teal-050)] border border-[#6dd4d4]">
           <span className="material-symbols-outlined text-[var(--teal-600)] text-base shrink-0 mt-0.5">check_circle</span>
           <p className="text-sm text-[var(--teal-900)]">
-            Postcode found. Please complete your address details below.
+            Postcode found — please fill in your street address and town below, then click 'Use this address'.
           </p>
         </div>
       )}
@@ -195,6 +202,7 @@ export default function PostcodeLookup({ onAddressSelect }: PostcodeLookupProps)
               Address Line 1 *
             </label>
             <input
+              ref={addressLine1Ref}
               type="text"
               name="address_line1"
               required
