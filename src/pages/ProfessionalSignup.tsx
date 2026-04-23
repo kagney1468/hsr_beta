@@ -100,59 +100,27 @@ export default function ProfessionalSignup() {
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: form.email.trim(),
         password: form.password,
-        options: {
-          data: { full_name: form.full_name.trim() },
-        },
+        options: { data: { full_name: form.full_name.trim() } },
       });
-
       if (authError) throw authError;
       if (!authData.user) throw new Error('Account could not be created. Please try again.');
 
-      // 2. Create or retrieve firm
-      let firmId: string;
+      // 2. Create firm + user row via security-definer function (bypasses RLS during signup)
+      const { error: rpcError } = await supabase.rpc('register_professional', {
+        p_auth_user_id:       authData.user.id,
+        p_email:              form.email.trim(),
+        p_full_name:          form.full_name.trim(),
+        p_phone:              form.phone.trim(),
+        p_profession_type:    form.profession_type,
+        p_regulatory_body:    selectedProfession?.regBody || 'Other',
+        p_regulatory_number:  form.regulatory_number.trim(),
+        p_firm_name:          form.firm_name.trim(),
+        p_company_number:     form.company_number.trim().toUpperCase(),
+        p_registered_office:  form.registered_office.trim(),
+      });
+      if (rpcError) throw rpcError;
 
-      const { data: existingFirm } = await supabase
-        .from('firms')
-        .select('id')
-        .eq('company_number', form.company_number.trim().toUpperCase())
-        .maybeSingle();
-
-      if (existingFirm) {
-        firmId = existingFirm.id;
-      } else {
-        const { data: newFirm, error: firmError } = await supabase
-          .from('firms')
-          .insert({
-            firm_name: form.firm_name.trim(),
-            company_number: form.company_number.trim().toUpperCase(),
-            registered_office: form.registered_office.trim(),
-          })
-          .select('id')
-          .single();
-
-        if (firmError) throw firmError;
-        firmId = newFirm.id;
-      }
-
-      // 3. Create users row
-      const { error: userError } = await supabase
-        .from('users')
-        .insert({
-          auth_user_id: authData.user.id,
-          email: form.email.trim(),
-          full_name: form.full_name.trim(),
-          phone: form.phone.trim(),
-          user_type: 'professional',
-          role: 'professional',
-          firm_id: firmId,
-          profession_type: form.profession_type,
-          regulatory_body: selectedProfession?.regBody || 'Other',
-          regulatory_number: form.regulatory_number.trim(),
-        });
-
-      if (userError) throw userError;
-
-      // 4. Redirect to dashboard
+      // 3. Redirect
       navigate('/professional/dashboard');
 
     } catch (err: any) {
