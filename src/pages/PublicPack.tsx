@@ -459,6 +459,13 @@ export default function PublicPack() {
                 <span className="material-symbols-outlined text-[var(--teal-600)] text-lg">verified</span>
                 <span className="text-xs font-bold font-heading uppercase tracking-widest">Verified information pack</span>
               </div>
+              {property.pack_reference && (
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-[var(--border)] text-[var(--teal-900)]">
+                  <span className="material-symbols-outlined text-[var(--muted)] text-lg">tag</span>
+                  <span className="text-xs font-bold font-heading uppercase tracking-widest text-[var(--muted)]">Ref:</span>
+                  <span className="text-xs font-black font-heading tracking-widest text-[var(--teal-900)]">{property.pack_reference}</span>
+                </div>
+              )}
               {lastUpdated && (
                 <span className="text-[11px] font-semibold text-[var(--muted)] uppercase tracking-widest">
                   Last updated {new Date(lastUpdated).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
