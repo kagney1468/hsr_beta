@@ -185,6 +185,16 @@ export default function AuthCallback() {
         // ── Redirect based on user_type ───────────────────────────────────────
         const userType = (userRow.user_type ?? '').toLowerCase();
 
+        if (userType === 'buyer') {
+          navigate('/buyer/dashboard', { replace: true });
+          return;
+        }
+
+        if (userType === 'professional') {
+          navigate('/professional/dashboard', { replace: true });
+          return;
+        }
+
         if (userType === 'agent') {
           // Agent with no linked agency → collect firm details first
           if (!userRow.agency_id) {
