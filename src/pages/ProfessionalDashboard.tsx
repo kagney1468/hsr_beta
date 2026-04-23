@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../components/ui/Card';
@@ -44,11 +45,14 @@ function CompletenessBar({ score }: { score: number }) {
 
 export default function ProfessionalDashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [packs, setPacks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [firstName, setFirstName] = useState<string | null>(null);
   const [firmName, setFirmName] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [packInput, setPackInput] = useState('');
+  const [packInputError, setPackInputError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -106,6 +110,19 @@ export default function ProfessionalDashboard() {
     loadPacks();
   }, [user]);
 
+  const handlePackEntry = () => {
+    const val = packInput.trim();
+    if (!val) { setPackInputError('Please enter a pack link or reference number.'); return; }
+    setPackInputError(null);
+    // If it looks like a full URL containing /pack/ extract the token
+    const urlMatch = val.match(/\/pack\/([a-zA-Z0-9\-]+)/);
+    if (urlMatch) { window.open(`/pack/${urlMatch[1]}`, '_blank'); return; }
+    // If it looks like a HSR reference (HSR-XX-XXXX) go to /find with the ref pre-filled
+    if (/^HSR-/i.test(val)) { navigate(`/find?ref=${encodeURIComponent(val)}`); return; }
+    // Otherwise treat as a raw token
+    window.open(`/pack/${val}`, '_blank');
+  };
+
   const totalPages = Math.ceil(packs.length / PACKS_PER_PAGE);
   const paginated = packs.slice((page - 1) * PACKS_PER_PAGE, page * PACKS_PER_PAGE);
 
@@ -142,17 +159,50 @@ export default function ProfessionalDashboard() {
 
       <main className="p-6 md:p-10">
         {packs.length === 0 ? (
-          <Card className="p-12 text-center space-y-4">
-            <div className="size-16 bg-[var(--teal-050)] text-[var(--teal-600)] border border-[var(--border)] flex items-center justify-center rounded-2xl mx-auto">
-              <span className="material-symbols-outlined text-3xl">work</span>
-            </div>
-            <h2 className="text-xl font-black font-heading text-[var(--teal-900)]">No transactions yet</h2>
-            <p className="text-[var(--muted)] text-sm max-w-sm mx-auto">
-              You haven't accessed any property packs yet. Use a pack link or visit{' '}
-              <a href="/find" className="text-[var(--teal-600)] font-semibold hover:underline">homesalesready.com/find</a>{' '}
-              to search by reference and postcode.
-            </p>
-          </Card>
+          <div className="space-y-6 max-w-lg mx-auto">
+            <Card className="p-8 text-center space-y-4">
+              <div className="size-16 bg-[var(--teal-050)] text-[var(--teal-600)] border border-[var(--border)] flex items-center justify-center rounded-2xl mx-auto">
+                <span className="material-symbols-outlined text-3xl">work</span>
+              </div>
+              <h2 className="text-xl font-black font-heading text-[var(--teal-900)]">No transactions yet</h2>
+              <p className="text-[var(--muted)] text-sm max-w-sm mx-auto">
+                Access your first property pack by entering the pack link or reference number you received — or search using a reference and postcode below.
+              </p>
+            </Card>
+
+            <Card className="p-6 space-y-4">
+              <div className="space-y-1">
+                <h3 className="text-sm font-black font-heading text-[var(--teal-900)] uppercase tracking-widest">Access a property pack</h3>
+                <p className="text-xs text-[var(--muted)]">Paste the pack link you were sent, or enter the pack reference number (e.g. HSR-BH-0001).</p>
+              </div>
+              {packInputError && (
+                <p className="text-xs font-semibold text-red-600">{packInputError}</p>
+              )}
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  value={packInput}
+                  onChange={e => { setPackInput(e.target.value); setPackInputError(null); }}
+                  onKeyDown={e => e.key === 'Enter' && handlePackEntry()}
+                  placeholder="Paste link or enter reference e.g. HSR-BH-0001"
+                  className="flex-1"
+                />
+                <Button variant="primary" onClick={handlePackEntry} className="shrink-0 h-11 px-5 rounded-xl font-bold text-sm">
+                  Go
+                </Button>
+              </div>
+              <div className="pt-1 border-t border-[var(--border)]">
+                <p className="text-xs text-[var(--muted)] mb-2">Or search by reference and postcode:</p>
+                <button
+                  onClick={() => navigate('/find')}
+                  className="flex items-center gap-2 text-[var(--teal-600)] text-xs font-bold hover:underline"
+                >
+                  <span className="material-symbols-outlined text-base">search</span>
+                  Search on homesalesready.com/find
+                </button>
+              </div>
+            </Card>
+          </div>
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
