@@ -35,6 +35,10 @@ export default function Footer({ className = '' }: { className?: string }) {
             <Link to="/cookie-policy" className="text-xs text-[var(--muted)] hover:text-[var(--teal-600)] font-medium transition-colors px-1">
               Cookie Policy
             </Link>
+            <span className="text-[var(--border)] text-xs">·</span>
+            <Link to="/help" className="text-xs text-[var(--muted)] hover:text-[var(--teal-600)] font-medium transition-colors px-1">
+              Help
+            </Link>
             {user ? (
               <>
                 <span className="text-[var(--border)] text-xs">·</span>

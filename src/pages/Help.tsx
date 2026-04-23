@@ -32,57 +32,55 @@ export default function Help() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
-    <div className="max-w-3xl mx-auto p-6 md:p-10 space-y-10">
-      <div className="text-center space-y-2">
-        <h1 className="text-4xl font-black font-heading text-[var(--teal-900)] tracking-tight">Help & FAQ</h1>
-        <p className="text-[var(--muted)]">Find answers to common questions about your property pack.</p>
-      </div>
-
-      <div className="space-y-4">
-        {faqs.map((faq, index) => {
-          const isOpen = openIndex === index;
-          return (
-            <Card 
-              key={index} 
-              className={`p-0 overflow-hidden transition-all duration-300 ${isOpen ? 'ring-1 ring-[var(--teal-050)] shadow-soft' : ''}`}
-            >
-              <button
-                className="w-full flex items-center justify-between p-6 text-left focus:outline-none hover:bg-[var(--teal-050)] transition-colors"
-                onClick={() => setOpenIndex(isOpen ? null : index)}
-              >
-                <span className="font-semibold text-[var(--teal-900)] text-base pr-4">{faq.question}</span>
-                <span className={`material-symbols-outlined text-[var(--teal-600)] transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}>
-                  expand_more
-                </span>
-              </button>
-              
-              <div 
-                className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-96' : 'max-h-0'}`}
-              >
-                <div className="px-6 pb-6 text-[var(--muted)] text-sm leading-relaxed">
-                  {faq.answer}
-                </div>
-              </div>
-            </Card>
-          );
-        })}
-      </div>
-
-      <Card className="p-8 text-center space-y-4">
-        <div className="size-12 bg-[var(--teal-050)] text-[var(--teal-600)] border border-[var(--border)] flex items-center justify-center rounded-2xl mx-auto">
-           <span className="material-symbols-outlined">mail</span>
+    <div className="min-h-screen bg-[var(--page)] flex flex-col">
+      <header className="border-b border-[var(--border)] px-6 md:px-10 py-4 flex items-center justify-between bg-white">
+        <div className="flex items-center gap-3">
+          <span className="material-symbols-outlined text-2xl text-[var(--teal-600)]">home_filled</span>
+          <span className="font-heading font-black text-lg tracking-tight text-[var(--teal-900)]">HomeSalesReady</span>
         </div>
-        <div className="space-y-1">
-          <h3 className="text-lg font-bold text-[var(--teal-900)]">Still need help?</h3>
-          <p className="text-[var(--muted)] text-sm">Our support team is available Mon–Fri, 9am – 5pm.</p>
-        </div>
-        <a 
-          href="mailto:support@homesalesready.com"
-          className="inline-block px-8 py-3 bg-[var(--teal-600)] text-white font-bold font-heading rounded-xl hover:bg-[var(--teal-900)] transition-colors"
-        >
-          Contact Support
+        <a href="/login" className="text-xs font-semibold text-[var(--teal-600)] hover:underline uppercase tracking-widest">
+          Back to login
         </a>
-      </Card>
+      </header>
+      <main className="flex-1">
+        <div className="max-w-3xl mx-auto p-6 md:p-10 space-y-10">
+          <div className="text-center space-y-2">
+            <h1 className="text-4xl font-black font-heading text-[var(--teal-900)] tracking-tight">Help & FAQ</h1>
+            <p className="text-[var(--muted)]">Find answers to common questions about HomeSalesReady and your property pack.</p>
+          </div>
+          <div className="space-y-4">
+            {faqs.map((faq, index) => {
+              const isOpen = openIndex === index;
+              return (
+                <Card key={index} className={`p-0 overflow-hidden transition-all duration-300 ${isOpen ? 'ring-1 ring-[var(--teal-050)] shadow-soft' : ''}`}>
+                  <button
+                    className="w-full flex items-center justify-between p-6 text-left focus:outline-none hover:bg-[var(--teal-050)] transition-colors"
+                    onClick={() => setOpenIndex(isOpen ? null : index)}
+                  >
+                    <span className="font-semibold text-[var(--teal-900)] text-base pr-4">{faq.question}</span>
+                    <span className={`material-symbols-outlined text-[var(--teal-600)] transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}>expand_more</span>
+                  </button>
+                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-96' : 'max-h-0'}`}>
+                    <div className="px-6 pb-6 text-[var(--muted)] text-sm leading-relaxed">{faq.answer}</div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+          <Card className="p-8 text-center space-y-4">
+            <div className="size-12 bg-[var(--teal-050)] text-[var(--teal-600)] border border-[var(--border)] flex items-center justify-center rounded-2xl mx-auto">
+              <span className="material-symbols-outlined">mail</span>
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg font-bold text-[var(--teal-900)]">Still need help?</h3>
+              <p className="text-[var(--muted)] text-sm">Our support team is available Mon–Fri, 9am – 5pm.</p>
+            </div>
+            <a href="mailto:support@homesalesready.com" className="inline-block px-8 py-3 bg-[var(--teal-600)] text-white font-bold font-heading rounded-xl hover:bg-[var(--teal-900)] transition-colors">
+              Contact Support
+            </a>
+          </Card>
+        </div>
+      </main>
     </div>
   );
 }

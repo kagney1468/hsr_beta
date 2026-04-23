@@ -65,6 +65,7 @@ export default function App() {
 
           {/* Public pack finder */}
           <Route path="/find" element={<FindPack />} />
+          <Route path="/help" element={<Help />} />
 
           {/* Public Property Pack */}
           <Route path="/pack/:token" element={<PublicPack />} />
