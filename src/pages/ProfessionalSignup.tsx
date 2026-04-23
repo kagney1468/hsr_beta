@@ -25,6 +25,7 @@ export default function ProfessionalSignup() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
   const [existingFirmName, setExistingFirmName] = useState<string | null>(null);
 
@@ -120,8 +121,8 @@ export default function ProfessionalSignup() {
       });
       if (rpcError) throw rpcError;
 
-      // 3. Redirect
-      navigate('/professional/dashboard');
+      // 3. Show success screen
+      setSuccess(true);
 
     } catch (err: any) {
       console.error('Professional signup error:', err);
@@ -131,6 +132,25 @@ export default function ProfessionalSignup() {
       setLoading(false);
     }
   };
+
+  if (success) {
+    return (
+      <div className="min-h-screen bg-[var(--page)] flex flex-col items-center justify-center p-6">
+        <Card className="max-w-md w-full p-10 text-center space-y-6">
+          <div className="size-20 bg-[var(--teal-050)] text-[var(--teal-600)] border border-[var(--border)] flex items-center justify-center rounded-3xl mx-auto">
+            <span className="material-symbols-outlined text-4xl">mark_email_read</span>
+          </div>
+          <h2 className="text-2xl font-black font-heading text-[var(--teal-900)]">Check your inbox</h2>
+          <p className="text-[var(--muted)] text-sm leading-relaxed">
+            We've sent a confirmation link to <strong>{form.email}</strong>. Click the link in that email to activate your account and access your professional dashboard.
+          </p>
+          <p className="text-[11px] text-[var(--muted)]">
+            Can't find it? Check your junk folder, or <button onClick={() => setSuccess(false)} className="text-[var(--teal-600)] font-semibold hover:underline">go back</button> to try again.
+          </p>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[var(--page)] flex flex-col">
