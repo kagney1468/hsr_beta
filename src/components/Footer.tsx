@@ -39,6 +39,10 @@ export default function Footer({ className = '' }: { className?: string }) {
             <Link to="/help" className="text-xs text-[var(--muted)] hover:text-[var(--teal-600)] font-medium transition-colors px-1">
               Help
             </Link>
+            <span className="text-[var(--border)] text-xs">·</span>
+            <Link to="/find" className="text-xs text-[var(--muted)] hover:text-[var(--teal-600)] font-medium transition-colors px-1">
+              Find a Pack
+            </Link>
             {user ? (
               <>
                 <span className="text-[var(--border)] text-xs">·</span>
