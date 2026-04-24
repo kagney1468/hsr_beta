@@ -186,7 +186,7 @@ export default function AgentDashboard() {
       setLoading(false);
       setIsRefreshing(false);
     }
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     if (!user) return;
@@ -198,7 +198,7 @@ export default function AgentDashboard() {
       .then(({ data }) => {
         if (data?.full_name) setAgentFirstName(data.full_name.split(' ')[0]);
       });
-  }, [user]);
+  }, [user?.id]);
 
   // Fetch referral token once when agencyId is first resolved — separate from loadDashboardData
   // to avoid re-render loops from unconditional setState on every dashboard refresh.
