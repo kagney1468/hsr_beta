@@ -26,6 +26,7 @@ export default function AgentDashboard() {
   const [leads, setLeads] = useState<any[]>([]);
   const [packViewsThisMonth, setPackViewsThisMonth] = useState(0);
   const [publicUserId, setPublicUserId] = useState<string | null>(null);
+  const [agencyId, setAgencyId] = useState<string | null>(null);
   const [agencyReady, setAgencyReady] = useState(true);
   const [agentFirstName, setAgentFirstName] = useState<string | null>(null);
 
@@ -171,17 +172,17 @@ export default function AgentDashboard() {
 
         if (cancelled) return;
 
-        if (agencyErr || !agencyData) {
+        if (!agencyErr && agencyData !== null) {
+          setAgencyId(agencyData.id);
+          setAgencyReady(true);
+          resolvedAgencyId = agencyData.id;
+          await loadPipeline();
+        } else {
           setAgencyReady(false);
           setProperties([]);
           setLeads([]);
           setLoading(false);
-          return;
         }
-
-        setAgencyReady(true);
-        resolvedAgencyId = agencyData.id;
-        await loadPipeline();
       } catch (err) {
         console.error('Error initialising dashboard:', err);
         if (!cancelled) setLoading(false);
