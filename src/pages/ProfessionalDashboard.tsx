@@ -54,6 +54,13 @@ export default function ProfessionalDashboard() {
   const [packInput, setPackInput] = useState('');
   const [packInputError, setPackInputError] = useState<string | null>(null);
 
+  // Redirect back to a specific pack if the auth flow passed ?pack=TOKEN
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const packToken = params.get('pack');
+    if (packToken) navigate(`/pack/${packToken}`, { replace: true });
+  }, [navigate]);
+
   useEffect(() => {
     if (!user) return;
     supabase
@@ -74,7 +81,7 @@ export default function ProfessionalDashboard() {
       try {
         const { data: viewerRows, error: viewerErr } = await supabase
           .from('pack_viewers')
-          .select('id, viewed_at, properties(id, address_line1, address_town, address_postcode, shareable_link_token, tenure)')
+          .select('id, viewed_at, properties(id, address_line1, address_town, address_postcode, shareable_link_token, tenure, pack_reference)')
           .eq('auth_user_id', user.id)
           .order('viewed_at', { ascending: false });
 
@@ -221,6 +228,12 @@ export default function ProfessionalDashboard() {
                       </h3>
                       {postcode && (
                         <p className="text-xs font-semibold text-[var(--muted)] uppercase tracking-widest">{postcode}</p>
+                      )}
+                      {prop?.pack_reference && (
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--teal-050)] border border-[var(--border)]">
+                          <span className="material-symbols-outlined text-[var(--muted)] text-[12px]">tag</span>
+                          <span className="text-[10px] font-black text-[var(--teal-900)] tracking-widest">{prop.pack_reference}</span>
+                        </div>
                       )}
                     </div>
 

@@ -93,11 +93,16 @@ export default function AgentDashboard() {
         return;
       }
 
-      // Fetch documents, declarations, viewers in parallel
+      // Fetch documents, declarations, and viewers in parallel
+      // Viewers join pack_viewers → properties via agency_id so leads are never missed
       const [{ data: docsData }, { data: declData }, { data: viewersData }] = await Promise.all([
         supabase.from('documents').select('property_id, document_type').in('property_id', propIds),
         supabase.from('seller_declarations').select('property_id, confirms_accuracy').in('property_id', propIds),
-        supabase.from('pack_viewers').select('*, users(full_name, profession_type, regulatory_body, regulatory_number, firms(firm_name, company_number))').in('property_id', propIds).order('viewed_at', { ascending: false }),
+        supabase
+          .from('pack_viewers')
+          .select('*, users(full_name, profession_type, regulatory_body, regulatory_number, firms(firm_name, company_number)), properties!inner(id, address_line1, address_postcode)')
+          .eq('properties.agency_id', agencyData.id)
+          .order('viewed_at', { ascending: false }),
       ]);
 
       // Views this month
@@ -140,21 +145,14 @@ export default function AgentDashboard() {
 
       setProperties(enriched);
 
-      // Enrich leads with property address
-      const propAddressMap = new Map(
-        (propsData || []).map((p: any) => [
-          p.id,
-          [p.address_line1, p.address_postcode].filter(Boolean).join(', '),
-        ])
-      );
-
       setLeads(
         (viewersData || []).map((v: any) => {
           const verifiedUser = v.users;
           const verifiedFirm = verifiedUser?.firms;
+          const nestedProp = v.properties;
           return {
             ...v,
-            propertyAddress: propAddressMap.get(v.property_id) || 'Unknown Property',
+            propertyAddress: nestedProp ? [nestedProp.address_line1, nestedProp.address_postcode].filter(Boolean).join(', ') : 'Unknown Property',
             // Verified data from accounts — takes precedence over registration-time data
             verified_firm_name: verifiedFirm?.firm_name || null,
             verified_company_number: verifiedFirm?.company_number || null,

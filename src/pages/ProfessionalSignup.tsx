@@ -101,7 +101,10 @@ export default function ProfessionalSignup() {
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: form.email.trim(),
         password: form.password,
-        options: { data: { full_name: form.full_name.trim() } },
+        options: {
+          data: { full_name: form.full_name.trim() },
+          emailRedirectTo: 'https://hsrbeta4.vercel.app/professional/dashboard',
+        },
       });
       if (authError) throw authError;
       if (!authData.user) throw new Error('Account could not be created. Please try again.');

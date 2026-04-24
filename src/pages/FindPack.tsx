@@ -41,12 +41,11 @@ export default function FindPack() {
         return;
       }
 
-      // Find the active share token for this property
+      // Find the share token for this property (any status, so pending packs are included)
       const { data: share, error: shareErr } = await supabase
         .from('shares')
         .select('token')
         .eq('property_id', property.id)
-        .eq('active', true)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();

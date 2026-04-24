@@ -82,7 +82,11 @@ export default function Login() {
       }
       const userType = (data.user_type ?? '').toLowerCase();
       if (userType === 'buyer') { navigate('/buyer/dashboard'); return; }
-      if (userType === 'professional') { navigate('/professional/dashboard'); return; }
+      if (userType === 'professional') {
+        const packToken = new URLSearchParams(window.location.search).get('pack');
+        navigate(packToken ? `/pack/${packToken}` : '/professional/dashboard');
+        return;
+      }
       if (userType === 'agent') { navigate('/agent/dashboard'); return; }
       if (data.onboarding_complete === true) { navigate('/seller/dashboard'); return; }
       const { data: prop, error: propError } = await supabase.from('properties').select('id').eq('seller_user_id', data.id).maybeSingle();

@@ -387,18 +387,31 @@ export default function PublicPack() {
                   />
                 </div>
 
-                {/* Professional: company name */}
+                {/* Professional: company name + HSR account link */}
                 {viewerForm.viewer_type === 'professional' && (
-                  <div className="space-y-2 animate-in fade-in duration-300">
-                    <label className="text-[10px] font-semibold text-[var(--teal-600)] uppercase tracking-[0.2em]">Company / firm name</label>
-                    <input
-                      required
-                      type="text"
-                      value={viewerForm.company_name}
-                      onChange={(e) => setViewerForm({ ...viewerForm, company_name: e.target.value })}
-                      className="w-full"
-                      placeholder="e.g. Smith & Co Solicitors"
-                    />
+                  <div className="space-y-4 animate-in fade-in duration-300">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-semibold text-[var(--teal-600)] uppercase tracking-[0.2em]">Company / firm name</label>
+                      <input
+                        required
+                        type="text"
+                        value={viewerForm.company_name}
+                        onChange={(e) => setViewerForm({ ...viewerForm, company_name: e.target.value })}
+                        className="w-full"
+                        placeholder="e.g. Smith & Co Solicitors"
+                      />
+                    </div>
+                    <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--teal-050)] flex items-center justify-between gap-3">
+                      <p className="text-xs text-[var(--muted)]">
+                        Have an HSR professional account? Sign in to link this pack to your dashboard.
+                      </p>
+                      <a
+                        href={`/login?pack=${token}`}
+                        className="shrink-0 text-xs font-bold text-[var(--teal-600)] hover:underline whitespace-nowrap"
+                      >
+                        Sign in →
+                      </a>
+                    </div>
                   </div>
                 )}
 
