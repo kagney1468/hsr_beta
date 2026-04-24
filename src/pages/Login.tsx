@@ -54,6 +54,7 @@ export default function Login() {
   const [success, setSuccess] = useState(false);
   const [loginMethod, setLoginMethod] = useState<'magic-link' | 'password'>('magic-link');
   const [password, setPassword] = useState('');
+  const [formSubmitted, setFormSubmitted] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isLoading: authLoading } = useAuth();
@@ -62,9 +63,11 @@ export default function Login() {
     if (location.state?.error) setError(location.state.error);
   }, [location]);
 
+  // Only redirect if the user just signed in on this page — not if they arrived already logged in.
+  // This keeps /login and /signup/* accessible to logged-in users (e.g. agents sharing referral links).
   useEffect(() => {
-    if (user && !authLoading) checkRoleAndRedirect(user.id);
-  }, [user, authLoading]);
+    if (user && !authLoading && formSubmitted) checkRoleAndRedirect(user.id);
+  }, [user, authLoading, formSubmitted]);
 
   const checkRoleAndRedirect = async (authUserId: string, attempt = 0) => {
     setLoading(true);
@@ -101,6 +104,7 @@ export default function Login() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormSubmitted(true);
     setLoading(true);
     setError(null);
     try {
@@ -131,7 +135,7 @@ export default function Login() {
     }
   };
 
-  if (authLoading || (user && !error)) {
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-[var(--page)] flex items-center justify-center">
         <div className="animate-spin size-8 border-2 border-[var(--teal-600)] border-t-transparent rounded-full" />
