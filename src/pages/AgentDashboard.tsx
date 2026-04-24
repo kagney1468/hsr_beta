@@ -5,7 +5,7 @@
  * UPDATE agencies SET referral_token = substr(md5(random()::text), 1, 8) WHERE referral_token IS NULL;
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -37,6 +37,7 @@ export default function AgentDashboard() {
   const [leads, setLeads] = useState<any[]>([]);
   const [packViewsThisMonth, setPackViewsThisMonth] = useState(0);
   const [publicUserId, setPublicUserId] = useState<string | null>(null);
+  const publicUserIdRef = useRef<string | null>(null);
   const [agentFirstName, setAgentFirstName] = useState<string | null>(null);
   const [agencyId, setAgencyId] = useState<string | null>(null);
   const [referralToken, setReferralToken] = useState<string | null>(null);
@@ -55,8 +56,11 @@ export default function AgentDashboard() {
     else setIsRefreshing(true);
 
     try {
-      const pubId = publicUserId ?? await getPublicUserIdByAuthUserId(user.id);
-      if (!publicUserId) setPublicUserId(pubId);
+      const pubId = publicUserIdRef.current ?? await getPublicUserIdByAuthUserId(user.id);
+      if (!publicUserIdRef.current) {
+        publicUserIdRef.current = pubId;
+        setPublicUserId(pubId);
+      }
 
       // Get this agent's agency
       const { data: agencyData } = await supabase
@@ -182,7 +186,7 @@ export default function AgentDashboard() {
       setLoading(false);
       setIsRefreshing(false);
     }
-  }, [user, publicUserId]);
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
