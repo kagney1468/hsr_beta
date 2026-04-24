@@ -172,6 +172,8 @@ export default function AgentDashboard() {
 
         if (cancelled) return;
 
+        console.log('agency fetch result:', { agencyData, agencyErr });
+
         if (!agencyErr && agencyData !== null) {
           setAgencyId(agencyData.id);
           setAgencyReady(true);
