@@ -1,11 +1,4 @@
-/*
- * MIGRATION — run in Supabase SQL editor before deploying this release:
- *
- * ALTER TABLE agencies ADD COLUMN IF NOT EXISTS referral_token TEXT UNIQUE;
- * UPDATE agencies SET referral_token = substr(md5(random()::text), 1, 8) WHERE referral_token IS NULL;
- */
-
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -37,12 +30,7 @@ export default function AgentDashboard() {
   const [leads, setLeads] = useState<any[]>([]);
   const [packViewsThisMonth, setPackViewsThisMonth] = useState(0);
   const [publicUserId, setPublicUserId] = useState<string | null>(null);
-  const publicUserIdRef = useRef<string | null>(null);
   const [agentFirstName, setAgentFirstName] = useState<string | null>(null);
-  const [agencyId, setAgencyId] = useState<string | null>(null);
-  const [referralToken, setReferralToken] = useState<string | null>(null);
-  const [referralCopied, setReferralCopied] = useState(false);
-  const [generatingToken, setGeneratingToken] = useState(false);
 
   // Invite state
   const [inviteName, setInviteName] = useState('');
@@ -56,16 +44,13 @@ export default function AgentDashboard() {
     else setIsRefreshing(true);
 
     try {
-      const pubId = publicUserIdRef.current ?? await getPublicUserIdByAuthUserId(user.id);
-      if (!publicUserIdRef.current) {
-        publicUserIdRef.current = pubId;
-        setPublicUserId(pubId);
-      }
+      const pubId = publicUserId ?? await getPublicUserIdByAuthUserId(user.id);
+      if (!publicUserId) setPublicUserId(pubId);
 
       // Get this agent's agency
       const { data: agencyData } = await supabase
         .from('agencies')
-        .select('id, agency_name, referral_token')
+        .select('id, agency_name')
         .eq('agent_user_id', pubId)
         .maybeSingle();
 
@@ -78,8 +63,6 @@ export default function AgentDashboard() {
         setLeads([]);
         return;
       }
-
-      setAgencyId(prev => (prev !== agencyData.id ? agencyData.id : prev));
 
       // Get sellers linked to this agency
       const { data: sellersData } = await supabase
@@ -186,7 +169,7 @@ export default function AgentDashboard() {
       setLoading(false);
       setIsRefreshing(false);
     }
-  }, [user?.id]);
+  }, [user, publicUserId]);
 
   useEffect(() => {
     if (!user) return;
@@ -198,22 +181,7 @@ export default function AgentDashboard() {
       .then(({ data }) => {
         if (data?.full_name) setAgentFirstName(data.full_name.split(' ')[0]);
       });
-  }, [user?.id]);
-
-  // Fetch referral token once when agencyId is first resolved — separate from loadDashboardData
-  // to avoid re-render loops from unconditional setState on every dashboard refresh.
-  useEffect(() => {
-    if (!agencyId) return;
-    supabase
-      .from('agencies')
-      .select('referral_token')
-      .eq('id', agencyId)
-      .maybeSingle()
-      .then(({ data }) => {
-        const next = data?.referral_token ?? null;
-        setReferralToken(prev => (prev !== next ? next : prev));
-      });
-  }, [agencyId]);
+  }, [user]);
 
   useEffect(() => {
     loadDashboardData();
@@ -265,32 +233,6 @@ export default function AgentDashboard() {
     } finally {
       setInviting(false);
     }
-  };
-
-  const generateReferralToken = async () => {
-    if (!agencyId) return;
-    setGeneratingToken(true);
-    try {
-      const token = Math.random().toString(36).substring(2, 10);
-      const { error } = await supabase
-        .from('agencies')
-        .update({ referral_token: token })
-        .eq('id', agencyId);
-      if (!error) setReferralToken(token);
-    } catch (err) {
-      console.error('Failed to generate referral token:', err);
-    } finally {
-      setGeneratingToken(false);
-    }
-  };
-
-  const handleCopyReferral = async () => {
-    if (!referralToken) return;
-    await navigator.clipboard.writeText(
-      `https://www.homesalesready.com/signup/seller?ref=${referralToken}`
-    );
-    setReferralCopied(true);
-    setTimeout(() => setReferralCopied(false), 2000);
   };
 
   // CSV export
@@ -389,46 +331,6 @@ export default function AgentDashboard() {
                 </Card>
               ))}
             </div>
-
-            {/* Referral Link */}
-            <Card className="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4">
-              <div className="size-10 shrink-0 rounded-xl bg-[var(--teal-050)] border border-[var(--border)] flex items-center justify-center text-[var(--teal-600)]">
-                <span className="material-symbols-outlined text-xl">link</span>
-              </div>
-              <div className="flex-1 min-w-0 space-y-1">
-                <p className="text-[10px] font-black text-[var(--muted)] uppercase tracking-widest">Seller Referral Link</p>
-                {referralToken ? (
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <code className="text-xs font-mono text-[var(--teal-900)] bg-[var(--teal-050)] px-3 py-1.5 rounded-lg border border-[var(--border)] truncate max-w-full sm:max-w-[420px]">
-                      https://www.homesalesready.com/signup/seller?ref={referralToken}
-                    </code>
-                    <button
-                      type="button"
-                      onClick={handleCopyReferral}
-                      className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] text-xs font-bold text-[var(--teal-900)] hover:bg-[var(--teal-050)] transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-[14px]">
-                        {referralCopied ? 'check' : 'content_copy'}
-                      </span>
-                      {referralCopied ? 'Copied!' : 'Copy link'}
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={generateReferralToken}
-                    disabled={generatingToken}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--teal-600)] text-white text-xs font-bold hover:bg-[var(--teal-900)] disabled:opacity-50 transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-[14px]">add_link</span>
-                    {generatingToken ? 'Generating…' : 'Generate link'}
-                  </button>
-                )}
-                <p className="text-xs text-[var(--muted)]">
-                  Share this link with sellers — they'll be automatically connected to your agency when they sign up.
-                </p>
-              </div>
-            </Card>
 
             {/* Property Pipeline — mobile cards */}
             <Card className="overflow-hidden">
