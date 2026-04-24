@@ -198,6 +198,14 @@ export default function SellerDashboard() {
   const [copying, setCopying] = useState(false);
   const [copyingRef, setCopyingRef] = useState(false);
   const [firstName, setFirstName] = useState<string | null>(null);
+  const [onboardingDismissed, setOnboardingDismissed] = useState(
+    () => localStorage.getItem('hsr_seller_onboarding_dismissed') === 'true'
+  );
+
+  const handleDismissOnboarding = () => {
+    localStorage.setItem('hsr_seller_onboarding_dismissed', 'true');
+    setOnboardingDismissed(true);
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -346,6 +354,63 @@ export default function SellerDashboard() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[var(--page)] text-[var(--text)]">
+      {!onboardingDismissed && (
+        <div className="mx-4 md:mx-10 mt-8 border-l-4 border-[#17afaf] bg-[#f0fafa] rounded-r-2xl p-6 sm:p-8 relative">
+          <button
+            type="button"
+            onClick={handleDismissOnboarding}
+            className="absolute top-4 right-4 size-8 flex items-center justify-center rounded-full text-[var(--muted)] hover:text-[var(--teal-900)] hover:bg-[#17afaf]/10 transition-colors"
+            aria-label="Dismiss"
+          >
+            <span className="material-symbols-outlined text-xl">close</span>
+          </button>
+
+          <div className="max-w-3xl space-y-6 pr-8">
+            <h2 className="font-heading font-black text-xl sm:text-2xl text-[var(--teal-900)] leading-tight">
+              Welcome to HomeSalesReady — here's how it works
+            </h2>
+
+            <div className="space-y-5 text-sm text-[var(--text)] leading-relaxed">
+              <div className="space-y-1.5">
+                <p className="font-bold text-[var(--teal-900)]">What this platform does</p>
+                <p>HomeSalesReady lets you build a verified information pack for your property. Buyers, solicitors, and agents can access it instantly — reducing delays and queries during your sale.</p>
+              </div>
+
+              <div className="space-y-2">
+                <p className="font-bold text-[var(--teal-900)]">What you'll need to prepare</p>
+                <ul className="space-y-1.5 pl-1">
+                  {[
+                    'Proof of ownership (title deeds or Land Registry document)',
+                    'An up-to-date EPC (you can get one online or commission a new one)',
+                    'Details of any planning permissions or building works',
+                    "A completed seller's declaration",
+                  ].map((item) => (
+                    <li key={item} className="flex items-start gap-2.5">
+                      <span className="material-symbols-outlined text-[#17afaf] text-base shrink-0 mt-0.5">check_circle</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="space-y-1.5">
+                <p className="font-bold text-[var(--teal-900)]">How long does it take?</p>
+                <p>Most sellers complete their pack in under 30 minutes. You can save progress and return at any time.</p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleDismissOnboarding}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#17afaf] text-white font-heading font-bold text-sm hover:bg-[var(--teal-900)] transition-colors"
+            >
+              Got it, let's get started
+              <span className="material-symbols-outlined text-base">arrow_forward</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {pct >= 70 && pct < 100 && (
         <div className="bg-[#d1fae5] border-b border-[#a7f3d0] text-[#065f46] px-6 py-4 text-center font-semibold text-sm">
           Your pack is nearly ready to share
