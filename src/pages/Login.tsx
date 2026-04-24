@@ -144,15 +144,9 @@ export default function Login() {
           <div className="w-full max-w-4xl space-y-10 relative z-10 text-center">
 
             {/* Logo */}
-            <div className="flex items-center justify-between w-full max-w-4xl mx-auto">
-              <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-4xl text-[var(--teal-600)]">home_filled</span>
-                <span className="font-heading font-black text-2xl tracking-tight text-[var(--teal-900)]">HomeSalesReady</span>
-              </div>
-              <Link to="/find" className="flex items-center gap-1.5 text-xs font-bold text-[var(--teal-600)] hover:text-[var(--teal-900)] uppercase tracking-widest transition-colors">
-                <span className="material-symbols-outlined text-base">search</span>
-                Find a pack
-              </Link>
+            <div className="flex items-center justify-center gap-3">
+              <span className="material-symbols-outlined text-4xl text-[var(--teal-600)]">home_filled</span>
+              <span className="font-heading font-black text-2xl tracking-tight text-[var(--teal-900)]">HomeSalesReady</span>
             </div>
 
             {/* Hero */}
