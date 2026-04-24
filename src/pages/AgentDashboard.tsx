@@ -1,9 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
-import { getPublicUserIdByAuthUserId } from '../lib/publicUser';
-import { getAuthRedirectUrl } from '../lib/ensureUserProfile';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { getGreeting } from '../lib/greeting';
@@ -11,7 +8,6 @@ import { getGreeting } from '../lib/greeting';
 type Tab = 'pipeline' | 'leads' | 'invite';
 
 export default function AgentDashboard() {
-  const { user } = useAuth();
   const getInitialTab = (): Tab => {
     const hash = window.location.hash.replace('#', '');
     if (hash === 'leads' || hash === 'invite') return hash;
@@ -39,163 +35,171 @@ export default function AgentDashboard() {
   const [inviting, setInviting] = useState(false);
   const [inviteResult, setInviteResult] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const loadDashboardData = useCallback(async (silent = false) => {
-    if (!user) return;
-    if (!silent) setLoading(true);
-    else setIsRefreshing(true);
+  // Single effect — runs once on mount. Fetches session → users row → agencies row in sequence,
+  // then loads pipeline data. Realtime subscription triggers pipeline-only refreshes using a
+  // closure variable so no state is in the dependency array.
+  useEffect(() => {
+    let cancelled = false;
+    let resolvedAgencyId: string | null = null;
 
-    try {
-      const pubId = publicUserId ?? await getPublicUserIdByAuthUserId(user.id);
-      if (!publicUserId) setPublicUserId(pubId);
+    async function loadPipeline(silent = false) {
+      if (!resolvedAgencyId || cancelled) return;
+      if (silent) setIsRefreshing(true);
 
-      // Get this agent's agency
-      const { data: agencyData } = await supabase
-        .from('agencies')
-        .select('id, agency_name')
-        .eq('agent_user_id', pubId)
-        .maybeSingle();
+      try {
+        const { data: sellersData } = await supabase
+          .from('users')
+          .select('id, full_name, email, phone')
+          .eq('agency_id', resolvedAgencyId);
 
-      if (!agencyData) {
-        setAgencyReady(false);
-        setProperties([]);
-        setLeads([]);
-        return;
-      }
+        if (cancelled) return;
 
-      setAgencyReady(true);
+        const sellerIds = (sellersData || []).map((s: any) => s.id);
+        const sellersById = new Map((sellersData || []).map((s: any) => [s.id, s]));
 
-      // Get sellers linked to this agency
-      const { data: sellersData } = await supabase
-        .from('users')
-        .select('id, full_name, email, phone')
-        .eq('agency_id', agencyData.id);
-
-      const sellerIds = (sellersData || []).map((s: any) => s.id);
-      const sellersById = new Map((sellersData || []).map((s: any) => [s.id, s]));
-
-      if (sellerIds.length === 0) {
-        setProperties([]);
-        setLeads([]);
-        return;
-      }
-
-      // Get properties for these sellers
-      const { data: propsData } = await supabase
-        .from('properties')
-        .select('*')
-        .in('seller_user_id', sellerIds);
-
-      const propIds = (propsData || []).map((p: any) => p.id);
-
-      if (propIds.length === 0) {
-        setProperties([]);
-        setLeads([]);
-        return;
-      }
-
-      // Fetch documents, declarations, and viewers in parallel
-      // Viewers join pack_viewers → properties via agency_id so leads are never missed
-      const [{ data: docsData }, { data: declData }, { data: viewersData }] = await Promise.all([
-        supabase.from('documents').select('property_id, document_type').in('property_id', propIds),
-        supabase.from('seller_declarations').select('property_id, confirms_accuracy').in('property_id', propIds),
-        supabase
-          .from('pack_viewers')
-          .select('*, users(full_name, profession_type, regulatory_body, regulatory_number, firms(firm_name, company_number)), properties!inner(id, address_line1, address_postcode)')
-          .eq('properties.agency_id', agencyData.id)
-          .order('viewed_at', { ascending: false }),
-      ]);
-
-      // Views this month
-      const monthStart = new Date();
-      monthStart.setDate(1);
-      monthStart.setHours(0, 0, 0, 0);
-      const viewsThisMonth = (viewersData || []).filter(
-        (v: any) => new Date(v.viewed_at) >= monthStart
-      ).length;
-      setPackViewsThisMonth(viewsThisMonth);
-
-      // Enrich properties
-      const enriched = (propsData || []).map((prop: any) => {
-        const propDocs = (docsData || []).filter((d: any) => d.property_id === prop.id);
-        const propDecl = (declData || []).find((d: any) => d.property_id === prop.id);
-        const propViews = (viewersData || []).filter((v: any) => v.property_id === prop.id).length;
-        const seller = sellersById.get(prop.seller_user_id);
-
-        let score = prop.pack_completion_percentage || 0;
-        if (score === 0) {
-          if (prop.address_line1 && prop.property_type) score += 20;
-          if (propDocs.length >= 1) score += 20;
-          if (propDocs.some((d: any) => d.document_type === 'title_deeds')) score += 20;
-          if (propDocs.length >= 4) score += 20;
-          if (propDecl?.confirms_accuracy) score += 20;
+        if (sellerIds.length === 0) {
+          setProperties([]);
+          setLeads([]);
+          return;
         }
 
-        let status: 'Action Required' | 'In Progress' | 'Pack Complete' = 'In Progress';
-        if (score >= 100) status = 'Pack Complete';
-        else if (score < 30) status = 'Action Required';
+        const { data: propsData } = await supabase
+          .from('properties')
+          .select('*')
+          .in('seller_user_id', sellerIds);
 
-        return {
-          ...prop,
-          sellerName: seller?.full_name || 'Pending Onboarding',
-          score,
-          status,
-          viewCount: propViews,
-        };
-      });
+        if (cancelled) return;
 
-      setProperties(enriched);
+        const propIds = (propsData || []).map((p: any) => p.id);
 
-      setLeads(
-        (viewersData || []).map((v: any) => {
-          const verifiedUser = v.users;
-          const verifiedFirm = verifiedUser?.firms;
-          const nestedProp = v.properties;
-          return {
-            ...v,
-            propertyAddress: nestedProp ? [nestedProp.address_line1, nestedProp.address_postcode].filter(Boolean).join(', ') : 'Unknown Property',
-            // Verified data from accounts — takes precedence over registration-time data
-            verified_firm_name: verifiedFirm?.firm_name || null,
-            verified_company_number: verifiedFirm?.company_number || null,
-            verified_profession_type: verifiedUser?.profession_type || null,
-            verified_regulatory_body: verifiedUser?.regulatory_body || null,
-            verified_regulatory_number: verifiedUser?.regulatory_number || null,
-            is_verified_professional: !!verifiedUser && verifiedUser.profession_type != null,
-          };
-        })
-      );
-    } catch (err) {
-      console.error('Error loading dashboard:', err);
-    } finally {
-      setLoading(false);
-      setIsRefreshing(false);
+        if (propIds.length === 0) {
+          setProperties([]);
+          setLeads([]);
+          return;
+        }
+
+        const [{ data: docsData }, { data: declData }, { data: viewersData }] = await Promise.all([
+          supabase.from('documents').select('property_id, document_type').in('property_id', propIds),
+          supabase.from('seller_declarations').select('property_id, confirms_accuracy').in('property_id', propIds),
+          supabase
+            .from('pack_viewers')
+            .select('*, users(full_name, profession_type, regulatory_body, regulatory_number, firms(firm_name, company_number)), properties!inner(id, address_line1, address_postcode)')
+            .eq('properties.agency_id', resolvedAgencyId)
+            .order('viewed_at', { ascending: false }),
+        ]);
+
+        if (cancelled) return;
+
+        const monthStart = new Date();
+        monthStart.setDate(1);
+        monthStart.setHours(0, 0, 0, 0);
+        setPackViewsThisMonth(
+          (viewersData || []).filter((v: any) => new Date(v.viewed_at) >= monthStart).length
+        );
+
+        const enriched = (propsData || []).map((prop: any) => {
+          const propDocs = (docsData || []).filter((d: any) => d.property_id === prop.id);
+          const propDecl = (declData || []).find((d: any) => d.property_id === prop.id);
+          const propViews = (viewersData || []).filter((v: any) => v.property_id === prop.id).length;
+          const seller = sellersById.get(prop.seller_user_id);
+
+          let score = prop.pack_completion_percentage || 0;
+          if (score === 0) {
+            if (prop.address_line1 && prop.property_type) score += 20;
+            if (propDocs.length >= 1) score += 20;
+            if (propDocs.some((d: any) => d.document_type === 'title_deeds')) score += 20;
+            if (propDocs.length >= 4) score += 20;
+            if (propDecl?.confirms_accuracy) score += 20;
+          }
+
+          let status: 'Action Required' | 'In Progress' | 'Pack Complete' = 'In Progress';
+          if (score >= 100) status = 'Pack Complete';
+          else if (score < 30) status = 'Action Required';
+
+          return { ...prop, sellerName: seller?.full_name || 'Pending Onboarding', score, status, viewCount: propViews };
+        });
+
+        setProperties(enriched);
+        setLeads(
+          (viewersData || []).map((v: any) => {
+            const verifiedUser = v.users;
+            const verifiedFirm = verifiedUser?.firms;
+            const nestedProp = v.properties;
+            return {
+              ...v,
+              propertyAddress: nestedProp ? [nestedProp.address_line1, nestedProp.address_postcode].filter(Boolean).join(', ') : 'Unknown Property',
+              verified_firm_name: verifiedFirm?.firm_name || null,
+              verified_company_number: verifiedFirm?.company_number || null,
+              verified_profession_type: verifiedUser?.profession_type || null,
+              verified_regulatory_body: verifiedUser?.regulatory_body || null,
+              verified_regulatory_number: verifiedUser?.regulatory_number || null,
+              is_verified_professional: !!verifiedUser && verifiedUser.profession_type != null,
+            };
+          })
+        );
+      } catch (err) {
+        console.error('Error loading pipeline:', err);
+      } finally {
+        if (!cancelled) { setLoading(false); setIsRefreshing(false); }
+      }
     }
-  }, [user, publicUserId]);
 
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from('users')
-      .select('full_name')
-      .eq('auth_user_id', user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data?.full_name) setAgentFirstName(data.full_name.split(' ')[0]);
-      });
-  }, [user]);
+    async function init() {
+      try {
+        // Step 1: get auth session directly — avoids dependency on user context timing
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user || cancelled) { setLoading(false); return; }
 
-  useEffect(() => {
-    loadDashboardData();
+        // Step 2: fetch users row (id + full_name in one query)
+        const { data: userRow } = await supabase
+          .from('users')
+          .select('id, full_name')
+          .eq('auth_user_id', session.user.id)
+          .maybeSingle();
+
+        if (!userRow || cancelled) { setAgencyReady(false); setLoading(false); return; }
+
+        setPublicUserId(userRow.id);
+        if (userRow.full_name) setAgentFirstName(userRow.full_name.split(' ')[0]);
+
+        // Step 3: fetch agencies row using users.id
+        const { data: agencyData, error: agencyErr } = await supabase
+          .from('agencies')
+          .select('*')
+          .eq('agent_user_id', userRow.id)
+          .maybeSingle();
+
+        if (cancelled) return;
+
+        if (agencyErr || !agencyData) {
+          setAgencyReady(false);
+          setProperties([]);
+          setLeads([]);
+          setLoading(false);
+          return;
+        }
+
+        setAgencyReady(true);
+        resolvedAgencyId = agencyData.id;
+        await loadPipeline();
+      } catch (err) {
+        console.error('Error initialising dashboard:', err);
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    init();
 
     const sub = supabase
       .channel('agent_dashboard_rt')
-      .on('postgres_changes' as any, { event: '*', schema: 'public', table: 'properties' }, () => loadDashboardData(true))
-      .on('postgres_changes' as any, { event: '*', schema: 'public', table: 'documents' }, () => loadDashboardData(true))
-      .on('postgres_changes' as any, { event: '*', schema: 'public', table: 'pack_viewers' }, () => loadDashboardData(true))
-      .on('postgres_changes' as any, { event: '*', schema: 'public', table: 'seller_declarations' }, () => loadDashboardData(true))
+      .on('postgres_changes' as any, { event: '*', schema: 'public', table: 'properties' }, () => loadPipeline(true))
+      .on('postgres_changes' as any, { event: '*', schema: 'public', table: 'documents' }, () => loadPipeline(true))
+      .on('postgres_changes' as any, { event: '*', schema: 'public', table: 'pack_viewers' }, () => loadPipeline(true))
+      .on('postgres_changes' as any, { event: '*', schema: 'public', table: 'seller_declarations' }, () => loadPipeline(true))
       .subscribe();
 
-    return () => { supabase.removeChannel(sub); };
-  }, [loadDashboardData]);
+    return () => { cancelled = true; supabase.removeChannel(sub); };
+  }, []);
 
   // KPIs
   const packsComplete = properties.filter(p => p.status === 'Pack Complete').length;
