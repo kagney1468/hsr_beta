@@ -30,6 +30,7 @@ export default function AgentDashboard() {
   const [leads, setLeads] = useState<any[]>([]);
   const [packViewsThisMonth, setPackViewsThisMonth] = useState(0);
   const [publicUserId, setPublicUserId] = useState<string | null>(null);
+  const [agencyReady, setAgencyReady] = useState(true);
   const [agentFirstName, setAgentFirstName] = useState<string | null>(null);
 
   // Invite state
@@ -55,14 +56,13 @@ export default function AgentDashboard() {
         .maybeSingle();
 
       if (!agencyData) {
-        // Agent has no agency yet — send them to complete onboarding
-        if (!silent) {
-          window.location.replace('/agent/onboarding');
-        }
+        setAgencyReady(false);
         setProperties([]);
         setLeads([]);
         return;
       }
+
+      setAgencyReady(true);
 
       // Get sellers linked to this agency
       const { data: sellersData } = await supabase
@@ -319,6 +319,23 @@ export default function AgentDashboard() {
         {/* ── PIPELINE TAB ── */}
         {tab === 'pipeline' && (
           <>
+            {!agencyReady && (
+              <div className="p-5 rounded-2xl border border-amber-200 bg-amber-50 flex items-start gap-4">
+                <span className="material-symbols-outlined text-amber-500 text-2xl shrink-0 mt-0.5">warning</span>
+                <div className="space-y-1 flex-1">
+                  <p className="font-black font-heading text-amber-900 text-sm">Complete your agency registration</p>
+                  <p className="text-xs text-amber-700">Your agency profile hasn't been set up yet. Complete registration to unlock your pipeline and start inviting sellers.</p>
+                </div>
+                <Link
+                  to="/agent/onboarding"
+                  className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 text-white text-xs font-black hover:bg-amber-600 transition-colors"
+                >
+                  Complete setup
+                  <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                </Link>
+              </div>
+            )}
+
             {/* KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {kpis.map((kpi, i) => (
