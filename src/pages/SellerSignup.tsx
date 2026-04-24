@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -19,6 +19,14 @@ export default function SellerSignup() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Capture ?ref= query param and persist to localStorage for post-auth agency linking
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const ref = params.get('ref');
+    if (ref) localStorage.setItem('hsr_referral_token', ref);
+  }, [location.search]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -46,6 +54,31 @@ export default function SellerSignup() {
       });
 
       if (otpError) throw otpError;
+
+      // Link seller to agency via referral token if one was captured from the URL
+      const storedToken = localStorage.getItem('hsr_referral_token');
+      if (storedToken) {
+        try {
+          const { data: agency } = await supabase
+            .from('agencies')
+            .select('id')
+            .eq('referral_token', storedToken)
+            .maybeSingle();
+
+          if (agency) {
+            await supabase
+              .from('users')
+              .update({ agency_id: agency.id })
+              .eq('email', formData.email);
+          }
+        } catch (linkErr) {
+          // Non-fatal — agency link can be set later if the users row isn't created yet
+          console.warn('Referral agency link deferred:', linkErr);
+        } finally {
+          localStorage.removeItem('hsr_referral_token');
+        }
+      }
+
       setSuccess(true);
     } catch (err: unknown) {
       console.error('Signup error:', err);

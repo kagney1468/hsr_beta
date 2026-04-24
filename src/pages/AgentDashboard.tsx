@@ -1,3 +1,10 @@
+/*
+ * MIGRATION — run in Supabase SQL editor before deploying this release:
+ *
+ * ALTER TABLE agencies ADD COLUMN IF NOT EXISTS referral_token TEXT UNIQUE;
+ * UPDATE agencies SET referral_token = substr(md5(random()::text), 1, 8) WHERE referral_token IS NULL;
+ */
+
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -31,6 +38,10 @@ export default function AgentDashboard() {
   const [packViewsThisMonth, setPackViewsThisMonth] = useState(0);
   const [publicUserId, setPublicUserId] = useState<string | null>(null);
   const [agentFirstName, setAgentFirstName] = useState<string | null>(null);
+  const [agencyId, setAgencyId] = useState<string | null>(null);
+  const [referralToken, setReferralToken] = useState<string | null>(null);
+  const [referralCopied, setReferralCopied] = useState(false);
+  const [generatingToken, setGeneratingToken] = useState(false);
 
   // Invite state
   const [inviteName, setInviteName] = useState('');
@@ -50,7 +61,7 @@ export default function AgentDashboard() {
       // Get this agent's agency
       const { data: agencyData } = await supabase
         .from('agencies')
-        .select('id, agency_name')
+        .select('id, agency_name, referral_token')
         .eq('agent_user_id', pubId)
         .maybeSingle();
 
@@ -63,6 +74,9 @@ export default function AgentDashboard() {
         setLeads([]);
         return;
       }
+
+      setAgencyId(agencyData.id);
+      setReferralToken(agencyData.referral_token ?? null);
 
       // Get sellers linked to this agency
       const { data: sellersData } = await supabase
@@ -235,6 +249,32 @@ export default function AgentDashboard() {
     }
   };
 
+  const generateReferralToken = async () => {
+    if (!agencyId) return;
+    setGeneratingToken(true);
+    try {
+      const token = Math.random().toString(36).substring(2, 10);
+      const { error } = await supabase
+        .from('agencies')
+        .update({ referral_token: token })
+        .eq('id', agencyId);
+      if (!error) setReferralToken(token);
+    } catch (err) {
+      console.error('Failed to generate referral token:', err);
+    } finally {
+      setGeneratingToken(false);
+    }
+  };
+
+  const handleCopyReferral = async () => {
+    if (!referralToken) return;
+    await navigator.clipboard.writeText(
+      `https://www.homesalesready.com/signup/seller?ref=${referralToken}`
+    );
+    setReferralCopied(true);
+    setTimeout(() => setReferralCopied(false), 2000);
+  };
+
   // CSV export
   const handleExportLeads = () => {
     const headers = ['Name', 'Email', 'Phone', 'Type', 'Firm Name', 'Company Number', 'Profession', 'Reg Body', 'Reg Number', 'Property', 'Date', 'Is Selling', 'Selling Location'];
@@ -331,6 +371,46 @@ export default function AgentDashboard() {
                 </Card>
               ))}
             </div>
+
+            {/* Referral Link */}
+            <Card className="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="size-10 shrink-0 rounded-xl bg-[var(--teal-050)] border border-[var(--border)] flex items-center justify-center text-[var(--teal-600)]">
+                <span className="material-symbols-outlined text-xl">link</span>
+              </div>
+              <div className="flex-1 min-w-0 space-y-1">
+                <p className="text-[10px] font-black text-[var(--muted)] uppercase tracking-widest">Seller Referral Link</p>
+                {referralToken ? (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <code className="text-xs font-mono text-[var(--teal-900)] bg-[var(--teal-050)] px-3 py-1.5 rounded-lg border border-[var(--border)] truncate max-w-full sm:max-w-[420px]">
+                      https://www.homesalesready.com/signup/seller?ref={referralToken}
+                    </code>
+                    <button
+                      type="button"
+                      onClick={handleCopyReferral}
+                      className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] text-xs font-bold text-[var(--teal-900)] hover:bg-[var(--teal-050)] transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[14px]">
+                        {referralCopied ? 'check' : 'content_copy'}
+                      </span>
+                      {referralCopied ? 'Copied!' : 'Copy link'}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={generateReferralToken}
+                    disabled={generatingToken}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--teal-600)] text-white text-xs font-bold hover:bg-[var(--teal-900)] disabled:opacity-50 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-[14px]">add_link</span>
+                    {generatingToken ? 'Generating…' : 'Generate link'}
+                  </button>
+                )}
+                <p className="text-xs text-[var(--muted)]">
+                  Share this link with sellers — they'll be automatically connected to your agency when they sign up.
+                </p>
+              </div>
+            </Card>
 
             {/* Property Pipeline — mobile cards */}
             <Card className="overflow-hidden">
