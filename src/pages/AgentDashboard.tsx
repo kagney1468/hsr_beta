@@ -172,9 +172,6 @@ export default function AgentDashboard() {
 
         if (cancelled) return;
 
-        console.log('agency:data', JSON.stringify(agencyData))
-        console.log('agency:err', JSON.stringify(agencyErr))
-
         if (!agencyErr && agencyData !== null) {
           setAgencyId(agencyData.id);
           setAgencyReady(true);
