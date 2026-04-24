@@ -75,8 +75,7 @@ export default function AgentDashboard() {
         return;
       }
 
-      setAgencyId(agencyData.id);
-      setReferralToken(agencyData.referral_token ?? null);
+      setAgencyId(prev => (prev !== agencyData.id ? agencyData.id : prev));
 
       // Get sellers linked to this agency
       const { data: sellersData } = await supabase
@@ -196,6 +195,21 @@ export default function AgentDashboard() {
         if (data?.full_name) setAgentFirstName(data.full_name.split(' ')[0]);
       });
   }, [user]);
+
+  // Fetch referral token once when agencyId is first resolved — separate from loadDashboardData
+  // to avoid re-render loops from unconditional setState on every dashboard refresh.
+  useEffect(() => {
+    if (!agencyId) return;
+    supabase
+      .from('agencies')
+      .select('referral_token')
+      .eq('id', agencyId)
+      .maybeSingle()
+      .then(({ data }) => {
+        const next = data?.referral_token ?? null;
+        setReferralToken(prev => (prev !== next ? next : prev));
+      });
+  }, [agencyId]);
 
   useEffect(() => {
     loadDashboardData();
