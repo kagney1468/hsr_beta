@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Card } from '../ui/Card';
 
 const checklist = [
@@ -58,9 +59,9 @@ export default function LeaseholdInfoCard() {
         </p>
       </div>
 
-      <a href="#lpe1-guide" className="text-xs font-bold text-[#17afaf] hover:underline">
+      <Link to="/guides/lpe1" className="text-xs font-bold text-[#17afaf] hover:underline">
         Read the full LPE1 guide →
-      </a>
+      </Link>
     </Card>
   );
 }
