@@ -7,7 +7,7 @@ const checklist = [
   },
   {
     label: 'Get your service charge accounts',
-    detail: 'Ask for the current year's account and the budget for the year ahead.',
+    detail: "Ask for the current year's account and the budget for the year ahead.",
   },
   {
     label: 'Find your lease document',
