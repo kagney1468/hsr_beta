@@ -29,6 +29,8 @@ export default function AgentDashboard() {
   const [agencyId, setAgencyId] = useState<string | null>(null);
   const [agencyReady, setAgencyReady] = useState(true);
   const [agentFirstName, setAgentFirstName] = useState<string | null>(null);
+  const [referralToken, setReferralToken] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   // Invite state
   const [inviteName, setInviteName] = useState('');
@@ -175,6 +177,7 @@ export default function AgentDashboard() {
         if (!agencyErr && agencyData !== null) {
           setAgencyId(agencyData.id);
           setAgencyReady(true);
+          setReferralToken(agencyData.referral_token || null);
           resolvedAgencyId = agencyData.id;
           await loadPipeline();
         } else {
@@ -339,6 +342,33 @@ export default function AgentDashboard() {
                   <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
                 </Link>
               </div>
+            )}
+
+            {/* Referral Link */}
+            {referralToken && (
+              <Card className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="material-symbols-outlined text-[var(--teal-600)] text-2xl">link</span>
+                  <h2 className="font-black font-heading text-[var(--teal-900)]">Referral Link</h2>
+                </div>
+                <div className="flex items-center gap-3 bg-[var(--teal-050)] border border-[var(--border)] rounded-xl px-4 py-3">
+                  <span className="text-sm font-mono text-[var(--teal-900)] flex-1 truncate">
+                    {`https://www.homesalesready.com/signup/seller?ref=${referralToken}`}
+                  </span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(`https://www.homesalesready.com/signup/seller?ref=${referralToken}`);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    }}
+                    className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--teal-600)] text-white text-xs font-black hover:opacity-90 transition-opacity"
+                  >
+                    <span className="material-symbols-outlined text-[14px]">{copied ? 'check' : 'content_copy'}</span>
+                    {copied ? 'Copied!' : 'Copy link'}
+                  </button>
+                </div>
+                <p className="text-xs text-[var(--muted)] mt-3">Share this link with sellers — they'll be automatically connected to your agency when they sign up.</p>
+              </Card>
             )}
 
             {/* KPI Cards */}
