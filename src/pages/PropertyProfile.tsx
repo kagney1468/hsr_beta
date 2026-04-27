@@ -10,6 +10,7 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { updatePackCompletion } from '../lib/completion';
 import PostcodeLookup, { AddressData } from '../components/PostcodeLookup';
+import LeaseholdInfoCard from '../components/property/LeaseholdInfoCard';
 
 export default function PropertyProfile() {
   const { user } = useAuth();
@@ -471,6 +472,8 @@ export default function PropertyProfile() {
               </select>
             </div>
           </div>
+
+          {formData.tenure === 'Leasehold' && <LeaseholdInfoCard />}
         </Card>
 
         {/* PART B */}
