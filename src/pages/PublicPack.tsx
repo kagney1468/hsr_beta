@@ -5,6 +5,7 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { templates } from '../lib/emailTemplates';
 import Footer from '../components/Footer';
+import AreaReportCtaCard from '../components/AreaReportCtaCard';
 
 const STORAGE_PREFIX = 'hsr-pack-registered-';
 
@@ -630,6 +631,8 @@ export default function PublicPack() {
                 <p className="text-[var(--muted)] text-sm">No documents uploaded yet.</p>
               )}
             </section>
+
+            <AreaReportCtaCard address={[property.address_line1, property.address_postcode].filter(Boolean).join(', ')} />
 
             <Card className="p-6 sm:p-8 border-[var(--border)] bg-[var(--teal-050)] rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6 print:hidden">
               <div>

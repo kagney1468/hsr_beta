@@ -39,6 +39,7 @@ import TermsOfService from './pages/TermsOfService';
 import CookiePolicy from './pages/CookiePolicy';
 import FindPack from './pages/FindPack';
 import LPE1Guide from './pages/guides/LPE1Guide';
+import AreaReport from './pages/AreaReport';
 import ProfessionalSignup from './pages/ProfessionalSignup';
 import ProfessionalLayout from './layouts/ProfessionalLayout';
 import ProfessionalDashboard from './pages/ProfessionalDashboard';
@@ -66,6 +67,7 @@ export default function App() {
 
           {/* Guides — public, no auth */}
           <Route path="/guides/lpe1" element={<LPE1Guide />} />
+          <Route path="/area-report" element={<AreaReport />} />
 
           {/* Public pack finder */}
           <Route path="/find" element={<FindPack />} />

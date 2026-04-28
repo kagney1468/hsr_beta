@@ -19,6 +19,7 @@ export default function BuyerLayout() {
   const navItems = [
     { to: '/buyer/dashboard', icon: 'dashboard', label: 'Dashboard' },
     { to: '/buyer/profile',   icon: 'person',    label: 'My Profile' },
+    { to: '/area-report',     icon: 'home_pin',  label: 'Area Reports' },
     { to: '/seller/help',     icon: 'help',      label: 'Help' },
   ];
 
