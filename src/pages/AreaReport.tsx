@@ -1,11 +1,9 @@
 /**
  * Area Report page — /area-report?address=...
  *
- * Calls the Home Notes API from the browser. If you see a CORS error in the
- * console, either:
- *   A) Add CORS headers to the Home Notes Next.js API route:
- *      res.setHeader('Access-Control-Allow-Origin', '*');
- *   B) Proxy the request through a Supabase Edge Function instead.
+ * Generates reports via the existing `local-area-report` Supabase Edge Function
+ * (Gemini-powered, same response shape as the Home Notes API).
+ * No CORS issues — all calls go through the Supabase client.
  *
  * Supabase migration required for lead capture:
  * ─────────────────────────────────────────────
@@ -63,7 +61,12 @@ interface AreaReportData {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-const HOME_NOTES_API = 'https://home-notes-khaki.vercel.app/api/report';
+const UK_POSTCODE_RE = /[A-Z]{1,2}[0-9][0-9A-Z]?\s?[0-9][A-Z]{2}/i;
+
+function extractPostcode(address: string): string | null {
+  const m = address.match(UK_POSTCODE_RE);
+  return m ? m[0].trim().toUpperCase() : null;
+}
 
 function ofstedClass(rating: string) {
   const r = rating.toLowerCase();
@@ -158,25 +161,15 @@ export default function AreaReport() {
     setReport(null);
     setReportUnlocked(false);
     try {
-      const res = await fetch(HOME_NOTES_API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address: address.trim() }),
+      const postcode = extractPostcode(address) ?? address.trim();
+      const { data, error: fnErr } = await supabase.functions.invoke('local-area-report', {
+        body: { postcode, address: address.trim() },
       });
-      if (!res.ok) throw new Error(`Report service returned ${res.status}. Please try again.`);
-      const data: AreaReportData = await res.json();
-      setReport(data);
+      if (fnErr) throw new Error(fnErr.message || 'Failed to load area report');
+      if (data?.error) throw new Error(data.error);
+      setReport(data.report as AreaReportData);
     } catch (err: any) {
-      const msg = err?.message || '';
-      if (msg.toLowerCase().includes('failed to fetch') || err?.name === 'TypeError') {
-        setError(
-          'Unable to reach the area report service — this is likely a CORS issue. ' +
-          'Add "Access-Control-Allow-Origin: *" to the Home Notes API response headers, ' +
-          'or proxy the request through a Supabase Edge Function.'
-        );
-      } else {
-        setError(msg || 'Something went wrong. Please try again.');
-      }
+      setError(err?.message || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
