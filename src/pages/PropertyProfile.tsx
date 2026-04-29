@@ -114,7 +114,7 @@ export default function PropertyProfile() {
             disputes: mi?.disputes || 'None',
             building_regs_required: mi?.building_regs_required || false,
           });
-          if (data.address_line1) setAddressLocked(true);
+          if (data.address_postcode) setAddressLocked(true);
         }
       } catch (error) {
         console.error('Error loading property:', error);
@@ -371,26 +371,17 @@ export default function PropertyProfile() {
           <div className="space-y-4">
             {/* Address — locked display for returning users, lookup for new entry */}
             {addressLocked ? (
-              <div className="space-y-3">
-                <div className="p-4 rounded-xl bg-[var(--teal-050)] border border-[#6dd4d4]">
-                  <p className="text-sm font-semibold text-[var(--teal-900)] leading-relaxed">
-                    {[formData.address_line1, formData.address_line2, formData.address_town, formData.address_county]
-                      .filter(Boolean)
-                      .join(', ')}
+              <div className="p-4 rounded-xl bg-[var(--teal-050)] border border-[#6dd4d4]">
+                <p className="text-sm font-semibold text-[var(--teal-900)] leading-relaxed">
+                  {[formData.address_line1, formData.address_line2, formData.address_town, formData.address_county]
+                    .filter(Boolean)
+                    .join(', ')}
+                </p>
+                {formData.postcode && (
+                  <p className="text-sm font-semibold text-[var(--teal-900)] mt-0.5">
+                    {formData.postcode.trim().toUpperCase()}
                   </p>
-                  {formData.postcode && (
-                    <p className="text-sm font-semibold text-[var(--teal-900)] mt-0.5">
-                      {formData.postcode.trim().toUpperCase()}
-                    </p>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setAddressLocked(false)}
-                  className="text-xs font-semibold text-[var(--teal-600)] hover:text-[var(--teal-900)] underline underline-offset-2 transition-colors"
-                >
-                  Change address
-                </button>
+                )}
               </div>
             ) : (
               <PostcodeLookup
