@@ -23,6 +23,8 @@ export default function PropertyProfile() {
   const [epcLoading, setEpcLoading] = useState(false);
   const [epcStatus, setEpcStatus] = useState<'initial' | 'found' | 'not_found' | 'multiple'>('initial');
   const [epcOptions, setEpcOptions] = useState<any[]>([]);
+  const [broadbandLoading, setBroadbandLoading] = useState(false);
+  const [broadbandStatus, setBroadbandStatus] = useState<'initial' | 'found' | 'not_found'>('initial');
   
   const [formData, setFormData] = useState({
     address_line1: '',
@@ -184,6 +186,41 @@ export default function PropertyProfile() {
       property_type: epcData['property-type'] || prev.property_type,
       construction_age_band: epcData['construction-age-band'] || prev.construction_age_band
     }));
+  };
+
+  const handleBroadbandLookup = async () => {
+    const postcode = formData.postcode.trim().replace(/\s+/g, '').toUpperCase();
+    if (!postcode) return;
+    setBroadbandLoading(true);
+    setBroadbandStatus('initial');
+    try {
+      // OFCOM Connected Nations Broadband Coverage API
+      // Response fields: SFBBAvailability, UFBBAvailability, GigabitAvailability, MaxDownloadSpeed, MaxUploadSpeed
+      // Adjust field names here if the API returns different casing
+      const res = await fetch(`https://api-proxy.ofcom.org.uk/broadband/coverage/${encodeURIComponent(postcode)}`, {
+        headers: {
+          'Ocp-Apim-Subscription-Key': import.meta.env.VITE_OFCOM_API_KEY,
+          'Cache-Control': 'no-cache',
+        },
+      });
+      if (!res.ok) throw new Error(`OFCOM API ${res.status}`);
+      const data = await res.json();
+
+      // Map to dropdown: Ultrafast > Superfast > Standard
+      let speed = 'Standard';
+      if (data.GigabitAvailability === 1 || data.UFBBAvailability === 1) {
+        speed = 'Ultrafast';
+      } else if (data.SFBBAvailability === 1) {
+        speed = 'Superfast';
+      }
+
+      setFormData(prev => ({ ...prev, broadband_speed: speed }));
+      setBroadbandStatus('found');
+    } catch {
+      setBroadbandStatus('not_found');
+    } finally {
+      setBroadbandLoading(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -543,6 +580,22 @@ export default function PropertyProfile() {
                 <option value="Superfast">Superfast (Up to 80Mbps)</option>
                 <option value="Ultrafast">Ultrafast (100Mbps+)</option>
               </select>
+              <div className="flex items-center gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={handleBroadbandLookup}
+                  disabled={broadbandLoading || !formData.postcode}
+                  className="shrink-0 px-4 py-2 rounded-xl bg-[var(--teal-050)] border border-[var(--border)] text-[var(--teal-900)] text-xs font-bold hover:bg-[var(--teal-100)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                >
+                  {broadbandLoading ? 'Looking up…' : 'Auto-fetch Broadband'}
+                </button>
+                {broadbandStatus === 'found' && (
+                  <span className="text-xs font-semibold text-[#059669]">✓ Broadband availability updated</span>
+                )}
+                {broadbandStatus === 'not_found' && (
+                  <span className="text-xs font-semibold text-amber-600">No data found for this postcode</span>
+                )}
+              </div>
             </div>
           </div>
         </Card>
