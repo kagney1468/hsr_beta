@@ -10,6 +10,8 @@ import { getPackShareUrl } from '../lib/siteUrl';
 import { getPublicUserIdByAuthUserId } from '../lib/publicUser';
 import { getGreeting } from '../lib/greeting';
 import { QRCodeSVG } from 'qrcode.react';
+import { generateTA6 } from '../lib/generateTA6';
+import { saveAs } from 'file-saver';
 
 export default function SellerDashboard() {
   const { user } = useAuth();
@@ -197,6 +199,7 @@ export default function SellerDashboard() {
 
   const [copying, setCopying] = useState(false);
   const [copyingRef, setCopyingRef] = useState(false);
+  const [ta6Loading, setTa6Loading] = useState(false);
   const [firstName, setFirstName] = useState<string | null>(null);
   const [onboardingDismissed, setOnboardingDismissed] = useState(
     () => localStorage.getItem('hsr_seller_onboarding_dismissed') === 'true'
@@ -261,6 +264,91 @@ export default function SellerDashboard() {
     await navigator.clipboard.writeText(ref);
     setCopyingRef(true);
     setTimeout(() => setCopyingRef(false), 2000);
+  };
+
+  const handleDownloadTA6 = async () => {
+    const propertyId = data.property?.id;
+    if (!propertyId) return;
+    setTa6Loading(true);
+    try {
+      const [miRes, propRes, occupiersRes, alterationsRes, guaranteesRes] = await Promise.all([
+        supabase.from('material_information').select('*').eq('property_id', propertyId).maybeSingle(),
+        supabase.from('properties').select('*').eq('id', propertyId).maybeSingle(),
+        supabase.from('property_occupiers').select('*').eq('property_id', propertyId),
+        supabase.from('property_alterations').select('*').eq('property_id', propertyId),
+        supabase.from('property_guarantees').select('*').eq('property_id', propertyId),
+      ]);
+
+      const mi = miRes.data;
+      const prop = propRes.data;
+      const pdtf = (mi?.pdtf_data ?? {}) as Record<string, Record<string, unknown>>;
+      const rrObj = (pdtf['/propertyPack/restrictionsAndRights'] ?? {}) as Record<string, unknown>;
+
+      const addressParts = [
+        prop?.address_line1,
+        prop?.address_line2,
+        prop?.address_town,
+        prop?.address_postcode,
+      ].filter(Boolean);
+
+      const ta6Data = {
+        address: addressParts.join(', ') || 'Unknown address',
+        property_type: prop?.property_type ?? null,
+        tenure: prop?.tenure ?? null,
+        built_form: mi?.built_form ?? null,
+        reception_count: mi?.reception_count ?? null,
+        tenure_detail: (mi?.tenure_detail as Record<string, unknown>) ?? null,
+        non_standard_construction: mi?.non_standard_construction ?? null,
+        non_standard_construction_details: mi?.non_standard_construction_details ?? null,
+        occupiers: (occupiersRes.data ?? []).map((o: any) => ({
+          occupier_type: o.occupier_type,
+          will_vacate_on_completion: o.will_vacate_on_completion,
+          notes: o.notes ?? '',
+        })),
+        has_boundary_disputes: mi?.has_boundary_disputes ?? null,
+        boundary_disputes: mi?.boundary_disputes ?? null,
+        has_neighbour_disputes: mi?.has_neighbour_disputes ?? null,
+        neighbour_disputes: mi?.neighbour_disputes ?? null,
+        has_chancel_repair: mi?.has_chancel_repair ?? null,
+        chancel_repair: mi?.chancel_repair ?? null,
+        has_planning_notices: mi?.has_planning_notices ?? null,
+        alterations: (alterationsRes.data ?? []).map((a: any) => ({
+          alteration_type: a.alteration_type,
+          description: a.description ?? '',
+          year_completed: a.year_completed ? String(a.year_completed) : '',
+          building_regs_obtained: a.building_regs_obtained ?? '',
+          planning_obtained: a.planning_obtained ?? '',
+          works_by_current_owner: a.works_by_current_owner ?? null,
+        })),
+        guarantees: (guaranteesRes.data ?? []).map((g: any) => ({
+          guarantee_type: g.guarantee_type,
+          provider: g.provider ?? '',
+          start_date: g.start_date ?? '',
+          expiry_date: g.expiry_date ?? '',
+          transferable: g.transferable ?? '',
+        })),
+        heating_type: mi?.heating_type ?? null,
+        heating_age_years: mi?.heating_age_years ?? null,
+        sewerage: mi?.sewerage ?? null,
+        epc_expiry_date: mi?.epc_expiry_date ?? null,
+        has_restrictions: mi?.has_restrictions ?? null,
+        has_easements: mi?.has_easements ?? null,
+        has_covenants: mi?.has_covenants ?? null,
+        restriction_details: (rrObj.restrictionDetails as string) ?? null,
+        easement_details: (rrObj.easementDetails as string) ?? null,
+        covenant_details: (rrObj.covenantDetails as string) ?? null,
+        has_shared_access: (rrObj.hasSharedAccess as boolean) ?? null,
+        shared_access_details: (rrObj.sharedAccessDetails as string) ?? null,
+      };
+
+      const blob = await generateTA6(ta6Data);
+      const filename = `${(prop as any)?.pack_reference ?? 'hsr'}-ta6-prefilled.docx`;
+      saveAs(blob, filename);
+    } catch (err) {
+      console.error('Error generating TA6 document:', err);
+    } finally {
+      setTa6Loading(false);
+    }
   };
 
   const handleDownloadQR = () => {
@@ -759,6 +847,19 @@ export default function SellerDashboard() {
               </Card>
             ))}
           </div>
+
+          {data.materialInfo?.built_form && (
+            <div className="flex justify-end">
+              <Button
+                onClick={handleDownloadTA6}
+                disabled={ta6Loading}
+                className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-xl bg-[var(--teal-900)] text-white hover:bg-[var(--teal-600)] disabled:opacity-50 transition-colors"
+              >
+                <span className="material-symbols-outlined text-base">download</span>
+                {ta6Loading ? 'Generating…' : 'Download pre-filled TA6'}
+              </Button>
+            </div>
+          )}
         </div>
 
         <div className="space-y-8">
