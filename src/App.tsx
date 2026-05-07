@@ -41,6 +41,7 @@ import FindPack from './pages/FindPack';
 import LPE1Guide from './pages/guides/LPE1Guide';
 import AreaReport from './pages/AreaReport';
 import PropertyInformation from './pages/PropertyInformation';
+import LeaseholdInformation from './pages/LeaseholdInformation';
 import ProfessionalSignup from './pages/ProfessionalSignup';
 import ProfessionalLayout from './layouts/ProfessionalLayout';
 import ProfessionalDashboard from './pages/ProfessionalDashboard';
@@ -94,6 +95,7 @@ export default function App() {
               <Route path="profile" element={<SellerProfile />} />
               <Route path="property" element={<PropertyProfile />} />
               <Route path="property/:propertyId/information" element={<PropertyInformation />} />
+              <Route path="property/:propertyId/leasehold" element={<LeaseholdInformation />} />
               <Route path="documents" element={<DocumentUpload />} />
               <Route path="declaration" element={<FinalDeclaration />} />
               <Route path="readiness" element={<ReadinessDashboard />} />

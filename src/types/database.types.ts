@@ -509,6 +509,7 @@ export type Database = {
           property_id: string | null
           confirms_accuracy: boolean
           confirms_ai_review: boolean
+          confirms_leasehold_accuracy: boolean
           signed_at: string | null
           created_at: string
         }
@@ -517,6 +518,7 @@ export type Database = {
           property_id?: string | null
           confirms_accuracy?: boolean
           confirms_ai_review?: boolean
+          confirms_leasehold_accuracy?: boolean
           signed_at?: string | null
           created_at?: string
         }
@@ -525,6 +527,7 @@ export type Database = {
           property_id?: string | null
           confirms_accuracy?: boolean
           confirms_ai_review?: boolean
+          confirms_leasehold_accuracy?: boolean
           signed_at?: string | null
           created_at?: string
         }

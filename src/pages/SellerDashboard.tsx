@@ -11,6 +11,7 @@ import { getPublicUserIdByAuthUserId } from '../lib/publicUser';
 import { getGreeting } from '../lib/greeting';
 import { QRCodeSVG } from 'qrcode.react';
 import { generateTA6 } from '../lib/generateTA6';
+import { generateTA7 } from '../lib/generateTA7';
 import { saveAs } from 'file-saver';
 
 export default function SellerDashboard() {
@@ -200,6 +201,7 @@ export default function SellerDashboard() {
   const [copying, setCopying] = useState(false);
   const [copyingRef, setCopyingRef] = useState(false);
   const [ta6Loading, setTa6Loading] = useState(false);
+  const [ta7Loading, setTa7Loading] = useState(false);
   const [firstName, setFirstName] = useState<string | null>(null);
   const [onboardingDismissed, setOnboardingDismissed] = useState(
     () => localStorage.getItem('hsr_seller_onboarding_dismissed') === 'true'
@@ -348,6 +350,85 @@ export default function SellerDashboard() {
       console.error('Error generating TA6 document:', err);
     } finally {
       setTa6Loading(false);
+    }
+  };
+
+  const handleDownloadTA7 = async () => {
+    const propertyId = data.property?.id;
+    if (!propertyId) return;
+    setTa7Loading(true);
+    try {
+      const [miRes, propRes, declRes] = await Promise.all([
+        supabase.from('material_information').select('*').eq('property_id', propertyId).maybeSingle(),
+        supabase.from('properties').select('*').eq('id', propertyId).maybeSingle(),
+        supabase.from('seller_declarations').select('*').eq('property_id', propertyId).maybeSingle(),
+      ]);
+
+      const mi = miRes.data;
+      const prop = propRes.data;
+      const decl = declRes.data as any;
+      const td = ((mi?.tenure_detail ?? {}) as Record<string, unknown>);
+      const pd = ((mi?.pdtf_data ?? {}) as Record<string, Record<string, unknown>>);
+      const sc = (pd['/propertyPack/leasehold/serviceCharge'] ?? {}) as Record<string, unknown>;
+      const bld = (pd['/propertyPack/leasehold/building'] ?? {}) as Record<string, unknown>;
+      const fh = (pd['/propertyPack/leasehold/freeholder'] ?? {}) as Record<string, unknown>;
+      const ch = (pd['/propertyPack/leasehold/commonhold'] ?? {}) as Record<string, unknown>;
+
+      const addressParts = [prop?.address_line1, prop?.address_line2, prop?.address_town, prop?.address_postcode].filter(Boolean);
+
+      const ta7Data = {
+        address: addressParts.join(', ') || 'Unknown address',
+        pack_reference: (prop as any)?.pack_reference ?? null,
+        tenure: prop?.tenure ?? null,
+        lease_years_remaining: td.leaseYearsRemaining != null ? Number(td.leaseYearsRemaining) : null,
+        original_lease_term: td.originalLeaseTerm != null ? Number(td.originalLeaseTerm) : null,
+        lease_start_date: (td.leaseStartDate as string) ?? null,
+        has_lease_extension: (td.hasLeaseExtension as boolean) ?? null,
+        lease_extension_details: (td.leaseExtensionDetails as string) ?? null,
+        ground_rent_amount: td.groundRentAmount != null ? Number(td.groundRentAmount) : null,
+        ground_rent_review_period: (td.groundRentReviewPeriod as string) ?? null,
+        ground_rent_review_basis: (td.groundRentReviewBasis as string) ?? null,
+        is_ground_rent_zero: (td.isGroundRentZero as boolean) ?? null,
+        service_charge_amount: sc.serviceChargeAmount != null ? Number(sc.serviceChargeAmount) : null,
+        service_charge_period: (sc.serviceChargePeriod as string) ?? null,
+        service_charge_review_date: (sc.serviceChargeReviewDate as string) ?? null,
+        managing_agent: (sc.managingAgent as string) ?? null,
+        managing_agent_contact: (sc.managingAgentContact as string) ?? null,
+        management_company_name: (sc.managementCompanyName as string) ?? null,
+        has_right_to_manage: (sc.hasRightToManage as boolean) ?? null,
+        has_service_charge_dispute: (sc.hasServiceChargeDispute as boolean) ?? null,
+        service_charge_dispute_details: (sc.serviceChargeDisputeDetails as string) ?? null,
+        building_insurance_by: (bld.buildingInsuranceBy as string) ?? null,
+        building_insurance_provider: (bld.buildingInsuranceProvider as string) ?? null,
+        has_fire_safety_certificate: (bld.hasFireSafetyCertificate as boolean) ?? null,
+        has_cladding: (bld.hasCladding as boolean) ?? null,
+        cladding_details: (bld.claddingDetails as string) ?? null,
+        has_ews1: (bld.hasEWS1 as boolean) ?? null,
+        ews_rating: (bld.ewsRating as string) ?? null,
+        building_over_six_storeys: (bld.buildingOverSixStoreys as boolean) ?? null,
+        freeholder_name: (fh.freeholderName as string) ?? null,
+        freeholder_contact: (fh.freeholderContact as string) ?? null,
+        has_share_of_freehold: (fh.hasShareOfFreehold as boolean) ?? null,
+        has_section20_notice: (fh.hasSection20Notice as boolean) ?? null,
+        section20_details: (fh.section20Details as string) ?? null,
+        has_breach_of_lease: (fh.hasBreachOfLease as boolean) ?? null,
+        breach_details: (fh.breachDetails as string) ?? null,
+        has_pending_leasehold_claims: (fh.hasPendingLeaseholdClaims as boolean) ?? null,
+        pending_claims_details: (fh.pendingClaimsDetails as string) ?? null,
+        is_commonhold: (ch.isCommonhold as boolean) ?? null,
+        commonhold_association_name: (ch.commonholdAssociationName as string) ?? null,
+        commonhold_annual_contribution: ch.commonholdAnnualContribution != null ? Number(ch.commonholdAnnualContribution) : null,
+        confirms_leasehold_accuracy: decl?.confirms_leasehold_accuracy ?? false,
+        signed_at: decl?.signed_at ?? null,
+      };
+
+      const blob = await generateTA7(ta7Data);
+      const filename = `${(prop as any)?.pack_reference ?? 'hsr'}-leasehold-information.docx`;
+      saveAs(blob, filename);
+    } catch (err) {
+      console.error('Error generating TA7 document:', err);
+    } finally {
+      setTa7Loading(false);
     }
   };
 
@@ -848,18 +929,41 @@ export default function SellerDashboard() {
             ))}
           </div>
 
-          {data.materialInfo?.built_form && (
-            <div className="flex justify-end">
-              <Button
-                onClick={handleDownloadTA6}
-                disabled={ta6Loading}
-                className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-xl bg-[var(--teal-900)] text-white hover:bg-[var(--teal-600)] disabled:opacity-50 transition-colors"
-              >
-                <span className="material-symbols-outlined text-base">download</span>
-                {ta6Loading ? 'Generating…' : 'Download pre-filled TA6'}
-              </Button>
-            </div>
-          )}
+          {data.materialInfo?.built_form && (() => {
+            const tenure = (data.property?.tenure || '').toLowerCase();
+            const isLeasehold = tenure === 'leasehold' || tenure === 'shared freehold';
+            return (
+              <div className="flex flex-wrap justify-end gap-3">
+                {isLeasehold && (
+                  <Button
+                    onClick={() => navigate(`/seller/property/${data.property?.id}/leasehold`)}
+                    className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-xl bg-white text-[var(--teal-900)] border border-[var(--border)] hover:bg-[var(--teal-050)] transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-base">edit_note</span>
+                    Leasehold Information (TA7)
+                  </Button>
+                )}
+                {isLeasehold && (
+                  <Button
+                    onClick={handleDownloadTA7}
+                    disabled={ta7Loading}
+                    className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-xl bg-[var(--teal-900)] text-white hover:bg-[var(--teal-600)] disabled:opacity-50 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-base">download</span>
+                    {ta7Loading ? 'Generating…' : 'Download pre-filled TA7'}
+                  </Button>
+                )}
+                <Button
+                  onClick={handleDownloadTA6}
+                  disabled={ta6Loading}
+                  className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-xl bg-[var(--teal-900)] text-white hover:bg-[var(--teal-600)] disabled:opacity-50 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-base">download</span>
+                  {ta6Loading ? 'Generating…' : 'Download pre-filled TA6'}
+                </Button>
+              </div>
+            );
+          })()}
         </div>
 
         <div className="space-y-8">
