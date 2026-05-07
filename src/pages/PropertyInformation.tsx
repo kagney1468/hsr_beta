@@ -479,9 +479,7 @@ export default function PropertyInformation() {
         miPayload = {
           ...miPayload,
           has_restrictions: hasRestrictions,
-          restrictions: hasRestrictions === true ? 'Yes' : hasRestrictions === false ? 'No' : null,
           has_easements: hasEasements,
-          rights_easements: hasEasements === true ? 'Yes' : hasEasements === false ? 'No' : null,
           has_covenants: hasCovenants,
           pdtf_data: newPdtf,
         };
@@ -787,57 +785,47 @@ export default function PropertyInformation() {
 
         <ConditionalPanel show={hasAlterations === true}>
           {alterations.length > 0 && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)] text-left">
-                    <th className="pb-2 pr-3">Type</th>
-                    <th className="pb-2 pr-3">Description</th>
-                    <th className="pb-2 pr-3">Year</th>
-                    <th className="pb-2 pr-3">Building Regs</th>
-                    <th className="pb-2 pr-3">Planning</th>
-                    <th className="pb-2 pr-3">By current owner?</th>
-                    <th className="pb-2" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {alterations.map((row, i) => (
-                    <tr key={i} className="border-t border-[var(--border)]">
-                      <td className="py-2 pr-3 min-w-[140px]">
-                        <select className={selectClass} value={row.alteration_type} onChange={(e) => updateAlteration(i, 'alteration_type', e.target.value)}>
-                          {['Extension', 'Loft conversion', 'Structural work', 'Electrical', 'Plumbing', 'Windows', 'Heating', 'Other'].map((v) => <option key={v}>{v}</option>)}
-                        </select>
-                      </td>
-                      <td className="py-2 pr-3 min-w-[160px]">
-                        <input type="text" className={inputClass} value={row.description} onChange={(e) => updateAlteration(i, 'description', e.target.value)} placeholder="Brief description" />
-                      </td>
-                      <td className="py-2 pr-3 min-w-[80px]">
-                        <input type="number" className={inputClass} value={row.year_completed} onChange={(e) => updateAlteration(i, 'year_completed', e.target.value)} placeholder="Year" />
-                      </td>
-                      <td className="py-2 pr-3 min-w-[130px]">
-                        <select className={selectClass} value={row.building_regs_obtained} onChange={(e) => updateAlteration(i, 'building_regs_obtained', e.target.value)}>
-                          <option value="">Select…</option>
-                          {['Yes', 'No', 'Not required'].map((v) => <option key={v}>{v}</option>)}
-                        </select>
-                      </td>
-                      <td className="py-2 pr-3 min-w-[130px]">
-                        <select className={selectClass} value={row.planning_obtained} onChange={(e) => updateAlteration(i, 'planning_obtained', e.target.value)}>
-                          <option value="">Select…</option>
-                          {['Yes', 'No', 'Not required'].map((v) => <option key={v}>{v}</option>)}
-                        </select>
-                      </td>
-                      <td className="py-2 pr-3 min-w-[140px]">
-                        <YesNoToggle value={row.works_by_current_owner} onChange={(v) => updateAlteration(i, 'works_by_current_owner', v)} />
-                      </td>
-                      <td className="py-2">
-                        <button type="button" onClick={() => removeAlteration(i)} className="text-red-500 hover:text-red-700 p-1">
-                          <span className="material-symbols-outlined text-xl">delete</span>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="space-y-4">
+              {alterations.map((row, i) => (
+                <div key={i} className="rounded-2xl border border-[var(--border)] bg-white p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Works {i + 1}</span>
+                    <button type="button" onClick={() => removeAlteration(i)} className="text-red-500 hover:text-red-700 p-1">
+                      <span className="material-symbols-outlined text-xl">delete</span>
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FieldGroup label="Type of works">
+                      <select className={selectClass} value={row.alteration_type} onChange={(e) => updateAlteration(i, 'alteration_type', e.target.value)}>
+                        {['Extension', 'Loft conversion', 'Structural work', 'Electrical', 'Plumbing', 'Windows', 'Heating', 'Other'].map((v) => <option key={v}>{v}</option>)}
+                      </select>
+                    </FieldGroup>
+                    <FieldGroup label="Year completed">
+                      <input type="number" className={inputClass} value={row.year_completed} onChange={(e) => updateAlteration(i, 'year_completed', e.target.value)} placeholder="e.g. 2019" />
+                    </FieldGroup>
+                  </div>
+                  <FieldGroup label="Description">
+                    <textarea className={textareaClass} value={row.description} onChange={(e) => updateAlteration(i, 'description', e.target.value)} placeholder="Describe the works carried out" />
+                  </FieldGroup>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FieldGroup label="Building regs obtained">
+                      <select className={selectClass} value={row.building_regs_obtained} onChange={(e) => updateAlteration(i, 'building_regs_obtained', e.target.value)}>
+                        <option value="">Select…</option>
+                        {['Yes', 'No', 'Not required'].map((v) => <option key={v}>{v}</option>)}
+                      </select>
+                    </FieldGroup>
+                    <FieldGroup label="Planning permission obtained">
+                      <select className={selectClass} value={row.planning_obtained} onChange={(e) => updateAlteration(i, 'planning_obtained', e.target.value)}>
+                        <option value="">Select…</option>
+                        {['Yes', 'No', 'Not required'].map((v) => <option key={v}>{v}</option>)}
+                      </select>
+                    </FieldGroup>
+                  </div>
+                  <FieldGroup label="Carried out by current owner?">
+                    <YesNoToggle value={row.works_by_current_owner} onChange={(v) => updateAlteration(i, 'works_by_current_owner', v)} />
+                  </FieldGroup>
+                </div>
+              ))}
             </div>
           )}
           <button
