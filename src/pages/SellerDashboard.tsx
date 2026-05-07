@@ -659,7 +659,7 @@ export default function SellerDashboard() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
               {
                 id: 'property',
@@ -678,6 +678,14 @@ export default function SellerDashboard() {
                 desc: stats.sections.material.desc,
               },
               {
+                id: 'ta6',
+                label: 'Property Information (TA6)',
+                status: data.materialInfo?.built_form ? 'in-progress' : 'urgent',
+                text: data.materialInfo?.built_form ? 'In Progress' : 'Action Required',
+                icon: 'assignment',
+                desc: 'Boundaries, disputes, alterations, guarantees',
+              },
+              {
                 id: 'documents',
                 label: 'Documents',
                 status: stats.sections.documents.status,
@@ -694,7 +702,9 @@ export default function SellerDashboard() {
                       ? '/seller/property'
                       : section.id === 'material'
                         ? '/seller/property'
-                        : '/seller/documents'
+                        : section.id === 'ta6'
+                          ? `/seller/property/${data.property?.id}/information`
+                          : '/seller/documents'
                   )
                 }
                 className="p-6 sm:p-8 transition-colors group flex flex-col justify-between min-h-[180px] sm:h-[240px] rounded-[24px] cursor-pointer hover:bg-[var(--teal-050)]"

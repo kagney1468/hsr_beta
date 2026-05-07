@@ -257,7 +257,28 @@ export type Database = {
           building_regs_required: boolean | null
           epc_rating: string | null
           epc_expiry: string | null
+          epc_expiry_date: string | null
           construction_age_band: string | null
+          // Sprint 8 — TA6 form columns
+          built_form: string | null
+          reception_count: number | null
+          tenure_detail: Json | null
+          pdtf_data: Json | null
+          has_boundary_disputes: boolean | null
+          boundary_disputes: string | null
+          has_neighbour_disputes: boolean | null
+          neighbour_disputes: string | null
+          has_planning_notices: boolean | null
+          heating_type: string | null
+          heating_age_years: number | null
+          sewerage: string | null
+          non_standard_construction: boolean | null
+          non_standard_construction_details: string | null
+          has_chancel_repair: boolean | null
+          chancel_repair: string | null
+          has_restrictions: boolean | null
+          has_easements: boolean | null
+          has_covenants: boolean | null
           updated_at: string | null
           created_at: string
         }
@@ -283,6 +304,29 @@ export type Database = {
           coastal_erosion?: string | null
           coalfield_area?: string | null
           building_regs_required?: boolean | null
+          epc_rating?: string | null
+          epc_expiry?: string | null
+          epc_expiry_date?: string | null
+          construction_age_band?: string | null
+          built_form?: string | null
+          reception_count?: number | null
+          tenure_detail?: Json | null
+          pdtf_data?: Json | null
+          has_boundary_disputes?: boolean | null
+          boundary_disputes?: string | null
+          has_neighbour_disputes?: boolean | null
+          neighbour_disputes?: string | null
+          has_planning_notices?: boolean | null
+          heating_type?: string | null
+          heating_age_years?: number | null
+          sewerage?: string | null
+          non_standard_construction?: boolean | null
+          non_standard_construction_details?: string | null
+          has_chancel_repair?: boolean | null
+          chancel_repair?: string | null
+          has_restrictions?: boolean | null
+          has_easements?: boolean | null
+          has_covenants?: boolean | null
           updated_at?: string | null
           created_at?: string
         }
@@ -308,7 +352,126 @@ export type Database = {
           coastal_erosion?: string | null
           coalfield_area?: string | null
           building_regs_required?: boolean | null
+          epc_rating?: string | null
+          epc_expiry?: string | null
+          epc_expiry_date?: string | null
+          construction_age_band?: string | null
+          built_form?: string | null
+          reception_count?: number | null
+          tenure_detail?: Json | null
+          pdtf_data?: Json | null
+          has_boundary_disputes?: boolean | null
+          boundary_disputes?: string | null
+          has_neighbour_disputes?: boolean | null
+          neighbour_disputes?: string | null
+          has_planning_notices?: boolean | null
+          heating_type?: string | null
+          heating_age_years?: number | null
+          sewerage?: string | null
+          non_standard_construction?: boolean | null
+          non_standard_construction_details?: string | null
+          has_chancel_repair?: boolean | null
+          chancel_repair?: string | null
+          has_restrictions?: boolean | null
+          has_easements?: boolean | null
+          has_covenants?: boolean | null
           updated_at?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      property_occupiers: {
+        Row: {
+          id: string
+          property_id: string
+          occupier_type: string
+          will_vacate_on_completion: boolean | null
+          notes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          property_id: string
+          occupier_type: string
+          will_vacate_on_completion?: boolean | null
+          notes?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          property_id?: string
+          occupier_type?: string
+          will_vacate_on_completion?: boolean | null
+          notes?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      property_alterations: {
+        Row: {
+          id: string
+          property_id: string
+          alteration_type: string
+          description: string | null
+          year_completed: number | null
+          building_regs_obtained: string | null
+          planning_obtained: string | null
+          works_by_current_owner: boolean | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          property_id: string
+          alteration_type: string
+          description?: string | null
+          year_completed?: number | null
+          building_regs_obtained?: string | null
+          planning_obtained?: string | null
+          works_by_current_owner?: boolean | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          property_id?: string
+          alteration_type?: string
+          description?: string | null
+          year_completed?: number | null
+          building_regs_obtained?: string | null
+          planning_obtained?: string | null
+          works_by_current_owner?: boolean | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      property_guarantees: {
+        Row: {
+          id: string
+          property_id: string
+          guarantee_type: string
+          provider: string | null
+          start_date: string | null
+          expiry_date: string | null
+          transferable: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          property_id: string
+          guarantee_type: string
+          provider?: string | null
+          start_date?: string | null
+          expiry_date?: string | null
+          transferable?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          property_id?: string
+          guarantee_type?: string
+          provider?: string | null
+          start_date?: string | null
+          expiry_date?: string | null
+          transferable?: string | null
           created_at?: string
         }
         Relationships: []
