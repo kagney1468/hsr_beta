@@ -15,6 +15,7 @@ function validatePassword(password: string): string | null {
 
 const PROFESSION_OPTIONS = [
   { value: 'solicitor',        label: 'Solicitor',              regBody: 'SRA',   regLabel: 'SRA Number' },
+  { value: 'managing_agent',   label: 'Managing Agent',         regBody: 'Other', regLabel: 'Professional Registration Number' },
   { value: 'surveyor',         label: 'Surveyor',               regBody: 'RICS',  regLabel: 'RICS Membership Number' },
   { value: 'mortgage_broker',  label: 'Mortgage Broker',        regBody: 'FCA',   regLabel: 'FCA Reference Number' },
   { value: 'lender',           label: 'Lender',                 regBody: 'FCA',   regLabel: 'FCA Reference Number' },
