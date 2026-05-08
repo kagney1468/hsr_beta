@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { useLpe1 } from '../hooks/useLpe1'
+import { RequestLpe1Modal } from '../components/lpe1/RequestLpe1Modal'
 
 // ── Sub-components (same design tokens as PropertyInformation) ────────────────
 
@@ -61,6 +63,9 @@ export default function LeaseholdInformation() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const { lpe1, loading: lpe1Loading, reload: reloadLpe1 } = useLpe1(propertyId)
+  const [showLpe1Modal, setShowLpe1Modal] = useState(false)
 
   const [pdtfData, setPdtfData] = useState<Record<string, unknown>>({});
 
@@ -634,6 +639,76 @@ export default function LeaseholdInformation() {
           ))}
         </div>
       </div>
+
+      {/* LPE1 Request — leasehold properties only */}
+      {!lpe1Loading && (
+        lpe1 ? (
+          <div className={`rounded-2xl border px-5 py-4 flex items-start gap-4 ${
+            lpe1.status === 'complete'
+              ? 'bg-[#d1fae5] border-[#a7f3d0]'
+              : 'bg-[var(--teal-050)] border-[#ddeaeb]'
+          }`}>
+            <span className={`material-symbols-outlined text-xl mt-0.5 ${
+              lpe1.status === 'complete' ? 'text-[#065f46]' : 'text-[#17afaf]'
+            }`}>
+              {lpe1.status === 'complete' ? 'check_circle' : 'schedule'}
+            </span>
+            <div className="space-y-0.5">
+              {lpe1.status === 'complete' ? (
+                <>
+                  <p className="text-sm font-semibold text-[#065f46]">LPE1 complete</p>
+                  <p className="text-xs text-[#065f46]/80">
+                    Completed by {lpe1.completed_by_name}
+                    {lpe1.completed_by_company ? ` · ${lpe1.completed_by_company}` : ''}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-semibold text-[var(--teal-900)]">LPE1 request sent</p>
+                  <p className="text-xs text-[var(--muted)]">
+                    Sent to {lpe1.completed_by_name}
+                    {lpe1.completed_by_company ? ` · ${lpe1.completed_by_company}` : ''}
+                    {lpe1.requested_at ? ` on ${new Date(lpe1.requested_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}` : ''}
+                    . We'll notify you when it's complete.
+                  </p>
+                </>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-[#ddeaeb] bg-[var(--teal-050)] px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="flex-1 space-y-0.5">
+              <p className="text-sm font-semibold text-[var(--teal-900)]">LPE1 — Leasehold Property Enquiries</p>
+              <p className="text-xs text-[var(--muted)]">
+                Request management information directly from your managing agent. Removes the typical 2–3 week delay and avoids the £100–500 fee.
+              </p>
+            </div>
+            <Button variant="primary" onClick={() => setShowLpe1Modal(true)} className="shrink-0">
+              <span className="material-symbols-outlined text-base mr-1">send</span>
+              Request LPE1
+            </Button>
+          </div>
+        )
+      )}
+
+      {/* LPE1 Modal */}
+      {showLpe1Modal && (
+        <RequestLpe1Modal
+          propertyId={propertyId!}
+          prefillName={managingAgent}
+          prefillEmail={
+            // managingAgentContact is "phone or email" — only pre-fill if it looks like an email
+            /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(managingAgentContact) ? managingAgentContact : ''
+          }
+          prefillCompany={managementCompanyName}
+          onSuccess={() => {
+            setShowLpe1Modal(false)
+            reloadLpe1()
+            showToast('success', 'LPE1 request sent successfully')
+          }}
+          onClose={() => setShowLpe1Modal(false)}
+        />
+      )}
 
       {/* Step card */}
       <Card className="p-6 sm:p-8">
