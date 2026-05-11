@@ -202,7 +202,7 @@ export default function AgentBranding() {
 
       {/* Body */}
       <div className="p-6 md:p-9">
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 max-w-6xl">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 max-w-6xl mx-auto">
 
           {/* ── LEFT: Settings Form ── */}
           <div className="space-y-6">
