@@ -146,6 +146,22 @@ export default function Login() {
   if (!role) {
     return (
       <div className="min-h-screen bg-[var(--page)] flex flex-col">
+        {/* Navigation */}
+        <nav className="w-full px-6 py-4 flex items-center justify-between border-b border-[var(--border)] relative z-10 bg-[var(--page)]">
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-2xl text-[var(--teal-600)]">home_filled</span>
+            <span className="font-heading font-black text-lg tracking-tight text-[var(--teal-900)]">HomeSalesReady</span>
+          </div>
+          <a
+            href="https://zcal.co/i/9WjbbK6a"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm font-semibold text-[var(--teal-600)] hover:text-[var(--teal-900)] transition-colors"
+          >
+            Book a Discovery Call
+          </a>
+        </nav>
+
         <div className="flex-1 flex flex-col items-center justify-center p-6 relative overflow-hidden">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-[var(--teal-050)] blur-[120px] rounded-full pointer-events-none" />
 
@@ -165,6 +181,17 @@ export default function Login() {
               <p className="text-[var(--muted)] text-lg leading-relaxed">
                 HomeSalesReady helps sellers, agents, solicitors and buyers get every piece of property information organised and shared — before a sale even begins. Fewer delays. Fewer surprises. Faster completions.
               </p>
+              <div className="pt-2">
+                <a
+                  href="https://zcal.co/i/9WjbbK6a"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block px-8 py-3 rounded-2xl font-heading font-bold text-base text-[#0a2a20] transition-opacity hover:opacity-90"
+                  style={{ backgroundColor: '#00e5a0' }}
+                >
+                  Book a Discovery Call
+                </a>
+              </div>
             </div>
 
             {/* Trust strip */}
